@@ -52,13 +52,21 @@ Dev split: 285 items over 55 acronym types, none seen during training.
 | Most frequent sense | 0.488 | by Wikipedia hit count |
 | Most attested sense | 0.533 | by sentences actually mined — the stronger frequency bar |
 | Untrained DictaBERT | 0.692 | `[CLS]` cosine similarity, no training at all |
-| **Fine-tuned cross-encoder** | **~0.82** | 1 epoch, lr 2e-5, batch 16 |
+| **Fine-tuned cross-encoder** | **0.786** | 1 epoch, lr 2e-5, batch 16, seed 42 |
 | Oracle | 1.000 | ceiling — gold is always among the candidates |
 
 The dev set was 292 items until the model's errors were reviewed by hand: 3 carried a
 wrong gold label and were corrected, and 7 had no defensible single answer and were
 removed. The untrained-DictaBERT figure predates that and is the one number above still
 measured on 292.
+
+**Excluding rabbinic-name acronyms, the same model scores 0.855** on the remaining 248
+items. `מהר״ש`, `מהר״י`, `מהרי״א`, `מהרי״ץ` and `יעב״ץ` each offer several different
+rabbis sharing an initial, so choosing between them needs to know which one lived in Belz
+and which in Lubavitch — biography, not context. They are 13% of dev and 41% of its
+errors, at a 68% error rate against 15% for every other type. Both figures are worth
+reporting: the first is the task as posed, the second is the task the method is actually
+suited to.
 
 Reproduce the first four with `model/baselines.py` and `model/zero_shot.py`.
 
@@ -81,12 +89,12 @@ checkpoint is epoch 1 and the notebook now defaults to it. A model starting from
 pretrained position has less left to learn, and 2,966 weakly-labelled examples are
 exhausted quickly.
 
-**Where the errors are.** Of 61 errors on the uncorrected dev set, roughly 24 were
-rabbinic-name acronyms — `מהר״ש`, `מהר״י`, `מהרי״א` — whose candidates are different
-rabbis sharing an initial. Telling `רבי שלום רוקח` from `רבי שלמה מלובלין` requires
-knowing which one lived in Belz, which is biographical knowledge rather than contextual
-reasoning, and the margins there are near zero. Hand review of the other 37 found the
-model genuinely wrong in 27 of them, so label noise is not what caps the score.
+**Where the errors are.** 25 of the 61 errors are the rabbinic-name types described
+above, and their margins are frequently under 0.1 — the model is not confidently wrong
+there so much as unable to choose. Of the rest, gold ranked second in 40 of 61 cases and
+39 were near-misses under a 1.0 margin. Hand review of the non-rabbinic errors from an
+earlier run found the model genuinely wrong in 27 of 37, so label noise is not what caps
+the score.
 
 ### What these numbers are not
 
