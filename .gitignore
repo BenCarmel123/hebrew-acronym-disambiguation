@@ -1,0 +1,25 @@
+# Python virtual environment — ~2GB of installed packages, never committed.
+# Recreate with:  python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+.venv/
+venv/
+
+# Python bytecode cache, regenerated automatically
+__pycache__/
+*.py[cod]
+
+# Model checkpoints and run outputs. Large, regenerable, and not source.
+*.pt
+*.bin
+*.safetensors
+experiments/runs/
+
+# macOS
+.DS_Store
+
+# Editors
+.idea/
+.vscode/
+*.swp
+
+# Notebooks
+.ipynb_checkpoints/

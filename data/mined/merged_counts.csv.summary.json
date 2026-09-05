@@ -1,0 +1,32 @@
+{
+  "n_rows": 2451,
+  "n_acronyms": 760,
+  "n_attested_by_both_sources": 48,
+  "rows_by_source": {
+    "wikipedia": 457,
+    "wikipedia+wiktionary": 48,
+    "wiktionary": 1946
+  },
+  "thresholds": {
+    "10": {
+      "rows_at_or_above": 1288,
+      "acronyms_with_2plus_senses": 353,
+      "hebrew_acronyms_with_2plus_senses": 348
+    },
+    "50": {
+      "rows_at_or_above": 844,
+      "acronyms_with_2plus_senses": 215,
+      "hebrew_acronyms_with_2plus_senses": 214
+    },
+    "100": {
+      "rows_at_or_above": 652,
+      "acronyms_with_2plus_senses": 157,
+      "hebrew_acronyms_with_2plus_senses": 156
+    },
+    "500": {
+      "rows_at_or_above": 287,
+      "acronyms_with_2plus_senses": 56,
+      "hebrew_acronyms_with_2plus_senses": 56
+    }
+  }
+}
