@@ -39,10 +39,10 @@ extraction, not a reason to commit its output.
 large candidate pool is minable, and that in-context examples are scarce. It produced no
 inventory and no labels. Read its README before quoting any count from it.
 
-## Batch 4 — the retry sweep
+## The retry sweep
 
-`batch4_types.txt` holds 43 acronym types selected from the 92 that the first three
-sweeps swept but that produced no sentences. They were reviewed by hand in two passes,
+`retry_types.txt` holds 43 acronym types selected from the 92 that the original mining
+swept but that produced no sentences. They were reviewed by hand in two passes,
 recorded in `unmined_triage.csv` and `merge_review.csv`:
 
 1. **Triage** — is this a usable type at all? Parser precision was never measured, so the
@@ -63,12 +63,12 @@ Only the top dozen or so have real corpus presence. Below ~10 hits the odds of a
 are poor; they are included because they cost nothing extra in the same sweep.
 
     python -m data_preprocess mine-by-sense \
-        --acronyms data/mined/batch4_types.txt \
+        --acronyms data/mined/retry_types.txt \
         --candidates data/mined/candidate_table.csv \
-        --out data/mined/batch4_by_sense.csv \
+        --out data/mined/retry_by_sense.csv \
         --per-expansion 3 --pages-per-expansion 40 --resume
 
-`--pages-per-expansion 40` against the 12 of the original sweeps: these types already
+`--pages-per-expansion 40` against the 12 of the original mining: these types already
 failed once at the shallower depth, so the retry only makes sense if it searches further.
 `--resume` skips types already in the output, so an interrupted run continues rather than
 restarting.

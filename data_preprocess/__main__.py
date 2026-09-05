@@ -116,15 +116,15 @@ def cmd_apply_review(args: argparse.Namespace) -> None:
 def cmd_mine_sentences(args: argparse.Namespace) -> None:
     """Mine clean prose sentences for a focused subset of acronym types.
 
-    Types come either from `--acronyms` (an explicit list, used when a batch
-    is a re-run of types already known to yield) or, failing that, from the
+    Types come either from `--acronyms` (an explicit list, used when a run
+    re-visits types already known to yield) or, failing that, from the
     candidate table: types with at least two senses whose *second* sense is
     genuinely attested (`--min-second-hits`), so every selected type is really
     ambiguous in the corpus rather than nominally polysemous.
 
     Hit count is a weak proxy for yield — roughly two thirds of types selected
     that way produce nothing usable, because the "hits" are prefix collisions
-    (`ב"שלום` for `ב"ש`) rather than the acronym. So once a batch has measured
+    (`ב"שלום` for `ב"ש`) rather than the acronym. So once a run has measured
     a type's real yield, prefer feeding those types back in via `--acronyms`.
     """
     import csv as csv_module
