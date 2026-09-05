@@ -1,0 +1,25 @@
+{
+  "n_pages": 705,
+  "n_bullets": 2109,
+  "n_person_flagged": 160,
+  "n_hebrew_acronyms": 690,
+  "n_initials_mismatch": 135,
+  "thresholds": {
+    "10": {
+      "bullets_at_or_above": 1081,
+      "acronyms_with_2plus_senses": 302
+    },
+    "50": {
+      "bullets_at_or_above": 744,
+      "acronyms_with_2plus_senses": 190
+    },
+    "100": {
+      "bullets_at_or_above": 593,
+      "acronyms_with_2plus_senses": 142
+    },
+    "500": {
+      "bullets_at_or_above": 272,
+      "acronyms_with_2plus_senses": 54
+    }
+  }
+}

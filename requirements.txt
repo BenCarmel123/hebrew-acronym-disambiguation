@@ -1,0 +1,6 @@
+# Data pipeline (acronym_pipeline/)
+requests
+
+# Model training (dictabert/, notebooks/)
+torch
+transformers
