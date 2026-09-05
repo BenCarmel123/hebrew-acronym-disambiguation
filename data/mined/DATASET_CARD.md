@@ -49,14 +49,14 @@ were dropped.
 
 2,264 rows over 680 acronym types.
 
-### 2. Sentence mining → `data/mined/batch*_by_sense.csv`
+### 2. Sentence mining → `data/mined/*_by_sense.csv`
 
 Command: `mine-by-sense --acronyms <types.txt>`. Three strategies exist in
-`mine_sentences.py`; the batches use the latter two.
+`mine_sentences.py`; the mining runs use the latter two.
 
 **`mine_sentences`** (flat, not used for the benchmark) searches the acronym
 surface and keeps clean sentences. Fully natural, but it returns whichever
-sense dominates the corpus and records no sense at all. On batch 1 it produced
+sense dominates the corpus and records no sense at all. On an early run it produced
 239 sentences in which every single `מ"מ` example meant מילימטר — the type
 looked productive at 10 sentences and was useless for disambiguation.
 
@@ -193,7 +193,7 @@ abbreviated usage. Two failure modes recur:
 Fixed terminology (`מפקד מחלקה`, `מכונאי מוטס`, `ממלא מקום`) substitutes
 cleanly. A manual spot-check of one type suggested roughly a third of
 substituted rows are damaged; **this rate has not been measured across the
-data.** Automated flagging caught 5 of 311 rows in batch 1 and should not be
+data.** Automated flagging caught 5 of 311 rows in a spot-check and should not be
 relied on.
 
 **Every `expansion` value is provisional.** For substituted rows it is correct
@@ -220,8 +220,8 @@ into the test set.
 ```
 cd project
 .venv/bin/python3 -m src.data.data_preprocess mine-by-sense \
-    --acronyms data/mined/batch2_types.txt \
-    --out data/mined/batch2_by_sense.csv \
+    --acronyms data/mined/retry_types.txt \
+    --out data/mined/retry_by_sense.csv \
     --per-expansion 3 --pages-per-expansion 12
 ```
 
@@ -245,11 +245,9 @@ had already written. The API client throttles between calls and backs off on
 | `n_candidates`, `candidates` | choice set for the constrained arm, ` \| `-separated |
 | `provenance` | `natural` or `substituted` |
 | `multi_sense_type` | `yes` if the type has ≥2 senses with ≥2 rows each |
-| `batch` | which mining batch produced the row |
 | `source`, `page_title` | provenance of the text |
 
-Raw mining output stays in `data/mined/*_by_sense.csv`; the `batch` column
-records which sweep produced each row.
+Raw mining output stays in `data/mined/*_by_sense.csv`.
 
 ## Known limitations found during model-axis integration (2026-08-29)
 
