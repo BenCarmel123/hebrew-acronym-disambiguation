@@ -14,6 +14,16 @@ produced it.
 | (not kept) | cls | 1 epoch, lr 2e-5, batch 16, unseeded | 0.781 |
 | (not kept) | cls | 1 epoch, lr 2e-5, batch 16, seed 42 | 0.770 |
 | (not kept) | span_mean | 1 epoch, lr 2e-5, batch 16, seed 42 | <0.80 |
+| current | cls | 1 epoch, lr 2e-5, batch 16, seed 42, **corrected dev** | **0.786** |
+
+The last row is the first number measured on the corrected 285-item dev set; everything
+above it was scored against the earlier 292-item version, which carried three wrong gold
+labels and seven items with no defensible answer. The two are not comparable, and 0.786
+is the figure to compare future runs against.
+
+Excluding the rabbinic-name types (`מהר״ש`, `מהר״י`, `מהרי״א`, `מהרי״ץ`, `יעב״ץ`) it
+scores **0.855** on the remaining 248 items. Those five types run a 68% error rate
+against 15% everywhere else — they are 13% of dev and 41% of its errors.
 
 Epochs 2 and 3 of the first run only overfit — dev loss rose from 0.42 to 0.53 to 0.54
 while train loss kept falling — so its saved checkpoint is epoch 1 and the notebook now
