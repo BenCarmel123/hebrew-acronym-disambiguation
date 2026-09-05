@@ -70,5 +70,23 @@ are poor; they are included because they cost nothing extra in the same sweep.
 
 `--pages-per-expansion 40` against the 12 of the original mining: these types already
 failed once at the shallower depth, so the retry only makes sense if it searches further.
-`--resume` skips types already in the output, so an interrupted run continues rather than
-restarting.
+
+### It yielded nothing usable
+
+The sweep ran in ten minutes and returned **15 sentences over 7 of the 43 types** —
+and every one of those 7 came back with a **single sense**. A type with one attested
+sense poses no ranking task, since the argmax is correct by construction, so all 15 rows
+are excluded by the same two-candidate rule that governs the rest of the corpus. Net gain:
+zero training items.
+
+The outcome is in `retry_by_sense.csv`, kept as the record.
+
+**Search depth was never the problem.** `עמ״נ` carries 46,031 hits and returned only
+`על-מנת`; its second sense, `עתודת מיקוש ניידת`, has no corpus presence at all. Same for
+`קנ״מ` (only `קנה-מידה`), `גח״ל`, and `אז״ר`. Forty pages per expansion finds the same
+nothing that twelve did, because these senses are absent from Hebrew Wikipedia rather
+than merely deep in it.
+
+What this rules out: **the 92 unmined types are exhausted.** Growing the corpus means a
+new source — Hebrew Wikisource is the one the dataset card already identifies, for the
+rabbinic and liturgical types Wikipedia lacks prose for — not another pass over this one.
