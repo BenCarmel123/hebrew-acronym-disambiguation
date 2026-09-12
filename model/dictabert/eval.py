@@ -16,7 +16,7 @@ trained for next-sentence prediction, not similarity, which is the finding that 
 Sentence-BERT. Read this as the floor a pretrained encoder gives you off the shelf, and
 the distance fine-tuning had to travel.
 
-    python -m model.dictabert.zero_shot --items data/splits/dev_items.csv
+    python -m model.dictabert.eval --items data/splits/dev_items.csv
 """
 from __future__ import annotations
 
@@ -41,6 +41,25 @@ def embed(tok, model, texts: list[str], device: str) -> torch.Tensor:
     return model(**enc).last_hidden_state[:, 0]
 
 
+@torch.no_grad()
+def evaluate(rows: list[dict], tok, model, device: str) -> dict:
+    correct = total = 0
+    for r in rows:
+        cands = [c.strip() for c in r["candidates"].split("|") if c.strip()]
+        gold = r["gold_expansion"].strip()
+        span = find_span(r["sentence"], r["acronym"])
+        if len(cands) < 2 or not gold or span is None:
+            continue
+        marked = mark_span(r["sentence"], span)
+
+        vecs = embed(tok, model, [marked] + cands, device)
+        sims = F.cosine_similarity(vecs[0:1], vecs[1:])
+        correct += int(cands[int(sims.argmax())] == gold)
+        total += 1
+
+    return {"n_items": total, "accuracy": round(correct / total, 4) if total else 0.0}
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -59,23 +78,10 @@ def main() -> None:
     with open(a.items, encoding="utf-8-sig", newline="") as f:
         rows = list(csv.DictReader(f))
 
-    correct = total = 0
-    for r in rows:
-        cands = [c.strip() for c in r["candidates"].split("|") if c.strip()]
-        gold = r["gold_expansion"].strip()
-        span = find_span(r["sentence"], r["acronym"])
-        if len(cands) < 2 or not gold or span is None:
-            continue
-        marked = mark_span(r["sentence"], span)
-
-        vecs = embed(tok, model, [marked] + cands, device)
-        sims = F.cosine_similarity(vecs[0:1], vecs[1:])
-        correct += int(cands[int(sims.argmax())] == gold)
-        total += 1
-
+    res = evaluate(rows, tok, model, device)
     print(f"{a.items}\n")
-    print(f"  items scored          {total}")
-    print(f"  zero-shot accuracy    {correct / total:.3f}   untrained DictaBERT, "
+    print(f"  items scored          {res['n_items']}")
+    print(f"  zero-shot accuracy    {res['accuracy']:.3f}   untrained DictaBERT, "
           f"[CLS] cosine similarity")
 
 
