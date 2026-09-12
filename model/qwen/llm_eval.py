@@ -2,12 +2,18 @@ from __future__ import annotations
 
 import argparse
 import csv
+import random
+import string
 
 import requests
 
 from model.common.pairs import _normalise, load_rows
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
+
+#: Fixed per-item ordering, not per-run: an item's candidate order must not depend on
+#: what ran before it, or re-running with --out only won't reproduce the same prompts.
+SHUFFLE_SEED = 42
 
 
 def ollama_generate(prompt: str, model: str = "qwen2.5:7b") -> str:
@@ -28,6 +34,34 @@ def build_generate_prompt(acronym: str, sentence: str) -> str:
     )
 
 
+def build_select_prompt(acronym: str, sentence: str, shuffled_candidates: list[str]) -> str:
+    """`shuffled_candidates` must already be in the order to display — shuffling is the
+    caller's job (see evaluate), so this function alone can't accidentally reintroduce
+    positional bias by re-deriving its own order.
+
+    Asks for a letter, not the candidate text: a 7B model reliably outputs a single
+    letter but would not reliably copy a multi-word Hebrew string verbatim.
+    """
+    letters = string.ascii_uppercase[:len(shuffled_candidates)]
+    options = "\n".join(f"{l}. {c}" for l, c in zip(letters, shuffled_candidates))
+    return (
+        f"בהתחשב במשפט הבא בעברית, מהו הפירוש של ראשי התיבות \"{acronym}\"?\n"
+        f"ענה באות אחת בלבד (למשל: A), בלי שום טקסט נוסף.\n\n"
+        f"משפט: {sentence}\n\n"
+        f"{options}\n\n"
+        f"תשובה:"
+    )
+
+
+def parse_letter_choice(response: str, n_candidates: int) -> int | None:
+    """First A/B/C... in the response -> its 0-based index, or None if none found."""
+    valid_letters = string.ascii_uppercase[:n_candidates]
+    for ch in response.strip().upper():
+        if ch in valid_letters:
+            return valid_letters.index(ch)
+    return None
+
+
 def is_correct(response: str, gold: str) -> bool:
     """Loose match: gold's text appears in the model's response, quote-folded."""
     return _normalise(gold) in _normalise(response)
@@ -38,10 +72,13 @@ def is_valid(response: str, candidates: list[str]) -> bool:
     return any(_normalise(c) in _normalise(response) for c in candidates)
 
 
-def evaluate(rows: list[dict], model: str) -> dict:
+def evaluate(rows: list[dict], model: str, mode: str = "generate") -> dict:
     n = 0
     correct = 0
     invalid = 0
+    # One Random instance, seeded once: shuffles are independent draws across items,
+    # not the same permutation repeated, while still reproducing identically run to run.
+    rng = random.Random(SHUFFLE_SEED)
     details = []  # per-item record, so errors can be sliced later (by acronym, type, etc.)
     for r in rows:
         # Same skip rule as baselines.py/pairs.py: a single-candidate item has no real
@@ -52,15 +89,29 @@ def evaluate(rows: list[dict], model: str) -> dict:
             continue
         n += 1
 
-        # No candidate list goes into the prompt here — this is the open-generation
-        # arm, so the model must produce the expansion from scratch.
-        prompt = build_generate_prompt(r["acronym"], r["sentence"])
-        response = ollama_generate(prompt, model=model)
+        # "generate": no candidate list shown, the model produces the expansion from
+        # scratch. "select": the candidate list is shown (order shuffled per item, so
+        # a model with a positional bias like "always pick A" scores at chance instead
+        # of being flattered by gold sitting first) and the model answers with a letter.
+        shown_order = None  # only meaningful in select mode; logged so the CSV shows
+                            # what the model actually saw, not just the row's raw order
+        if mode == "generate":
+            prompt = build_generate_prompt(r["acronym"], r["sentence"])
+            response = ollama_generate(prompt, model=model)
+            correct_item = is_correct(response, gold)
+            valid_item = is_valid(response, cands)
+        elif mode == "select":
+            shuffled = cands[:]
+            rng.shuffle(shuffled)
+            shown_order = shuffled
+            prompt = build_select_prompt(r["acronym"], r["sentence"], shuffled)
+            response = ollama_generate(prompt, model=model)
+            choice = parse_letter_choice(response, len(shuffled))
+            valid_item = choice is not None
+            correct_item = valid_item and shuffled[choice] == gold
+        else:
+            raise ValueError(f"unknown mode {mode!r}")
 
-        correct_item = is_correct(response, gold)
-        # "valid" tracks whether the free-text response lands on ANY real candidate,
-        # not just the gold one — this is what the invalid-expansion-rate metric needs.
-        valid_item = is_valid(response, cands)
         if correct_item:
             correct += 1
         if not valid_item:
@@ -71,6 +122,7 @@ def evaluate(rows: list[dict], model: str) -> dict:
             "acronym": r["acronym"],
             "gold": gold,
             "candidates": cands,
+            "shown_order": shown_order,
             "response": response,
             "correct": correct_item,
             "valid": valid_item,
@@ -89,26 +141,29 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--items", default="data/splits/dev_items.csv")
     ap.add_argument("--model", default="qwen2.5:7b")
-    ap.add_argument("--out", default="data/mined/llm_generate_details.csv")
+    ap.add_argument("--mode", default="generate", choices=["generate", "select"])
+    ap.add_argument("--out", default=None)
     a = ap.parse_args()
+    out = a.out or f"data/mined/llm_{a.mode}_details.csv"
 
-    res = evaluate(load_rows(a.items), model=a.model)
-    print(f"{a.items}  (model: {a.model})\n")
+    res = evaluate(load_rows(a.items), model=a.model, mode=a.mode)
+    print(f"{a.items}  (model: {a.model}, mode: {a.mode})\n")
     print(f"  items scored      {res['n_items']}")
     print(f"  accuracy          {res['accuracy']:.3f}")
     print(f"  invalid rate      {res['invalid_rate']:.3f}   response matched no candidate")
 
-    with open(a.out, "w", encoding="utf-8-sig", newline="") as f:
+    with open(out, "w", encoding="utf-8-sig", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=[
-            "item_id", "acronym", "gold", "candidates", "response",
+            "item_id", "acronym", "gold", "candidates", "shown_order", "response",
             "correct", "valid", "multi_sense_type",
         ])
         writer.writeheader()
         for d in res["details"]:
             row = dict(d)
             row["candidates"] = " | ".join(row["candidates"])
+            row["shown_order"] = " | ".join(row["shown_order"]) if row["shown_order"] else ""
             writer.writerow(row)
-    print(f"\n  per-item details written to {a.out}")
+    print(f"\n  per-item details written to {out}")
 
 
 if __name__ == "__main__":
