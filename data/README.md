@@ -49,6 +49,10 @@ substituted text may have learned the substitution rule rather than disambiguati
 **[`splits/`](splits/)** — `train_items.csv` and `dev_items.csv`, disjoint by acronym
 type. See that directory's README for why the split is by type rather than by row.
 
+Eval outputs (per-item predictions, accuracy tables) are **not** a fourth layer here —
+they are a result of reading layer 3, not an input to any layer, so they live in
+[`results/`](../results/) at the repo root instead.
+
 ## Reading a count from any of this
 
 `mined/DATASET_CARD.md` documents where the data is weak — that it is 96% substituted

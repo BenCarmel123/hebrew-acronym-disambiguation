@@ -31,6 +31,7 @@ model/
 notebooks/         Colab training notebook (dictabertX only)
 checkpoints/       trained weights (gitignored — ~700MB each)
 data/              the dataset — see data/README.md for the layer rules
+results/           eval outputs per arm — per-item CSVs and the combined summary table
 ```
 
 ## Setup
@@ -81,7 +82,7 @@ list? Same 285-item dev set, same prompts, two formulations per model.
 concrete cost of unconstrained generation. Select mode shuffles candidate order per item
 (scored by decoded letter, not position) specifically because early testing found Qwen
 defaults to always answering the first-shown option on the hardest items rather than
-guessing from content — see `data/mined/llm_select_details.csv`'s `shown_order` column.
+guessing from content — see `results/qwen/select_details.csv`'s `shown_order` column.
 
 **Candidate-constrained selection helps every model tried so far**, and helps weak
 models most: Qwen2.5:7b goes from 0.021 to ~0.63 just by being handed the candidate

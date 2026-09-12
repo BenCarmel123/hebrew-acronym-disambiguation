@@ -35,7 +35,7 @@ def main() -> None:
     ap.add_argument("--mode", default="generate", choices=["generate", "select"])
     ap.add_argument("--out", default=None)
     a = ap.parse_args()
-    out = a.out or f"data/mined/llm_{a.mode}_details.csv"
+    out = a.out or f"results/qwen/{a.mode}_details.csv"
 
     res = evaluate(load_rows(a.items),
                    generate_fn=lambda p: ollama_generate(p, model=a.model),
