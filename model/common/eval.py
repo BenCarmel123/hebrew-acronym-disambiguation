@@ -7,6 +7,8 @@ from __future__ import annotations
 import random
 import string
 
+from tqdm import tqdm
+
 from model.common.pairs import _normalise, load_rows
 
 #: Fixed per-item ordering, not per-run: an item's candidate order must not depend on
@@ -70,7 +72,7 @@ def evaluate(rows: list[dict], generate_fn, mode: str = "generate") -> dict:
     # not the same permutation repeated, while still reproducing identically run to run.
     rng = random.Random(SHUFFLE_SEED)
     details = []  # per-item record, so errors can be sliced later (by acronym, type, etc.)
-    for r in rows:
+    for r in tqdm(rows, desc=f"{mode} eval", unit="item"):
         # Same skip rule as baselines.py/pairs.py: a single-candidate item has no real
         # choice to make, and a missing gold can't be scored either way.
         cands = [c.strip() for c in r["candidates"].split("|") if c.strip()]
