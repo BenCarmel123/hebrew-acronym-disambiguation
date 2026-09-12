@@ -13,6 +13,9 @@ __pycache__/
 *.safetensors
 experiments/runs/
 
+# Secrets — API keys, never committed.
+.env
+
 # macOS
 .DS_Store
 
