@@ -4,8 +4,8 @@ Each arm keeps its own eval.py (with its own CLI, flags, and printed detail) —
 script just calls each arm's evaluate() directly and collects the numbers, so the
 report has one table instead of seven separate command outputs to copy by hand.
 
-    python -m model.run_all
-    python -m model.run_all --checkpoint checkpoints/dictabert-crossenc-<ts>.pt
+    python -m pipeline.run_all
+    python -m pipeline.run_all --checkpoint checkpoints/dictabert-crossenc-<ts>.pt
 """
 from __future__ import annotations
 
