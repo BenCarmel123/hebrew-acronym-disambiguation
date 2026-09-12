@@ -1,28 +1,17 @@
+"""Shared open-generation / candidate-select evaluation loop, usable against any LLM
+backend. A backend module (model/qwen/eval.py, model/gemini/eval.py, ...) only
+needs to supply a `generate_fn(prompt: str) -> str` and call `evaluate()`.
+"""
 from __future__ import annotations
 
-import argparse
-import csv
 import random
 import string
 
-import requests
-
 from model.common.pairs import _normalise, load_rows
-
-OLLAMA_URL = "http://localhost:11434/api/generate"
 
 #: Fixed per-item ordering, not per-run: an item's candidate order must not depend on
 #: what ran before it, or re-running with --out only won't reproduce the same prompts.
 SHUFFLE_SEED = 42
-
-
-def ollama_generate(prompt: str, model: str = "qwen2.5:7b") -> str:
-    response = requests.post(
-        OLLAMA_URL,
-        json={"model": model, "prompt": prompt, "stream": False},
-    )
-    response.raise_for_status()
-    return response.json()["response"]
 
 
 def build_generate_prompt(acronym: str, sentence: str) -> str:
@@ -39,8 +28,8 @@ def build_select_prompt(acronym: str, sentence: str, shuffled_candidates: list[s
     caller's job (see evaluate), so this function alone can't accidentally reintroduce
     positional bias by re-deriving its own order.
 
-    Asks for a letter, not the candidate text: a 7B model reliably outputs a single
-    letter but would not reliably copy a multi-word Hebrew string verbatim.
+    Asks for a letter, not the candidate text: a small model reliably outputs a single
+    letter but does not reliably copy a multi-word Hebrew string verbatim.
     """
     letters = string.ascii_uppercase[:len(shuffled_candidates)]
     options = "\n".join(f"{l}. {c}" for l, c in zip(letters, shuffled_candidates))
@@ -72,7 +61,8 @@ def is_valid(response: str, candidates: list[str]) -> bool:
     return any(_normalise(c) in _normalise(response) for c in candidates)
 
 
-def evaluate(rows: list[dict], model: str, mode: str = "generate") -> dict:
+def evaluate(rows: list[dict], generate_fn, mode: str = "generate") -> dict:
+    """`generate_fn(prompt: str) -> str` — the one thing that differs per LLM backend."""
     n = 0
     correct = 0
     invalid = 0
@@ -97,7 +87,7 @@ def evaluate(rows: list[dict], model: str, mode: str = "generate") -> dict:
                             # what the model actually saw, not just the row's raw order
         if mode == "generate":
             prompt = build_generate_prompt(r["acronym"], r["sentence"])
-            response = ollama_generate(prompt, model=model)
+            response = generate_fn(prompt)
             correct_item = is_correct(response, gold)
             valid_item = is_valid(response, cands)
         elif mode == "select":
@@ -105,7 +95,7 @@ def evaluate(rows: list[dict], model: str, mode: str = "generate") -> dict:
             rng.shuffle(shuffled)
             shown_order = shuffled
             prompt = build_select_prompt(r["acronym"], r["sentence"], shuffled)
-            response = ollama_generate(prompt, model=model)
+            response = generate_fn(prompt)
             choice = parse_letter_choice(response, len(shuffled))
             valid_item = choice is not None
             correct_item = valid_item and shuffled[choice] == gold
@@ -137,34 +127,16 @@ def evaluate(rows: list[dict], model: str, mode: str = "generate") -> dict:
     }
 
 
-def main() -> None:
-    ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--items", default="data/splits/dev_items.csv")
-    ap.add_argument("--model", default="qwen2.5:7b")
-    ap.add_argument("--mode", default="generate", choices=["generate", "select"])
-    ap.add_argument("--out", default=None)
-    a = ap.parse_args()
-    out = a.out or f"data/mined/llm_{a.mode}_details.csv"
-
-    res = evaluate(load_rows(a.items), model=a.model, mode=a.mode)
-    print(f"{a.items}  (model: {a.model}, mode: {a.mode})\n")
-    print(f"  items scored      {res['n_items']}")
-    print(f"  accuracy          {res['accuracy']:.3f}")
-    print(f"  invalid rate      {res['invalid_rate']:.3f}   response matched no candidate")
-
-    with open(out, "w", encoding="utf-8-sig", newline="") as f:
+def write_details_csv(path: str, details: list[dict]) -> None:
+    import csv
+    with open(path, "w", encoding="utf-8-sig", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=[
             "item_id", "acronym", "gold", "candidates", "shown_order", "response",
             "correct", "valid", "multi_sense_type",
         ])
         writer.writeheader()
-        for d in res["details"]:
+        for d in details:
             row = dict(d)
             row["candidates"] = " | ".join(row["candidates"])
             row["shown_order"] = " | ".join(row["shown_order"]) if row["shown_order"] else ""
             writer.writerow(row)
-    print(f"\n  per-item details written to {out}")
-
-
-if __name__ == "__main__":
-    main()
