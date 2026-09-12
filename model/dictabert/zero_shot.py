@@ -16,7 +16,7 @@ trained for next-sentence prediction, not similarity, which is the finding that 
 Sentence-BERT. Read this as the floor a pretrained encoder gives you off the shelf, and
 the distance fine-tuning had to travel.
 
-    python model/zero_shot.py --items data/splits/dev_items.csv
+    python -m model.dictabert.zero_shot --items data/splits/dev_items.csv
 """
 from __future__ import annotations
 
@@ -27,27 +27,10 @@ import torch
 import torch.nn.functional as F
 from transformers import AutoModel, AutoTokenizer
 
+from model.common.pairs import find_span, mark_span
+
 MODEL_ID = "dicta-il/dictabert"
 MAX_LEN = 256
-
-ACR_OPEN, ACR_CLOSE = "[ACR]", "[/ACR]"
-
-_EQUIV = {"״": '"', "“": '"', "”": '"', "׳": "'", "‘": "'", "’": "'"}
-
-
-def _normalise(s: str) -> str:
-    return "".join(_EQUIV.get(ch, ch) for ch in s)
-
-
-def find_span(sentence: str, acronym: str):
-    hay, needle = _normalise(sentence), _normalise(acronym)
-    i = hay.find(needle)
-    return None if i < 0 else (i, i + len(needle))
-
-
-def mark_span(sentence: str, span) -> str:
-    s, e = span
-    return f"{sentence[:s]}{ACR_OPEN}{sentence[s:e]}{ACR_CLOSE}{sentence[e:]}"
 
 
 @torch.no_grad()
