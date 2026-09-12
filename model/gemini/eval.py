@@ -67,7 +67,9 @@ def main() -> None:
                     help="enable extended thinking (off by default — see gemini_generate)")
     ap.add_argument("--out", default=None)
     a = ap.parse_args()
-    out = a.out or f"data/mined/llm_gemini_{a.mode}_details.csv"
+    model_tag = a.model.replace("gemini-", "").replace("-latest", "").replace(".", "")
+    thinking_tag = "thinking" if a.thinking else "nothinking"
+    out = a.out or f"results/gemini/{model_tag}_{thinking_tag}_{a.mode}_details.csv"
 
     res = evaluate(load_rows(a.items),
                    generate_fn=lambda p: gemini_generate(p, model=a.model, thinking=a.thinking),

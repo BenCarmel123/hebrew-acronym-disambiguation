@@ -89,7 +89,7 @@ def main() -> None:
                     help="dictabertX checkpoint; that arm is skipped if not given")
     ap.add_argument("--skip-llm", action="store_true",
                     help="skip qwen/gemini arms (slow — local-model/API calls)")
-    ap.add_argument("--out", default="data/mined/all_arms_summary.md")
+    ap.add_argument("--out", default="results/all_arms_summary.md")
     a = ap.parse_args()
 
     results = run(a.items, a.candidates, a.checkpoint, a.skip_llm)
