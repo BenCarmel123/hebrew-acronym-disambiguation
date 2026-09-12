@@ -4,3 +4,9 @@ requests
 # Model training (dictabert/, notebooks/)
 torch
 transformers
+
+# LLM eval (model/gemini/) — loads GEMINI_API_KEY from .env, not committed
+python-dotenv
+
+# Progress bars for eval loops (model/common/eval.py)
+tqdm

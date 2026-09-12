@@ -21,9 +21,14 @@ an expansion outside it.
 
 ```
 data_preprocess/   builds the dataset from Hebrew Wikipedia + Wiktionary
-model/             encoder.py loads DictaBERT; pairs.py formats model inputs
-                   baselines.py and zero_shot.py score the comparisons
-notebooks/         Colab training notebook
+model/
+  common/          pairs.py (span-marking, pair-building); eval.py (shared LLM-eval loop)
+  baselines.py     random / most-frequent / most-mined / oracle — no model, just stats
+  dictabert/       untrained DictaBERT baseline (model.py, eval.py)
+  dictabertX/      fine-tuned cross-encoder (model.py, eval.py — training is in the notebook)
+  qwen/            local open LLM arm, via Ollama (eval.py)
+  gemini/          hosted SOTA LLM arm (eval.py)
+notebooks/         Colab training notebook (dictabertX only)
 checkpoints/       trained weights (gitignored — ~700MB each)
 data/              the dataset — see data/README.md for the layer rules
 ```
@@ -40,7 +45,7 @@ python3 -m venv .venv
 Open `notebooks/train_dictabert.ipynb` in Colab
 ([direct link](https://colab.research.google.com/github/BenCarmel123/hebrew-acronym-disambiguation/blob/main/notebooks/train_dictabert.ipynb)),
 set `Runtime > Change runtime type > T4 GPU`, and run all cells. It pulls the data and
-`model/pairs.py` from this repo, so there is nothing to upload.
+`model/common/pairs.py` from this repo, so there is nothing to upload.
 
 ## Results
 
@@ -55,6 +60,45 @@ Dev split: 285 items over 55 acronym types, none seen during training.
 | **Fine-tuned cross-encoder** | **0.786** | 1 epoch, lr 2e-5, batch 16, seed 42 |
 | Oracle | 1.000 | ceiling — gold is always among the candidates |
 
+### Open generation vs. candidate-constrained selection
+
+The comparison the project is actually about: does a general-purpose LLM, given the same
+sentence, do better freely generating an expansion or picking one from the candidate
+list? Same 285-item dev set, same prompts, two formulations per model.
+
+| Model | Mode | Accuracy | Invalid rate |
+|---|---|---|---|
+| Qwen2.5:7b (local, via Ollama) | Generate (no candidates shown) | 0.021 | 0.979 |
+| Qwen2.5:7b (local, via Ollama) | Select (candidates shown, shuffled) | 0.628–0.635 | ~0.005 |
+| Gemini Flash-Lite (hosted) | Generate (no candidates shown) | 0.477–0.502 | 0.425–0.467 |
+| Gemini Flash-Lite (hosted) | Select (candidates shown, shuffled) | 0.867 | 0.000 |
+| Gemini 3.6 Flash, thinking on (hosted) | Generate (no candidates shown) | 0.723 | 0.242 |
+| Gemini 3.6 Flash, thinking off (hosted) | Generate (no candidates shown) | 0.698 | 0.284 |
+| Gemini 3.6 Flash, thinking on (hosted) | Select (candidates shown, shuffled) | 0.951 | 0.000 |
+| Gemini 3.6 Flash, thinking off (hosted) | Select (candidates shown, shuffled) | **0.954** | 0.000 |
+
+"Invalid rate" is how often the response matches none of the item's candidates — the
+concrete cost of unconstrained generation. Select mode shuffles candidate order per item
+(scored by decoded letter, not position) specifically because early testing found Qwen
+defaults to always answering the first-shown option on the hardest items rather than
+guessing from content — see `data/mined/llm_select_details.csv`'s `shown_order` column.
+
+**Candidate-constrained selection helps every model tried so far**, and helps weak
+models most: Qwen2.5:7b goes from 0.021 to ~0.63 just by being handed the candidate
+list, Gemini Flash-Lite goes from ~0.49 to 0.867, and Gemini 3.6 Flash goes from 0.72 to
+**0.951** — comfortably above the fine-tuned DictaBERT cross-encoder's 0.786–0.825, with
+zero task-specific training. That is the headline finding: for this task, prompting a
+strong general model with the candidate list already visible outperforms training a
+small model specifically for it, by a wide margin once the model is strong enough.
+
+**Thinking mode does not matter for this task, in either formulation.** Gemini 3.6 Flash
+scores 0.723 (thinking) vs. 0.698 (minimized) on generate mode, and 0.951 vs. 0.954 on
+select mode — both gaps are inside the run-to-run noise band already established for
+DictaBERT, and select mode's gap is in the *opposite* direction, confirming it is noise
+rather than a real effect. Select mode's ~0.95 ceiling needs a strong base model, not
+extended reasoning: thinkingBudget=1 reaches it in roughly 60% of the wall-clock time
+(9 vs. 15 minutes for 285 items) at presumably lower cost, with no accuracy cost.
+
 The dev set was 292 items until the model's errors were reviewed by hand: 3 carried a
 wrong gold label and were corrected, and 7 had no defensible single answer and were
 removed. The untrained-DictaBERT figure predates that and is the one number above still
@@ -68,7 +112,7 @@ errors, at a 68% error rate against 15% for every other type. Both figures are w
 reporting: the first is the task as posed, the second is the task the method is actually
 suited to.
 
-Reproduce the first four with `model/baselines.py` and `model/zero_shot.py`.
+Reproduce the first four with `model/baselines.py` and `model/dictabert/eval.py`.
 
 **Fine-tuning is worth 12.3 points over the untrained encoder**, not the 29 points the
 frequency baselines alone would suggest. Most of the work is already done by DictaBERT's
