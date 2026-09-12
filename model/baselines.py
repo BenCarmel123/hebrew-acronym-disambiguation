@@ -24,7 +24,7 @@ An accuracy number means nothing on its own. These say what you get for free:
 Random is averaged in closed form (1/n_candidates per item) rather than sampled,
 so the number is exact and needs no seed.
 
-    python model/baselines.py --items data/splits/dev_items.csv
+    python -m model.baselines --items data/splits/dev_items.csv
 """
 from __future__ import annotations
 
