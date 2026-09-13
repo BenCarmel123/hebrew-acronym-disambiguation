@@ -20,7 +20,11 @@ an expansion outside it.
 ## Layout
 
 ```
-data_preprocess/   builds the dataset from Hebrew Wikipedia + Wiktionary
+data_preprocess/   builds the dataset from Hebrew Wikipedia, Wiktionary, and the Knesset
+                    Proceedings Corpus (see per-source subpackages: wikipedia/, wiktionary/,
+                    knesset/, sefaria/ — the last exploratory, not wired into any pipeline)
+  common/          hebrew_text.py (orthography, gematria), filters.py (shared mining filters)
+  build_splits.py  constructs a type-disjoint test split from newly-reviewed source data
 model/
   common/          pairs.py (span-marking, pair-building); eval.py (shared LLM-eval loop)
   baselines.py     random / most-frequent / most-mined / oracle — no model, just stats
@@ -31,6 +35,7 @@ model/
 notebooks/         Colab training notebook (dictabertX only)
 checkpoints/       trained weights (gitignored — ~700MB each)
 data/              the dataset — see data/README.md for the layer rules
+pipeline/          validate_data.py, run_all.py, run_pipeline.sh — one command, one table
 results/           eval outputs per arm — per-item CSVs and the combined summary table
 ```
 
@@ -44,9 +49,11 @@ python3 -m venv .venv
 ## Training
 
 Open `notebooks/train_dictabert.ipynb` in Colab
-([direct link](https://colab.research.google.com/github/BenCarmel123/hebrew-acronym-disambiguation/blob/main/notebooks/train_dictabert.ipynb)),
+([direct link, `improve-data` branch](https://colab.research.google.com/github/BenCarmel123/hebrew-acronym-disambiguation/blob/improve-data/notebooks/train_dictabert.ipynb)),
 set `Runtime > Change runtime type > T4 GPU`, and run all cells. It pulls the data and
-`model/common/pairs.py` from this repo, so there is nothing to upload.
+`model/common/pairs.py` from this repo, so there is nothing to upload. Point it at the
+branch that actually has the `train_items.csv` you want to train on — `main` is behind
+`improve-data` as of this writing (see Data, below).
 
 ## Results
 
@@ -161,37 +168,82 @@ held-out natural-usage set is the next step.
 
 ## Data
 
-| File | Rows | What |
-|---|---|---|
-| `data/splits/train_items.csv` | 2,978 | Training split, 494 acronym types |
-| `data/splits/dev_items.csv` | 289 | Dev split, 55 acronym types |
-| `data/mined/acronym_items.csv` | 3,386 | Every mined occurrence — the source the splits were drawn from |
-| `data/mined/candidate_table.csv` | 2,002 | Acronym → expansion inventory, 638 types. An input to mining, not a result |
+| File | Rows | Types | What |
+|---|---|---|---|
+| `data/splits/train_items.csv` | 3,115 | 435 | Training split |
+| `data/splits/dev_items.csv` | 289 | 55 | Dev split — frozen; never rewritten once reviewed |
+| `data/splits/test_items.csv` | 395 | 60 | Held-out test split, built from Knesset + natural + authored rows |
+| `data/splits/all_items.csv` | 4,649 | 549 | Every row across train/dev/test, one file, with a `category` column |
+| `data/splits/by_category/*.csv` | — | — | The same rows split one file per `category` value |
+| `data/mined/acronym_items.csv` | 3,386 | — | Wikipedia mining output — the source most of train/dev were drawn from |
+| `data/mined/knesset/knesset_reviewed.csv` | 1,041 | 191 | Human-reviewed Knesset Corpus rows — the source test/part of train were drawn from |
+| `data/mined/candidate_table.csv` | 2,700+ | 638 | Acronym → expansion inventory. An input to mining, not a result |
 
-`data/splits/` holds only what training reads. Everything the mining pipeline
-produced, including the full occurrence table, stays in `data/mined/`.
+`data/splits/` holds only what training/eval reads. Everything the mining pipeline
+produced, including the full occurrence tables, stays in `data/mined/`.
 
-Train and dev are **disjoint by acronym type**, so dev measures generalization to
-acronyms never seen in training rather than recall of a memorized expansion.
+**Train and dev are disjoint by acronym type**, so dev measures generalization to
+acronyms never seen in training rather than recall of a memorized expansion. **Test is
+disjoint from both train and dev** — this required actively removing 60 types' existing
+rows from train and rebuilding them from the newer source pool (Knesset, natural
+Wikipedia usage, and disclosed AI-authored examples); see
+`data_preprocess/build_splits.py` and `data/mined/DATASET_CARD.md`'s
+"Knesset corpus, natural-text pool, and the frozen test split" section for why that
+carve-out was necessary rather than optional.
+
+### The `category` column
+
+Every row in `all_items.csv` (and the split files) carries one of six values:
+
+| category | rows | meaning |
+|---|---:|---|
+| `wiki_substituted` | ~3,250 | Wikipedia, mechanically rewritten from a spelled-out phrase |
+| `knesset` | 1,041 | Knesset Corpus, human-reviewed |
+| `wiki_natural` | 112 | Wikipedia, real unedited usage |
+| `manual` | 229 | Disclosed AI-authored (`source=claude-sonnet-5`) — written to fill specific sense gaps, never passed off as mined |
+| `wiki_deglossed` | 16 | Wikipedia, real usage with an inline gloss removed |
+| `wiktionary` | 0 | Placeholder — no such rows exist in the current dataset (header-only file) |
+
+`wiki_substituted` vs. `wiki_deglossed`: both start from Wikipedia prose, but
+substitution *invents* the abbreviated form (a sentence that never used the acronym is
+rewritten to use it), while deglossing finds a sentence where a Wikipedia author
+**already used the acronym** and only removes a nearby parenthetical explanation.
 
 ### Label status
 
-| status | rows | meaning |
-|---|---|---|
-| `weak` | 3,258 | Correct by construction — the mining pipeline substituted the acronym into a sentence that spelled the expansion out. Usable for training; not evaluation data |
-| `verified` | 115 | Hand-annotated natural-usage sentences |
-| `unverified` | 13 | Skipped during annotation, left unlabeled |
+| status | meaning |
+|---|---|
+| `weak` | Correct by construction — the mining pipeline substituted the acronym into a sentence that spelled the expansion out. Usable for training; not held-out evaluation data |
+| `verified` | Hand-annotated or human-reviewed (natural Wikipedia usage, Knesset review, or disclosed AI-authored) |
+| `unverified` | Skipped during annotation, left unlabeled — dropped wherever it would leave a row with no gold answer |
 
-`data/mined/DATASET_CARD.md` documents the mining process, every filter, and the
-known limitations — including that the data is still overwhelmingly substituted rather
-than natural, and a full human review of the dev split's substituted rows: a measured
-7.3% damage rate (95% CI 4.1–10.6%), well below an earlier one-type guess of "roughly a
-third". Read it before quoting any number.
+`data/mined/DATASET_CARD.md` documents the mining process, every filter, and the known
+limitations — including a full human review of the dev split's substituted rows (a
+measured 7.3% damage rate, 95% CI 4.1–10.6%), the Knesset Corpus addition and its review,
+the systematic gematria/privacy-redaction candidate fixes, and a known accepted leakage
+condition (page-title overlap between train/dev and train/test — judged low severity;
+see the card for why). Read it before quoting any number.
 
 ## Regenerating the data
 
-`data_preprocess/` builds the dataset from scratch against the live wikis; see
-`data_preprocess/README.md`. A full sweep is thousands of throttled API calls over
-hours, which is why the mined output is committed rather than regenerated on demand.
+`data_preprocess/` builds the dataset from scratch against the live sources; see
+`data_preprocess/README.md`. A full sweep is thousands of throttled API calls (Wikipedia)
+or a multi-GB download (the Knesset Corpus shards) — hours either way — which is why the
+mined output is committed rather than regenerated on demand.
 
-Source text is Hebrew Wikipedia and Wiktionary.
+Source text is Hebrew Wikipedia, Wiktionary, and the
+[Knesset Proceedings Corpus](https://huggingface.co/datasets/HaifaCLGroup/KnessetCorpus).
+Sefaria (rabbinic/Talmudic text) was tried and set aside — see the DATASET_CARD's
+"Scope decisions" for why.
+
+## Current status / next steps
+
+- `checkpoints/` holds a `dictabertX` checkpoint trained **before** this session's data
+  changes (Knesset Corpus, the frozen test split, the thin-sense fixes). Retrain against
+  the current `data/splits/train_items.csv` in Colab before trusting that arm's numbers.
+- `pipeline/run_pipeline.sh` has not yet been re-run against the current data — the
+  Results section above is stale and says so. Re-run it (with a fresh checkpoint) and
+  update Results once training is done.
+- `test_items.csv` exists and validates cleanly but has not been evaluated by any arm
+  yet — that comparison (substituted dev vs. natural-text test) is the next real result
+  to produce.
