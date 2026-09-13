@@ -56,6 +56,81 @@ def acronym_letters(acronym: str) -> str:
     return "".join(FINAL_TO_MEDIAL.get(c, c) for c in letters)
 
 
+# Standard gematria values, sofit (final) forms folded onto their medial
+# letter — a citation or serial number is written with whichever form falls
+# at a word boundary (ך and כ both stand for 20), and the acronym's own
+# gershayim placement doesn't change the value.
+GEMATRIA_VALUES = {
+    "א": 1, "ב": 2, "ג": 3, "ד": 4, "ה": 5, "ו": 6, "ז": 7, "ח": 8, "ט": 9,
+    "י": 10, "כ": 20, "ל": 30, "מ": 40, "נ": 50, "ס": 60, "ע": 70, "פ": 80,
+    "צ": 90, "ק": 100, "ר": 200, "ש": 300, "ת": 400,
+}
+
+_HUNDREDS_HE = {100: "מאה", 200: "מאתיים", 300: "שלוש מאות", 400: "ארבע מאות",
+                500: "חמש מאות", 600: "שש מאות", 700: "שבע מאות", 800: "שמונה מאות",
+                900: "תשע מאות"}
+_TENS_HE = {10: "עשר", 20: "עשרים", 30: "שלושים", 40: "ארבעים", 50: "חמישים",
+            60: "שישים", 70: "שבעים", 80: "שמונים", 90: "תשעים"}
+_ONES_HE = {1: "אחת", 2: "שתיים", 3: "שלוש", 4: "ארבע", 5: "חמש", 6: "שש",
+            7: "שבע", 8: "שמונה", 9: "תשע"}
+# 11-19 are irregular compounds (ones-then-"עשרה"), not ones+"עשר" or the
+# reverse — "שמונה עשרה" (18), never "עשר ושמונה".
+_TEENS_HE = {
+    11: "אחת עשרה", 12: "שתים עשרה", 13: "שלוש עשרה", 14: "ארבע עשרה",
+    15: "חמש עשרה", 16: "שש עשרה", 17: "שבע עשרה", 18: "שמונה עשרה",
+    19: "תשע עשרה",
+}
+
+
+def gematria_value(acronym: str) -> int | None:
+    """The standard (mispar hechrachi) numeric value of an acronym's letters,
+    or None when any letter falls outside 1-400 (the single-letter values —
+    there is no compounding beyond simple digit sum, which is what every
+    citation/serial-number use of a two-letter acronym relies on).
+
+    Every two-Hebrew-letter acronym is *also* a valid number in this system —
+    ת"ק is 500 (400+100), א"ח is 9 (1+8) — so this is deliberately permissive:
+    it says nothing about whether a number reading is the *likely* sense in
+    a given sentence, only whether one exists at all as a distractor/gold
+    candidate.
+    """
+    letters = acronym_letters(acronym)
+    if not letters:
+        return None
+    total = 0
+    for c in letters:
+        v = GEMATRIA_VALUES.get(c)
+        if v is None:
+            return None
+        total += v
+    return total
+
+
+def gematria_value_hebrew(value: int) -> str:
+    """Spell out a gematria value in words, Hebrew feminine cardinal form
+    (as used for a bare count — "ארבע מאות ושתיים", not "ה-402") — matching
+    how these numbers are spoken/written out in Knesset bill-number prose.
+    Only 1-999 is supported, since no acronym's letter-sum exceeds 400+400.
+    """
+    if not (1 <= value <= 999):
+        raise ValueError(f"gematria_value_hebrew only supports 1-999, got {value}")
+    hundreds, rem = divmod(value, 100)
+    parts = []
+    if hundreds:
+        parts.append(_HUNDREDS_HE[hundreds * 100])
+    if 11 <= rem <= 19:
+        parts.append(_TEENS_HE[rem])
+    else:
+        tens, ones = divmod(rem, 10)
+        if tens:
+            parts.append(_TENS_HE[tens * 10])
+        if ones:
+            parts.append(_ONES_HE[ones])
+    if not parts:
+        return "אפס"
+    return " ו".join(parts) if len(parts) > 1 else parts[0]
+
+
 def expansion_initials(phrase: str) -> str:
     """Initial letters of a phrase, in medial form, skipping function words."""
     words = [w for w in strip_niqqud(phrase).split() if w]
