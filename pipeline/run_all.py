@@ -5,7 +5,7 @@ script just calls each arm's evaluate() directly and collects the numbers, so th
 report has one table instead of seven separate command outputs to copy by hand.
 
     python -m pipeline.run_all
-    python -m pipeline.run_all --checkpoint checkpoints/dictabert-crossenc-<ts>.pt
+    python -m pipeline.run_all --checkpoint weights/dictabert-crossenc-<ts>.pt
 """
 from __future__ import annotations
 

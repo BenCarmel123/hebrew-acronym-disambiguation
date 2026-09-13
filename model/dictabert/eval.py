@@ -25,6 +25,7 @@ import csv
 
 import torch
 import torch.nn.functional as F
+from tqdm import tqdm
 from transformers import AutoModel, AutoTokenizer
 
 from model.common.pairs import find_span, mark_span
@@ -44,7 +45,7 @@ def embed(tok, model, texts: list[str], device: str) -> torch.Tensor:
 @torch.no_grad()
 def evaluate(rows: list[dict], tok, model, device: str) -> dict:
     correct = total = 0
-    for r in rows:
+    for r in tqdm(rows, desc="dictabert (untrained) eval", unit="item"):
         cands = [c.strip() for c in r["candidates"].split("|") if c.strip()]
         gold = r["gold_expansion"].strip()
         span = find_span(r["sentence"], r["acronym"])

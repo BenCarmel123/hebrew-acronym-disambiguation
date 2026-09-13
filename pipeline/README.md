@@ -23,7 +23,7 @@ decoupled on purpose, so dataset work and model/eval work can happen in parallel
 ```bash
 pipeline/run_pipeline.sh
 pipeline/run_pipeline.sh --train data/splits/train_items.csv --dev data/splits/dev_items.csv
-pipeline/run_pipeline.sh --checkpoint checkpoints/dictabert-crossenc-<ts>.pt
+pipeline/run_pipeline.sh --checkpoint weights/dictabert-crossenc-<ts>.pt
 pipeline/run_pipeline.sh --skip-llm   # fast: skips qwen/gemini (local model + API calls)
 ```
 

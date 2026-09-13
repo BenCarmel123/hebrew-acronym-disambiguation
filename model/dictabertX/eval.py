@@ -2,16 +2,17 @@
 selection arm this project trained, evaluated locally against a checkpoint instead of
 inside the Colab notebook.
 
-Requires a trained checkpoint (see checkpoints/README.md — not committed, ~700MB;
+Requires a trained checkpoint (see weights/README.md — not committed, ~700MB;
 reproduce it by running notebooks/train_dictabert.ipynb).
 
-    python -m model.dictabertX.eval --checkpoint checkpoints/dictabert-crossenc-<ts>.pt
+    python -m model.dictabertX.eval --checkpoint weights/dictabert-crossenc-<ts>.pt
 """
 from __future__ import annotations
 
 import argparse
 
 import torch
+from tqdm import tqdm
 
 from model.common.pairs import MIN_CANDIDATES, find_span, load_rows, mark_span
 from model.dictabertX.model import load_finetuned
@@ -65,7 +66,7 @@ def encode_batch(tok, device, acr_open_id, acr_close_id,
 @torch.no_grad()
 def evaluate(rows: list[dict], tok, model, acr_open_id, acr_close_id, device: str) -> dict:
     correct = total = 0
-    for r in rows:
+    for r in tqdm(rows, desc="dictabertX (fine-tuned) eval", unit="item"):
         cands = [c.strip() for c in r["candidates"].split("|") if c.strip()]
         gold = r["gold_expansion"].strip()
         span = find_span(r["sentence"], r["acronym"])
