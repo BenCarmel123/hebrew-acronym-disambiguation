@@ -33,7 +33,7 @@ model/
   qwen/            local open LLM arm, via Ollama (eval.py)
   gemini/          hosted SOTA LLM arm (eval.py)
 notebooks/         Colab training notebook (dictabertX only)
-checkpoints/       trained weights (gitignored — ~700MB each)
+weights/       trained weights (gitignored — ~700MB each)
 data/              the dataset — see data/README.md for the layer rules
 pipeline/          validate_data.py, run_all.py, run_pipeline.sh — one command, one table
 results/           eval outputs per arm — per-item CSVs and the combined summary table
@@ -238,7 +238,7 @@ Sefaria (rabbinic/Talmudic text) was tried and set aside — see the DATASET_CAR
 
 ## Current status / next steps
 
-- `checkpoints/` holds a `dictabertX` checkpoint trained **before** this session's data
+- `weights/` holds a `dictabertX` checkpoint trained **before** this session's data
   changes (Knesset Corpus, the frozen test split, the thin-sense fixes). Retrain against
   the current `data/splits/train_items.csv` in Colab before trusting that arm's numbers.
 - `pipeline/run_pipeline.sh` has not yet been re-run against the current data — the

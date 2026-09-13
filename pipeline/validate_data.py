@@ -21,16 +21,24 @@ REQUIRED_COLUMNS = {
 }
 
 
-def _cross_split_overlaps(named_rows: list[tuple[str, list[dict]]]) -> list[str]:
+def _cross_split_overlaps(
+    named_rows: list[tuple[str, list[dict]]]
+) -> tuple[list[str], list[str]]:
     """Pairwise type/sentence/page overlap checks across all given splits.
 
-    Type-disjointness alone misses the softer leakage channel where the same
-    source document supplies both a train and an eval row — different acronym
-    type, but near-identical surrounding prose. Checking `page_title` catches
-    that; checking `sentence` catches the stricter case of a literal duplicate
-    row landing on both sides of a split.
+    -> (errors, warnings). Type and sentence overlap are errors: either means
+    an eval split can't measure what it's supposed to. Page-title overlap is
+    a warning, not an error — it is a real but much softer leakage channel
+    (the same source document can supply both a train and an eval row with
+    different acronym types and no literal duplicate), and for a source like
+    the Knesset Corpus, where one long multi-topic protocol transcript
+    routinely mentions several unrelated acronym types, some overlap here is
+    close to unavoidable without shrinking an already-thin stratified split
+    further. See data/mined/DATASET_CARD.md's "known, accepted leakage
+    channel" note.
     """
-    problems: list[str] = []
+    errors: list[str] = []
+    warnings: list[str] = []
     for i in range(len(named_rows)):
         for j in range(i + 1, len(named_rows)):
             name_a, rows_a = named_rows[i]
@@ -40,7 +48,7 @@ def _cross_split_overlaps(named_rows: list[tuple[str, list[dict]]]) -> list[str]
             types_b = {r["acronym"] for r in rows_b}
             overlap = types_a & types_b
             if overlap:
-                problems.append(
+                errors.append(
                     f"{name_a}/{name_b} share {len(overlap)} acronym type(s) — splits "
                     f"should be type-disjoint, or eval measures memorization rather "
                     f"than generalization (see data/splits/README.md): "
@@ -51,7 +59,7 @@ def _cross_split_overlaps(named_rows: list[tuple[str, list[dict]]]) -> list[str]
             sentences_b = {r["sentence"].strip() for r in rows_b if r.get("sentence", "").strip()}
             sent_overlap = sentences_a & sentences_b
             if sent_overlap:
-                problems.append(
+                errors.append(
                     f"{name_a}/{name_b} share {len(sent_overlap)} identical sentence(s)"
                 )
 
@@ -59,17 +67,20 @@ def _cross_split_overlaps(named_rows: list[tuple[str, list[dict]]]) -> list[str]
             pages_b = {r["page_title"].strip() for r in rows_b if r.get("page_title", "").strip()}
             page_overlap = pages_a & pages_b
             if page_overlap:
-                problems.append(
+                warnings.append(
                     f"{name_a}/{name_b} share {len(page_overlap)} source page_title(s) — "
                     f"same document can supply near-identical prose to both sides even "
                     f"when acronym types are disjoint: {sorted(page_overlap)[:10]}"
                     + (" ..." if len(page_overlap) > 10 else "")
                 )
-    return problems
+    return errors, warnings
 
 
-def validate(train_path: str, dev_path: str, test_path: str | None = None) -> list[str]:
-    """-> list of problem descriptions. Empty means the split set is usable."""
+def validate(
+    train_path: str, dev_path: str, test_path: str | None = None
+) -> tuple[list[str], list[str]]:
+    """-> (errors, warnings). Empty errors means the split set is usable —
+    a non-empty warnings list is worth reading but not a reason to stop."""
     problems = []
 
     named_paths = [("train", train_path), ("dev", dev_path)]
@@ -84,7 +95,7 @@ def validate(train_path: str, dev_path: str, test_path: str | None = None) -> li
         named_rows.append((name, rows))
 
     if any(not rows for _, rows in named_rows):
-        return problems  # nothing further can be checked meaningfully
+        return problems, []  # nothing further can be checked meaningfully
 
     for name, rows in named_rows:
         missing = REQUIRED_COLUMNS - set(rows[0].keys())
@@ -118,9 +129,10 @@ def validate(train_path: str, dev_path: str, test_path: str | None = None) -> li
                 "not present in their own candidates list"
             )
 
-    problems.extend(_cross_split_overlaps(named_rows))
+    errors, warnings = _cross_split_overlaps(named_rows)
+    problems.extend(errors)
 
-    return problems
+    return problems, warnings
 
 
 def main() -> None:
@@ -131,8 +143,15 @@ def main() -> None:
     ap.add_argument("--test", default=None, help="optional held-out test split")
     a = ap.parse_args()
 
-    problems = validate(a.train, a.dev, a.test)
+    problems, warnings = validate(a.train, a.dev, a.test)
     label = f"{a.train}, {a.dev}" + (f", {a.test}" if a.test else "")
+
+    if warnings:
+        print(f"{len(warnings)} warning(s) (not fatal) with {label}:\n")
+        for w in warnings:
+            print(f"  - {w}")
+        print()
+
     if not problems:
         print(f"OK: {label} pass all checks.")
         sys.exit(0)
