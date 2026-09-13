@@ -324,6 +324,215 @@ had already written. The API client throttles between calls and backs off on
 
 Raw mining output stays in `data/mined/*_by_sense.csv`.
 
+## Knesset corpus, natural-text pool, and the frozen test split (2026-09-13)
+
+Everything above this section describes the original Wikipedia/Wiktionary
+pipeline and the dev review that followed it. This section documents a
+substantially larger change: adding a second real-world text source, pulling
+in previously-unused natural Wikipedia usage, and — for the first time —
+constructing a genuinely held-out **test** split, disjoint from both `dev`
+and `train`.
+
+### Why: dev alone could not answer the project's core question
+
+Every row in `train`/`dev` up to this point was `substituted` or
+`deglossed` — Wikipedia text either mechanically rewritten from a spelled-out
+phrase, or edited to remove an inline gloss. A `substituted` sentence was
+*written about* its answer before the acronym was inserted into it, so
+context clues can leak the sense without any real disambiguation happening.
+This directly bears on the question the project proposal was asked to answer
+(course/mor_feedback.md): does a big LLM already solve this task from
+context? On flattered, substituted-only data, "yes" can look true regardless
+of whether it would hold on real usage. `dev` was reviewed and found to be
+94% `weak`-labelled by construction — useful for iteration, but not a fair
+final measurement.
+
+### New source: Knesset Proceedings Corpus
+
+`data_preprocess/knesset/` mines `HaifaCLGroup/KnessetCorpus`
+(huggingface.co), a public, ungated dataset of ~35M pre-segmented sentences
+from Knesset plenary and committee protocols, 1992–2024. Unlike Wikipedia
+mining, sentences here need no page-to-sentence splitting — each shard's
+`protocol_sentences` are already clean units — so only the acronym/prose
+filters in `common/filters.py` apply. Register is formal parliamentary
+speech: acronyms recur in genuinely disambiguating context (a speaker uses
+`בע"מ` or `ש"ח` the way a reader must actually resolve it from the debate),
+unlike Wikipedia's encyclopedic prose.
+
+All 1,000 available plenary shards were downloaded and scanned (`--per-acronym
+15` cap) against the full 549-type inventory: **1,045 rows mined, 193 types
+attested** (committee protocols — ~9,000 further shards — were evaluated and
+explicitly not pursued; see "Scope decisions" below). Every mined row was
+manually reviewed by the user (via a purpose-built HTML labelling tool,
+`db`-capability-backed for save/resume) against each acronym's existing
+candidate list:
+
+| Verdict | Rows |
+|---|---:|
+| clean (gold already correct) | 941 |
+| human_review (corrected — see below) | 100 |
+| dropped (unresolvable) | 4 |
+| **total usable** | **1,041** |
+
+The 4 dropped rows are genuine defects, not disagreements: two mis-tokenized
+clitic-attachment artifacts (a sentence about "מ.י." parsed as if `ב"מ` were
+the acronym; a mangled newspaper name parsed as an acronym), one
+unit-confusion transcription error ("750 מ"מ" for a wine bottle, where the
+source clearly meant מ"ל), one garbled/unparseable token ("ב"ב"ה").
+
+**Two systematic gaps found during review, fixed at the candidate-table
+level rather than row-by-row:**
+
+- **Gematria.** Every 2-letter Hebrew acronym is *also* a valid gematria
+  number (ת"ק = 500, כ"א = 21, ח"י = 18), and Knesset protocols cite bill
+  numbers, page/verse references, and dates this way constantly.
+  `hebrew_text.gematria_value()`/`gematria_value_hebrew()` were added and a
+  gematria candidate was generated for **all 638** `candidate_table.csv`
+  types in one pass, not just the ones a first review round happened to hit
+  — the phenomenon is general, not type-specific.
+- **Privacy redaction.** A large share of Knesset protocol acronyms turn out
+  to be two-initial placeholders for a named person whose full name was
+  withheld (from Knesset's own committee-privacy conventions) — `א"א`,
+  `ד"א`, `מ"ס`, `ע"מ`, `ש"ב`, and many more, confirmed by cross-referencing
+  the surrounding sentence's syntax (a title like "מר"/"גברת" immediately
+  before the acronym). A generic candidate,
+  `"ראשי תיבות שם פרטי ומשפחה (זהות חסויה)"`, was added to every type where
+  this pattern was confirmed, rather than treating each as a one-off.
+
+**Known recurring mining defect, caught by manual review only:** the mining
+tokenizer cannot distinguish a genuine standalone acronym that happens to
+start with a clitic letter (מ/ב/ו/כ/ל/ש/ה/ד) — e.g. `בע"מ`, `מד"א`, `דמ"צ`
+are real, independent acronyms — from an actual מ-/ב- clitic prefix
+attached to a *different* real acronym (`מד"ר`/`בד"ר` are both just
+`ד"ר` with a prefix; `בר"מ` is `ר"מ` with one). Two such cases were caught
+and corrected during review; a general regex fix was considered and
+rejected as unreliable without the full type inventory as context —
+this remains something a reviewer must catch by eye.
+
+### Candidate-table consolidation
+
+A near-duplicate scan across all `candidate_table.csv` expansions per type
+(normalized string similarity) found 3 genuine accidental duplicates —
+all self-inflicted by this session's own additions restating a sense
+Wiktionary already had, differently formatted (`ח"י`, `ל"ב`'s gematria
+entries; `י"ל`'s "יצחק לייבוש" name). These were merged, with the 17
+already-reviewed rows pointing at the newer duplicate repointed to the
+canonical form. ~39 other superficially-similar pairs the same scan found
+(`ר"א` "רבי אלעזר" vs. "רבי אליעזר", `גב"ש` "גבעת שמואל" vs. "גבעת שאול", …)
+are genuinely distinct senses that only look alike in spelling — left
+untouched; merging them would have been a correctness error, not a cleanup.
+
+### wiki_natural: previously-unused natural Wikipedia rows
+
+`data/mined/acronym_items.csv` has always carried 128 `provenance=natural`
+rows (real, unedited Wikipedia acronym usage, mined by `mine_by_expansion`)
+that never made it into any split. 124 of these have an attested acronym
+type; of those, 4 types were already in `dev`'s frozen type set and were
+dropped (dev already owns those types for evaluation; adding the same type
+elsewhere would blur what each split measures). A further 12 rows carry
+`label_status=unverified` with no `gold_expansion` at all — a pre-existing
+gap, not introduced here — and were dropped after confirming every affected
+type (`ע"ש`, `ר"מ`, `מהר"ם`, `אב"י`, `ר"י`, `ש"ש`) still has other rows with
+valid gold elsewhere. **112 wiki_natural rows were added to `train`.**
+
+### manual: authored rows disclosed by source
+
+Stratified test-type selection (below) surfaced 29 test types where every
+reviewed Knesset row shared the same gold sense — no real disambiguation
+signal, even with several rows. For each, one alternative candidate already
+present in `candidate_table.csv` was chosen and **3 Hebrew sentences per
+type (87 total) were written by Claude (model: claude-sonnet-5)** using that
+alternative sense, disclosed here and in the data itself
+(`provenance=authored`, `source=claude-sonnet-5`,
+`label_origin=claude_authored`). These are the only rows in this dataset
+that were not mined from a real corpus; every gold sense was checked against
+`candidate_table.csv` before being accepted (0 mismatches after fixing an
+ASCII-quote-vs-gershayim key bug during construction). **Every one of the 29
+target test types now has ≥2 distinct gold senses attested in `test`.**
+
+### The `category` column and the six-way provenance breakdown
+
+`data/splits/all_items.csv` (every row, all sources, one file) and
+`data/splits/by_category/*.csv` (one file per bucket) add a `category`
+column distinguishing:
+
+| category | rows | meaning |
+|---|---:|---|
+| `wiki_substituted` | 3,247 | Wikipedia, mechanically rewritten from a spelled-out phrase |
+| `knesset` | 1,041 | Knesset Corpus, human-reviewed |
+| `wiki_natural` | 112 | Wikipedia, real unedited usage |
+| `manual` | 87 | Claude-authored (see above) |
+| `wiki_deglossed` | 16 | Wikipedia, real usage with an inline gloss removed |
+| `wiktionary` | 0 | **placeholder — no such rows exist in this dataset.** Wiktionary supplies *candidate expansions* and was used to mine lexicographer usage examples earlier in the project, but zero such rows survived into any split. `by_category/wiktionary.csv` is written with a header only, so the gap is visible rather than silently absent. |
+
+`wiki_substituted` vs. `wiki_deglossed`: both start from Wikipedia prose, but
+substitution *invents* the abbreviated form (a sentence that never used the
+acronym is rewritten to use it), while deglossing finds a sentence where a
+Wikipedia author **already used the acronym** and only removes a
+parenthetical explanation next to it — the abbreviated usage itself is real,
+not manufactured. Deglossed rows are therefore closer in kind to natural
+usage than to substitution, despite both starting as edited Wikipedia text.
+
+### The frozen test split
+
+`test_items.csv` (395 rows) is built from the Knesset + wiki_natural + manual
+pool, and is **type-disjoint from both `train` and `dev`** — checked
+directly. This required an unusual step: every one of the 191 reviewed
+Knesset types turned out to already be in the existing 549-type train+dev
+inventory (checked, zero exceptions), so a disjoint test set could not be
+built by simply adding new-source rows for some subset of types while
+leaving `train` unchanged — the selected test types' *existing* Wikipedia
+rows had to be actively removed from `train`. `data_preprocess/build_splits.py`
+does this: 60 types (35 stratified by ambiguity/frequency + the 29
+manual-forced types) were carved out of `train`'s existing 514 rows for
+those types and rebuilt from the new-source pool instead; `train`'s
+remaining contribution from the pool is capped at 8 rows/type so a few
+easy/common types (`ד"ר`, `בע"מ`, `רש"י`, …) don't dominate.
+
+`dev` was **not modified** — it stays exactly the file the earlier
+substitution-damage review produced. Its 55 types are excluded from all
+test/train allocation decisions in `build_splits.py`.
+
+**Known, accepted leakage channel: page-level overlap.**
+`pipeline/validate_data.py` now also checks `page_title` overlap across
+splits (previously only `sentence` and acronym-type were checked). This
+surfaced 24 shared page_titles between `train`/`dev` (pre-existing — short
+Wikipedia articles, real if minor topical leakage) and **64 shared
+page_titles between `train`/`test`** — Knesset protocol transcripts, not
+Wikipedia articles. The latter is judged much lower severity: a Knesset
+protocol is a single long multi-topic session (42% of scanned protocols
+mention more than one acronym type), so two different acronym mentions
+from the same protocol share far less real content than two sentences
+from the same short Wikipedia article would. Accepted as a known condition
+rather than engineered around, given the cost of enforcing document-level
+disjointness on an already-thin stratified type pool.
+
+### `multi_sense_type` is not populated for new rows
+
+This field (see Columns, above: "`yes` if the type has ≥2 senses with ≥2
+rows each") was checked directly against a simpler hypothesis — "does this
+type have more than one distinct `gold_expansion` anywhere in the file" —
+and found NOT equivalent (40/289 mismatches on `dev`), meaning it encodes a
+human annotation call made when `train`/`dev` were first built, not
+something mechanically re-derivable from the data alone. It is left blank
+for every `knesset`, `wiki_natural`, and `manual` row rather than guessed.
+
+### Scope decisions made and not revisited
+
+- **Committee protocols** (~9,000 further shards, a much larger corpus than
+  the 1,000 plenary shards used) were listed and one partial download
+  attempted, but not pursued — a deliberate capacity call given the review
+  volume already produced by plenary alone.
+- **Sefaria** (rabbinic/Talmudic text, intended to cover the ~38 dev rows
+  marked `unsure` because they're rabbinic-name types unanswerable from
+  Wikipedia context) was built and tested (`data_preprocess/sefaria/`) but
+  abandoned: real yield was ~3% of search hits after full-text fetch, far
+  below Knesset's yield, because Sefaria's per-ref `he` text segments are
+  not reliably sentence-granular the way a Wikipedia plaintext extract or a
+  Knesset Corpus pre-segmented sentence is. The client code remains in the
+  repo (exploratory, not wired into any pipeline) in case a future session
+  finds a workable extraction strategy.
+
 ## Known limitations found during model-axis integration (2026-08-29)
 
 Recorded here because they affect how this snapshot may be used, not to diminish it.
