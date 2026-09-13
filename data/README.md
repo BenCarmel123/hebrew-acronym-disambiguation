@@ -32,6 +32,13 @@ substituted text may have learned the substitution rule rather than disambiguati
 | `verified` | Judged by a person |
 | `unverified` | Neither — left unlabelled rather than guessed |
 
+The splits also carry two provenances beyond substitution, both minority and both
+flagged: `deglossed` (real sentences that named the acronym and glossed it; the gloss
+was stripped rather than the acronym inserted) and `authored` (a few hand-written
+sentences, used only where even deglossing found zero corpus attestation for a
+documented real sense). See `splits/README.md` for counts and
+`mined/DATASET_CARD.md` for how `deglossed` rows are mined.
+
 ## What lives where
 
 **[`mined/`](mined/)** — everything `data_preprocess` produced:
@@ -44,6 +51,7 @@ substituted text may have learned the substitution rule rather than disambiguati
 | `wiktionary_counts.csv` | The same from Wiktionary senses |
 | `merged_counts.csv` | Union of the two sources |
 | `duplicate_review.csv` | Near-duplicate expansions and the human merge decisions |
+| `dev_review.csv` | Human judgment (2026-09-12) of every substituted row in `splits/dev_items.csv` |
 | `DATASET_CARD.md` | How all of it was built, every filter, and the known limitations |
 
 **[`splits/`](splits/)** — `train_items.csv` and `dev_items.csv`, disjoint by acronym
@@ -55,7 +63,10 @@ they are a result of reading layer 3, not an input to any layer, so they live in
 
 ## Reading a count from any of this
 
-`mined/DATASET_CARD.md` documents where the data is weak — that it is 96% substituted
-rather than natural, that only 295 of 546 acronym types have two senses attested well
-enough to support disambiguation at all, and that a manual spot-check suggested roughly a
-third of substituted rows may read awkwardly. Read it before quoting any number.
+`mined/DATASET_CARD.md` documents where the data is weak — that it is still
+overwhelmingly substituted rather than natural, that only a minority of acronym types
+have two senses attested well enough to support disambiguation at all, and what a full
+human review of the dev split found: a measured 7.3% substitution damage rate (down
+from an earlier one-type guess of "roughly a third"), plus several failure modes the
+review surfaced that were not previously documented. Read it before quoting any
+number.

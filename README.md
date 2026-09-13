@@ -50,7 +50,16 @@ set `Runtime > Change runtime type > T4 GPU`, and run all cells. It pulls the da
 
 ## Results
 
-Dev split: 285 items over 55 acronym types, none seen during training.
+> **Stale as of 2026-09-13.** Every number below was measured on an earlier dev set
+> (285 items, later corrected by hand to 292 — see the note further down). Since then,
+> dev has had a full human review (measured substitution damage rate: 7.3%, see
+> `data/mined/DATASET_CARD.md`) plus a small number of `deglossed`/`authored` rows added,
+> and now stands at **289 items over 55 acronym types**. `pipeline/run_pipeline.sh` has
+> not yet been re-run against it, so every figure below should be treated as
+> **not yet verified against the current data** rather than corrected or withdrawn.
+> Re-running the pipeline and updating this section is the next step.
+
+Dev split (as measured below): 285 items over 55 acronym types, none seen during training.
 
 | Method | Accuracy | |
 |---|---|---|
@@ -154,8 +163,8 @@ held-out natural-usage set is the next step.
 
 | File | Rows | What |
 |---|---|---|
-| `data/splits/train_items.csv` | 2,966 | Training split, 491 acronym types |
-| `data/splits/dev_items.csv` | 292 | Dev split, 55 acronym types |
+| `data/splits/train_items.csv` | 2,978 | Training split, 494 acronym types |
+| `data/splits/dev_items.csv` | 289 | Dev split, 55 acronym types |
 | `data/mined/acronym_items.csv` | 3,386 | Every mined occurrence — the source the splits were drawn from |
 | `data/mined/candidate_table.csv` | 2,002 | Acronym → expansion inventory, 638 types. An input to mining, not a result |
 
@@ -173,10 +182,11 @@ acronyms never seen in training rather than recall of a memorized expansion.
 | `verified` | 115 | Hand-annotated natural-usage sentences |
 | `unverified` | 13 | Skipped during annotation, left unlabeled |
 
-`data/splits/DATASET_CARD.md` documents the mining process, every filter, and the
-known limitations — including that the data is 96% substituted rather than natural, and
-that a spot-check suggested roughly a third of substituted rows may read awkwardly. Read
-it before quoting any number.
+`data/mined/DATASET_CARD.md` documents the mining process, every filter, and the
+known limitations — including that the data is still overwhelmingly substituted rather
+than natural, and a full human review of the dev split's substituted rows: a measured
+7.3% damage rate (95% CI 4.1–10.6%), well below an earlier one-type guess of "roughly a
+third". Read it before quoting any number.
 
 ## Regenerating the data
 

@@ -1,6 +1,6 @@
 # `data/mined/` — automatically extracted candidates, awaiting human review
 
-**Layer 3 of the data lifecycle.** See [`../README.md`](../README.md) for all seven layers.
+**Layer 2 of the data lifecycle.** See [`../README.md`](../README.md) for all three layers.
 
 The output of the mining pipeline. Machine-produced, unreviewed, and **not labels**.
 
@@ -19,8 +19,9 @@ It becomes a label only after a person judges it against a written annotation gu
 that happens under human review, not here.
 
 The project has already been burned by this exact confusion: an automatically mined pool
-of 196 acronym types was described as "196 validated types". It was a pool. The correction
-is retained in `research/decision_evidence/`; it is evidence history, not a current decision.
+of 196 acronym types was described as "196 validated types". It was a pool, not a
+validated set. (The write-up of that correction lived under a `research/` directory that
+is no longer in this repository.)
 
 ## What may be committed
 
@@ -34,10 +35,19 @@ extraction, not a reason to commit its output.
 
 ## Current state
 
-**Empty.** The source-availability probe under
-[`../../research/source_evidence/`](../../research/source_evidence/) established that a
-large candidate pool is minable, and that in-context examples are scarce. It produced no
-inventory and no labels. Read its README before quoting any count from it.
+**Populated.** Mining is complete: `acronym_items.csv` holds 3,386 occurrences over 546
+acronym types, and `candidate_table.csv` the 2,002-row expansion inventory they draw on.
+See [`DATASET_CARD.md`](DATASET_CARD.md) for how both were built and where they are weak.
+
+`dev_review.csv` additionally holds a human pass over every row of the dev split — the
+first verified labels in the project. It is the input to
+[`../../data_preprocess/apply_dev_review.py`](../../data_preprocess/apply_dev_review.py),
+which produces the reviewed `data/splits/dev_items.csv`.
+
+A later pass added a small number of `deglossed` and `authored` rows directly to both
+splits — see `DATASET_CARD.md`'s *Deglossed and authored rows* section for what those
+are and why `train_items.csv` and `dev_items.csv` now hold more rows than
+`apply_dev_review.py` alone produces.
 
 ## The retry sweep
 
