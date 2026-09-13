@@ -1,15 +1,15 @@
 """CLI for the acronym candidate tables.
 
     # Wikipedia disambiguation bullets -> bullet_counts.csv
-    python -m data_preprocess wikipedia --out data/mined/bullet_counts.csv
+    python -m data_preprocess wikipedia --out data/mined/wikipedia/bullet_counts.csv
 
     # Wiktionary senses -> wiktionary_counts.csv
-    python -m data_preprocess wiktionary --out data/mined/wiktionary_counts.csv
+    python -m data_preprocess wiktionary --out data/mined/wiktionary/wiktionary_counts.csv
 
     # union of the two -> merged_counts.csv
     python -m data_preprocess merge \
-        --wikipedia data/mined/bullet_counts.csv \
-        --wiktionary data/mined/wiktionary_counts.csv \
+        --wikipedia data/mined/wikipedia/bullet_counts.csv \
+        --wiktionary data/mined/wiktionary/wiktionary_counts.csv \
         --out data/mined/merged_counts.csv
 
 Every command writes `<out>.summary.json` alongside its CSV. All three CSVs
@@ -23,7 +23,7 @@ import logging
 import sys
 from pathlib import Path
 
-from .wikipedia_source import (
+from .wikipedia.source import (
     ACRONYM_DISAMBIG_CATEGORY,
     count_bullets,
     read_existing,
@@ -38,17 +38,13 @@ from .dedupe_expansions import (
     write_review_csv,
 )
 from .build_annotation_table import build_rows, load_candidates, write_annotation_table
-from .wiktionary_source import count_senses, fetch_entries
+from .wiktionary.source import count_senses, fetch_entries
 from .merge_sources import merge_rows, merge_summary
-from . import hebrew_text
-from .mine_sentences import (
-    mine_by_expansion,
-    mine_sentences,
-    mine_substituted,
-    mine_wiktionary_sentences,
-)
-from .wiki_client import API_URL, WikiAPI
-from .wiktionary_parser import ACRONYM_CATEGORY, WIKTIONARY_API
+from .common import hebrew_text
+from .wikipedia.mining import mine_by_expansion, mine_sentences, mine_substituted
+from .wiktionary.mining import mine_wiktionary_sentences
+from .wikipedia.client import API_URL, WikiAPI
+from .wiktionary.parser import ACRONYM_CATEGORY, WIKTIONARY_API
 
 LOG = logging.getLogger("data_preprocess")
 
@@ -357,6 +353,54 @@ def cmd_build_annotation_table(args: argparse.Namespace) -> None:
     )
 
 
+def cmd_knesset_download(args: argparse.Namespace) -> None:
+    from .knesset.source import download_shards
+
+    paths = download_shards(args.config, n=args.n, out_dir=args.shards_dir)
+    LOG.info("%d shards available in %s", len(paths), args.shards_dir)
+    print(f"{len(paths)} shards -> {args.shards_dir}")
+
+
+def cmd_knesset_mine(args: argparse.Namespace) -> None:
+    import csv as csv_module
+    from pathlib import Path
+
+    from .knesset.source import mine_knesset
+
+    acronyms = [
+        hebrew_text.normalize_acronym(a.strip())
+        for a in Path(args.acronyms).read_text(encoding="utf-8-sig").split()
+        if a.strip()
+    ]
+    shard_dir = Path(args.shards_dir)
+    shards = sorted(shard_dir.glob("*.jsonl.bz2"))
+    if not shards:
+        LOG.error("no shards found in %s — run `knesset-download` first", shard_dir)
+        return
+    LOG.info("scanning %d shards for %d acronym types", len(shards), len(acronyms))
+
+    out_path = Path(args.out)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    n_rows = 0
+    types_seen: set[str] = set()
+    with out_path.open("w", encoding="utf-8-sig", newline="") as fh:
+        writer = csv_module.DictWriter(fh, fieldnames=["acronym", "context", "source", "page_title"])
+        writer.writeheader()
+        for ctx in mine_knesset(shards, acronyms, max_per_acronym=args.per_acronym):
+            writer.writerow({
+                "acronym": ctx.acronym, "context": ctx.context,
+                "source": ctx.source, "page_title": ctx.page_title,
+            })
+            n_rows += 1
+            types_seen.add(ctx.acronym)
+    LOG.info("wrote %d rows -> %s", n_rows, out_path)
+    _write_summary(
+        args.out,
+        {"n_rows": n_rows, "n_types_selected": len(acronyms), "n_types_with_sentences": len(types_seen)},
+        args.summary,
+    )
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="data_preprocess",
@@ -367,7 +411,7 @@ def build_parser() -> argparse.ArgumentParser:
     sub = p.add_subparsers(dest="command", required=True)
 
     w = sub.add_parser("wikipedia", help="count Wikipedia disambiguation bullets")
-    w.add_argument("--out", default="data/mined/bullet_counts.csv")
+    w.add_argument("--out", default="data/mined/wikipedia/bullet_counts.csv")
     w.add_argument("--summary", default=None)
     w.add_argument("--category", default=ACRONYM_DISAMBIG_CATEGORY)
     w.add_argument("--limit", type=int, default=None, help="stop after N pages")
@@ -376,7 +420,7 @@ def build_parser() -> argparse.ArgumentParser:
     w.set_defaults(func=cmd_wikipedia)
 
     k = sub.add_parser("wiktionary", help="count Wiktionary acronym senses")
-    k.add_argument("--out", default="data/mined/wiktionary_counts.csv")
+    k.add_argument("--out", default="data/mined/wiktionary/wiktionary_counts.csv")
     k.add_argument("--summary", default=None)
     k.add_argument("--category", default=ACRONYM_CATEGORY)
     k.add_argument("--limit", type=int, default=None, help="stop after N pages")
@@ -387,8 +431,8 @@ def build_parser() -> argparse.ArgumentParser:
     k.set_defaults(func=cmd_wiktionary)
 
     m = sub.add_parser("merge", help="union the two source tables")
-    m.add_argument("--wikipedia", default="data/mined/bullet_counts.csv")
-    m.add_argument("--wiktionary", default="data/mined/wiktionary_counts.csv")
+    m.add_argument("--wikipedia", default="data/mined/wikipedia/bullet_counts.csv")
+    m.add_argument("--wiktionary", default="data/mined/wiktionary/wiktionary_counts.csv")
     m.add_argument("--out", default="data/mined/merged_counts.csv")
     m.add_argument("--summary", default=None)
     m.set_defaults(func=cmd_merge)
@@ -449,6 +493,22 @@ def build_parser() -> argparse.ArgumentParser:
     bat.add_argument("--out", default="data/mined/annotation_table.csv")
     bat.add_argument("--summary", default=None)
     bat.set_defaults(func=cmd_build_annotation_table)
+
+    kd = sub.add_parser("knesset-download", help="download Knesset Corpus shards for local mining")
+    kd.add_argument("--config", default="plenary_protocols",
+                     choices=["plenary_protocols", "committee_protocols"])
+    kd.add_argument("--n", type=int, default=30, help="how many shards to fetch")
+    kd.add_argument("--shards-dir", default="data/raw/knesset_shards")
+    kd.set_defaults(func=cmd_knesset_download)
+
+    km = sub.add_parser("knesset-mine", help="mine clean sentences from downloaded Knesset shards")
+    km.add_argument("--acronyms", required=True,
+                     help="file of acronym types (whitespace-separated) to mine")
+    km.add_argument("--shards-dir", default="data/raw/knesset_shards")
+    km.add_argument("--out", default="data/mined/knesset/knesset_mined.csv")
+    km.add_argument("--summary", default=None)
+    km.add_argument("--per-acronym", type=int, default=15, help="max sentences per acronym")
+    km.set_defaults(func=cmd_knesset_mine)
     return p
 
 
