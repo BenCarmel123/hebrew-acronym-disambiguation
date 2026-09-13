@@ -29,11 +29,11 @@ The 3,678 / 701 counts reproduce the source probe's independently-derived
 ## Usage
 
     # one row per Wikipedia disambiguation bullet
-    python -m data_preprocess wikipedia   --out data/mined/bullet_counts.csv
+    python -m data_preprocess wikipedia   --out data/mined/wikipedia/bullet_counts.csv
 
     # one row per Wiktionary sense (--min-senses 2 = polysemous types only)
     python -m data_preprocess wiktionary  --min-senses 2 \
-        --out data/mined/wiktionary_counts.csv
+        --out data/mined/wiktionary/wiktionary_counts.csv
 
     # union of the two
     python -m data_preprocess merge --out data/mined/merged_counts.csv

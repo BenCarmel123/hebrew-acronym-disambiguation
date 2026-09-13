@@ -6,23 +6,10 @@ infoboxes. No amount of post-cleaning made those reliably read as prose (~32%
 usable after ten filters), so that module was removed and this one takes a
 different route: use search only to *find* pages, then fetch each
 page's rendered plain text (`prop=extracts&explaintext`), split it into
-sentences, and keep only sentences that read like natural usage.
+sentences, and keep only sentences that read like natural usage
+(`common.filters.is_clean_sentence`).
 
-A sentence is kept when it:
-
-- contains the target acronym (in either quote variant),
-- contains no *other* acronym-shaped token, so the item is unambiguous,
-- does not gloss the acronym inline (`אח"ם (אגף חקירות ומודיעין)`), which
-  would give the answer away in the input,
-- carries no section-header, list, citation or Hebrew-numeral-reference
-  residue, and
-- is a plausible sentence length.
-
-`ContextRow` is the row shape the rest of the pipeline
-(`build_annotation_table`) consumes; `SenseRow` extends it with the expansion
-and provenance that sense-aware mining records.
-
-Three mining strategies live here, in increasing order of how much they
+Four mining strategies live here, in increasing order of how much they
 intervene in the text:
 
 `mine_sentences`
@@ -62,9 +49,18 @@ intervene in the text:
     it is what allows checking later whether models behave differently on
     synthetic items than on natural ones.
 
+`mine_deglossed`
+    Finds sentences that use an acronym and gloss it inline
+    (`בא"ח (בסיס אימונים חטיבתי)`), then strips the gloss. `is_clean_sentence`
+    drops these upstream because the answer would sit in the input, but a
+    glossed sentence is the one place the corpus proves a sense is real *and*
+    shows a writer actually abbreviating it — strictly more natural than
+    substitution, which invents the abbreviation. See its docstring below for
+    the residual proper-name defect this catches.
+
 Every strategy applies the same output bar: `is_clean_sentence` runs on the
-final text, so a substituted sentence that ends up with two acronyms or an
-inline gloss is dropped exactly as a mined one would be.
+final text, so a substituted or deglossed sentence that ends up with two
+acronyms or an inline gloss is dropped exactly as a mined one would be.
 """
 from __future__ import annotations
 
@@ -72,128 +68,24 @@ import logging
 import re
 from typing import Iterable, Iterator
 
-from dataclasses import dataclass
-
-from . import hebrew_text
-from .wiki_client import WikiAPI
-from .wiktionary_parser import extract_examples
-
-
-@dataclass(frozen=True)
-class ContextRow:
-    """One mined sentence, with the acronym it illustrates."""
-
-    acronym: str
-    context: str
-    source: str  # "wikipedia" | "wiktionary"
-    page_title: str
+from ..common import hebrew_text
+from ..common.filters import (
+    HEADING_RE,
+    HEBREW_NUMERAL_REF_RE,
+    MAX_LEN,
+    MIN_LEN,
+    NON_PROSE_RE,
+    SENTENCE_SPLIT_RE,
+    ContextRow,
+    SenseRow,
+    is_clean_sentence,
+    mentions_acronym,
+    mentions_expansion,
+    page_sentences,
+)
+from .client import WikiAPI
 
 LOG = logging.getLogger(__name__)
-
-# A Hebrew acronym marks its final letter: the quote sits immediately before
-# the last letter of a short token (צה"ל, אג"ם, רמב"ם). Requiring that shape —
-# rather than "letters, quote, letters" — is what separates an acronym from a
-# prefixed quotation such as ב"אליאנס or ו"שרוכים, where the same character
-# opens a quoted phrase instead.
-ACRONYM_TOKEN_RE = re.compile(r"(?<![א-ת])[א-ת]{1,6}[\"״][א-ת](?![א-ת])")
-SENTENCE_SPLIT_RE = re.compile(r"(?<=[.!?])\s+")
-# Hebrew-numeral references — "משניות י' - י\"ג", "פרק ב'" — are chapter/verse
-# citations, not prose, and their geresh reads as an acronym marker.
-#
-# The same geresh marks the honorific "ר' וידאל" (Rabbi), which is ordinary
-# prose and common in rabbinic articles. What separates them is the letter
-# itself: a citation uses a letter with a numeric value in its numeral sense
-# (א-ט units, י-צ tens, ק-ת hundreds), while the honorifics that matter here
-# are a small closed set (ר' rabbi, ד' the Name, ע' page). Listing the
-# honorific letters as exceptions keeps them and still drops the citations.
-HONORIFIC_GERESH = "רדע"
-HEBREW_NUMERAL_REF_RE = re.compile(r"(?<![א-ת])[א-ת][׳']")
-# A sentence that says "ראשי תיבות של…" / "קיצור של…" spells the expansion out
-# in words rather than leaving it to be inferred from context.
-EXPLICIT_GLOSS_RE = re.compile(r"ראשי\s+ה?תיבות|קיצור\s+של|נוטריקון")
-# Plain-text extracts keep section headings as "== Title ==" lines.
-HEADING_RE = re.compile(r"==+[^=]*==+")
-# Residue that marks a line as a list entry, table row or citation rather
-# than a sentence.
-NON_PROSE_RE = re.compile(
-    r"https?://|\.(?:jpg|png|svg|gif)\b|\|[a-z]+=|rowspan|colspan|ממוזער|\d+px|\{\{|\}\}|\[\[|\]\]",
-    re.IGNORECASE,
-)
-
-MIN_LEN = 40
-MAX_LEN = 200
-
-
-
-def is_numeral_reference(sentence: str) -> bool:
-    """True when a geresh in `sentence` marks a chapter/verse citation.
-
-    A geresh after a single Hebrew letter is usually a numeral reference
-    ("פרק ב'", "משניות י' - י\"ג"), which is citation apparatus rather than
-    prose. The exception is a handful of honorific abbreviations — ר' for
-    rabbi above all — that are ordinary prose and frequent in exactly the
-    rabbinic articles the rarer acronyms live in.
-    """
-    for m in HEBREW_NUMERAL_REF_RE.finditer(sentence):
-        if m.group()[0] not in HONORIFIC_GERESH:
-            return True
-    return False
-
-
-def mentions_acronym(sentence: str, acronym: str) -> bool:
-    """True when `acronym` occurs in `sentence` as a whole token.
-
-    Substring matching is not enough: `ב"ש` occurs inside `ב"שירות` — a
-    prefix letter followed by a quoted word — which is not the acronym at
-    all. The occurrence must not be followed by further Hebrew letters, and
-    may only be preceded by Hebrew proclitics (ה, ו, ב, כ, ל, מ, ש).
-    """
-    for variant in hebrew_text.variants(acronym) or [acronym]:
-        pattern = r"(?<![א-ת])[" + hebrew_text.CLITIC_LETTERS + r"]?" + re.escape(variant) + r"(?![א-ת])"
-        if re.search(pattern, sentence):
-            return True
-    return False
-
-
-def is_clean_sentence(sentence: str, acronym: str) -> bool:
-    """True when `sentence` is usable as a disambiguation item for `acronym`."""
-    if not (MIN_LEN <= len(sentence) <= MAX_LEN):
-        return False
-    variants = hebrew_text.variants(acronym) or [acronym]
-    if not mentions_acronym(sentence, acronym):
-        return False
-    if HEADING_RE.search(sentence) or NON_PROSE_RE.search(sentence):
-        return False
-    if is_numeral_reference(sentence):
-        return False
-    # An inline gloss states the expansion outright, in either order:
-    # `ח"ש (חודר שריון)` or, more commonly, `חודר שריון (ח"ש)`. Both make the
-    # item unanswerable-by-context — the answer is already in the input.
-    if any(
-        re.search(re.escape(v) + r"\s*\(", sentence)
-        or re.search(r"\(\s*" + re.escape(v) + r"\s*\)", sentence)
-        # A *spaced* dash introduces an expansion ("ד\"ש – התנועה הדמוקרטית"),
-        # while a tight hyphen joins a compound name ("ש\"ס-העבודה") and is
-        # ordinary prose — so the spacing, not the dash, is the signal.
-        or re.search(re.escape(v) + r"\s+[-–—]\s+[א-ת]", sentence)
-        for v in variants
-    ):
-        return False
-    # An explicit "ראשי תיבות" gloss names the expansion in words.
-    if EXPLICIT_GLOSS_RE.search(sentence):
-        return False
-    # Exactly one acronym in the sentence: the target, in whichever variant.
-    canonical = {v.replace("״", '"') for v in variants}
-    present = {t.replace("״", '"') for t in ACRONYM_TOKEN_RE.findall(sentence)}
-    return not (present - canonical)
-
-
-def page_sentences(text: str, acronym: str) -> Iterator[str]:
-    """Clean sentences mentioning `acronym`, from one article's plain text."""
-    for raw in SENTENCE_SPLIT_RE.split(text):
-        sentence = " ".join(raw.split())
-        if is_clean_sentence(sentence, acronym):
-            yield sentence
 
 
 def mine_sentences(
@@ -237,45 +129,6 @@ def mine_sentences(
                     if found >= max_per_acronym:
                         break
         LOG.info("%s: %d sentences from %d pages", acronym, found, len(seen_titles))
-
-
-def mine_wiktionary_sentences(entries: dict[str, str]) -> Iterator[ContextRow]:
-    """Usage-example sentences carried in Wiktionary entries themselves.
-
-    `entries` is `{page_title: wikitext}`. Unlike a search snippet, a `#:`/`#*`
-    example line is written by a lexicographer to illustrate the word, so it
-    needs no prose filtering — only the same gloss and single-acronym checks
-    every other item is held to.
-    """
-    for title, wikitext in entries.items():
-        acronym = hebrew_text.normalize_acronym(title)
-        for example in extract_examples(wikitext):
-            if is_clean_sentence(example, acronym):
-                yield ContextRow(acronym, example, "wiktionary", title)
-
-
-@dataclass(frozen=True)
-class SenseRow:
-    """One mined sentence, with the sense its source page suggests.
-
-    `expansion` is *provisional*: it records which expansion's page pool the
-    sentence came from, not a verified reading. A human confirms or flips it
-    during annotation, so it is a starting point that makes labelling fast,
-    never a gold label.
-    """
-
-    acronym: str
-    context: str
-    expansion: str
-    source: str
-    page_title: str
-    provenance: str = "natural"
-
-
-def mentions_expansion(sentence: str, expansion: str) -> bool:
-    """True when the sentence spells the expansion out, with clitics allowed."""
-    pattern = r"(?<![א-ת])[" + hebrew_text.CLITIC_LETTERS + r"]?" + re.escape(expansion) + r"(?![א-ת])"
-    return re.search(pattern, sentence) is not None
 
 
 def mine_by_expansion(

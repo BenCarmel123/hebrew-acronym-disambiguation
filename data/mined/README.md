@@ -51,9 +51,9 @@ are and why `train_items.csv` and `dev_items.csv` now hold more rows than
 
 ## The retry sweep
 
-`retry_types.txt` holds 43 acronym types selected from the 92 that the original mining
+`wikipedia/retry_types.txt` holds 43 acronym types selected from the 92 that the original mining
 swept but that produced no sentences. They were reviewed by hand in two passes,
-recorded in `unmined_triage.csv` and `merge_review.csv`:
+recorded in `wikipedia/unmined_triage.csv` and `merge_review.csv`:
 
 1. **Triage** — is this a usable type at all? Parser precision was never measured, so the
    list contains things that are not acronyms (`ערעור`), truncated parses
@@ -73,9 +73,9 @@ Only the top dozen or so have real corpus presence. Below ~10 hits the odds of a
 are poor; they are included because they cost nothing extra in the same sweep.
 
     python -m data_preprocess mine-by-sense \
-        --acronyms data/mined/retry_types.txt \
+        --acronyms data/mined/wikipedia/retry_types.txt \
         --candidates data/mined/candidate_table.csv \
-        --out data/mined/retry_by_sense.csv \
+        --out data/mined/wikipedia/retry_by_sense.csv \
         --per-expansion 3 --pages-per-expansion 40 --resume
 
 `--pages-per-expansion 40` against the 12 of the original mining: these types already
@@ -89,7 +89,7 @@ sense poses no ranking task, since the argmax is correct by construction, so all
 are excluded by the same two-candidate rule that governs the rest of the corpus. Net gain:
 zero training items.
 
-The outcome is in `retry_by_sense.csv`, kept as the record.
+The outcome is in `wikipedia/retry_by_sense.csv`, kept as the record.
 
 **Search depth was never the problem.** `עמ״נ` carries 46,031 hits and returned only
 `על-מנת`; its second sense, `עתודת מיקוש ניידת`, has no corpus presence at all. Same for

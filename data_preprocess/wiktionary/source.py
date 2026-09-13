@@ -15,11 +15,11 @@ from __future__ import annotations
 import logging
 from typing import Iterable, Iterator
 
-from . import hebrew_text
-from .wikipedia_source import BulletRow, acronym_script
-from .wikipedia_parser import looks_like_person
-from .wiki_client import WikiAPI
-from .wiktionary_parser import ACRONYM_CATEGORY, WIKTIONARY_API, parse_entry
+from ..common import hebrew_text
+from ..wikipedia.source import BulletRow, acronym_script
+from ..wikipedia.parser import looks_like_person
+from ..wikipedia.client import WikiAPI
+from .parser import ACRONYM_CATEGORY, WIKTIONARY_API, parse_entry
 
 LOG = logging.getLogger(__name__)
 
