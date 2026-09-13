@@ -1,4 +1,4 @@
-# `checkpoints/`
+# `weights/`
 
 Trained model weights. **Not committed** — each file is ~700MB, over GitHub's 100MB
 limit, and they are reproducible by re-running the notebook.
