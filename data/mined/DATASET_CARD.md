@@ -295,8 +295,8 @@ into the test set.
 ```
 cd project
 .venv/bin/python3 -m src.data.data_preprocess mine-by-sense \
-    --acronyms data/mined/retry_types.txt \
-    --out data/mined/retry_by_sense.csv \
+    --acronyms data/mined/wikipedia/retry_types.txt \
+    --out data/mined/wikipedia/retry_by_sense.csv \
     --per-expansion 3 --pages-per-expansion 12
 ```
 

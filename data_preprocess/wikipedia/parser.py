@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 import re
-from . import hebrew_text
+from ..common import hebrew_text
 
 LOG = logging.getLogger(__name__)
 

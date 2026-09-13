@@ -17,8 +17,8 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Iterable, Iterator
 
-from . import hebrew_text
-from .wikipedia_parser import (
+from ..common import hebrew_text
+from .parser import (
     ACRONYM_DISAMBIG_CATEGORY,
     candidate_from_line,
     clean_line,
@@ -26,7 +26,7 @@ from .wikipedia_parser import (
     looks_like_person,
     page_acronym,
 )
-from .wiki_client import WikiAPI
+from .client import WikiAPI
 
 LOG = logging.getLogger(__name__)
 

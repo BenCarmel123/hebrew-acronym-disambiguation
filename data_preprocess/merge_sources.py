@@ -13,8 +13,8 @@ from collections import defaultdict
 from dataclasses import replace
 from typing import Iterable, Sequence
 
-from . import hebrew_text
-from .wikipedia_source import BulletRow
+from .common import hebrew_text
+from .wikipedia.source import BulletRow
 
 LOG = logging.getLogger(__name__)
 

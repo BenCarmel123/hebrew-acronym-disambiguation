@@ -21,8 +21,8 @@ from __future__ import annotations
 import logging
 import re
 
-from . import hebrew_text
-from .wikipedia_parser import (
+from ..common import hebrew_text
+from ..wikipedia.parser import (
     COMMENT_RE,
     EXT_LINK_RE,
     LINK_RE,
