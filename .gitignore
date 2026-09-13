@@ -13,6 +13,10 @@ __pycache__/
 *.safetensors
 experiments/runs/
 
+# Downloaded raw corpus shards (e.g. Knesset Corpus). Large, regenerable via
+# the corresponding `*-download` command, and not source.
+data/raw/
+
 # Secrets — API keys, never committed.
 .env
 
