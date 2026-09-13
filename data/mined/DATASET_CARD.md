@@ -4,11 +4,12 @@ How the benchmark data was obtained, what it contains, and where it is known to
 be weak. Mining is complete: all 638 acronym types with two or more candidate
 expansions have been swept. What remains is annotation.
 
-**Status: unlabelled.** No item has a human-verified gold expansion yet. Nothing
-here is evaluation data. This directory (`data/splits/`) also holds the
-frozen benchmark once annotation exists — see that directory's `README.md` for
-why an unlabelled snapshot and the frozen benchmark are not the same thing and
-must never be confused for one another.
+**Status: dev reviewed, train unlabelled.** Every substituted row of the dev split
+has been judged by a human (2026-09-12); the verdicts are in `dev_review.csv` and the
+result is the reviewed `data/splits/dev_items.csv`. The original 2,966 train rows
+remain weak-labelled — correct by construction, never judged. See *Substitution
+damage, measured* below for what the review found, and *Deglossed and authored rows*
+for two smaller additions made after the review, both in the splits rather than here.
 
 ## Task
 
@@ -191,10 +192,84 @@ abbreviated usage. Two failure modes recur:
   `מרחב מכפלה פנימית`) rewrite the fragment and leave a dangling remainder.
 
 Fixed terminology (`מפקד מחלקה`, `מכונאי מוטס`, `ממלא מקום`) substitutes
-cleanly. A manual spot-check of one type suggested roughly a third of
-substituted rows are damaged; **this rate has not been measured across the
-data.** Automated flagging caught 5 of 311 rows in a spot-check and should not be
-relied on.
+cleanly. An early spot-check of one type suggested roughly a third of substituted
+rows were damaged. **That guess was too pessimistic** — see below.
+
+### Substitution damage, measured
+
+All 285 rows of the dev split were reviewed by hand (2026-09-12), each judged
+`clean` / `wrong_sense` / `broken` / `unsure`. Raw verdicts: `dev_review.csv`.
+
+| verdict | rows |
+|---|---|
+| clean | 227 |
+| wrong_sense (words matched, but not as that term) | 11 |
+| broken (dangling fragment or mangled grammar) | 7 |
+| unsure | 38 |
+| unreviewed | 2 |
+
+**Damage rate: 7.3% (18 of 245 decided), 95% CI 4.1–10.6%** — four to five times
+lower than the one-type guess. Dev is 100% substituted, so this measures the
+substitution strategy directly.
+
+Two qualifications matter more than the headline:
+
+- **The 38 `unsure` rows are not damage.** 29 of them are rabbinic-name types
+  (`מהרי״א`, `מהר״ש`, `מהרי״ץ`, `מהר״י`) whose candidates are different rabbis
+  sharing initials. The sentence often does not determine which — `למד בעיקר אצל
+  מהר״ש` names no distinguishing detail. These are a *knowledge* task rather than
+  a context task, and they flatter models with memorised biographical detail. They
+  are kept, flagged in `review_verdict`, not silently dropped.
+- **The reviewer found failure modes this card did not document.** Three are new:
+  an expansion used as a **proper name** (`דו״ד` is a radio programme named after
+  `דין ודברים`, not a reading of it); a **candidate table defect**, where
+  Wiktionary supplied a *description* instead of an expansion (`יעב״ץ` →
+  `מבעלי התוספות`, "one of the Tosafists", where the expansion is `יעקב בן צבי`);
+  and **zero-evidence candidates** — 49 candidate slots in dev name a sense with
+  0 corpus hits and 0 mined items, leaving 17 rows whose choice is between one
+  real option and a dictionary ghost.
+
+14 rows were relabelled from the reviewer's corrections and 4 dropped as
+unrecoverable, leaving dev at 281 reviewed rows (283 after two `בא״ח` rows described
+below). Corrected expansions were added to the candidate list of **every** row of
+that acronym type, not only the corrected rows, so the new option is a genuine
+distractor where it is wrong rather than a marker of which rows were reviewed.
+`label_origin` records `substitution` vs `human_review`; `review_verdict` and
+`review_note` carry the judgment.
+
+Automated flagging caught 5 of 311 rows in an earlier spot-check and should not be
+relied on. The review above supersedes it.
+
+### Deglossed and authored rows
+
+Two more provenances were added to both splits after the review, in a separate pass
+(2026-09-12), neither counted in the damage-rate measurement above since they are
+new rows rather than judgments of existing ones.
+
+**`deglossed`.** `is_clean_sentence` drops any sentence that glosses the acronym
+inline (`בא"ח (בסיס אימונים חטיבתי)`), since the answer would sit in the input. But
+that is also the one place the corpus proves a rare sense is real *and* shows a
+writer actually abbreviating it. `mine_deglossed()` in `mine_sentences.py` finds such
+sentences and strips the parenthetical, keeping genuine abbreviated usage with a
+known label — more natural than substitution, which invents the abbreviation rather
+than finding one. A full sweep over the 368 expansions in `candidate_table.csv` with
+corpus hits but zero mined items returned 18 usable rows over 12 acronym types (5%
+yield): 6 installed in dev under a new type, `להב״ה` — two real, unrelated
+organizations sharing the acronym, a genuine disambiguation case the corpus never
+attested before — and 12 installed in train, 10 filling out existing types and 2
+introducing new ones. One row was discarded by hand: a `מס״ב` gloss that named a
+*place* after a person rather than reading the acronym, the same proper-name defect
+documented above for `דו״ד`. `NAMED_AFTER_RE` in `mine_sentences.py` now filters the
+common phrasing of this automatically for future runs.
+
+**`authored`.** Two documented real senses — `בא״ח` = `בסיס אימונים חטיבתי`
+("brigade training base") and `אז״ר` = `אויב זרק רימון` (a military radio warning,
+"enemy threw a grenade") — have zero corpus attestation even after deglossing: every
+Wikipedia sentence containing the phrase glosses it, and the grenade-warning sense is
+spoken slang unlikely to appear in encyclopedic prose at all. Four sentences were
+hand-written to attest these two senses (2 each, in dev for `בא״ח` and train for
+`אז״ר`), `label_status=verified` since the writer is also the labeller.
+`review_note` says so on every such row; they should never be read as mined text.
 
 **Every `expansion` value is provisional.** For substituted rows it is correct
 by construction, which makes it useless as a training target — a model scoring

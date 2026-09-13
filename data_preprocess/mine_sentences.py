@@ -406,3 +406,125 @@ def mine_substituted(
                     if found >= max_per_expansion:
                         break
         LOG.info("%s / %s: %d substituted from %d pages", acronym, expansion, found, len(titles))
+
+
+# --- deglossed mining -------------------------------------------------------
+#
+# `is_clean_sentence` drops any sentence that glosses the acronym inline,
+# because the answer would sit in the input. But a glossed sentence is the one
+# place the corpus proves a sense is real *and* shows a writer actually
+# abbreviating it: `בא"ח (בסיס אימונים חטיבתי) גולני שהצטרף ללחימה…`. Removing
+# the parenthetical leaves genuine abbreviated usage with a known sense —
+# strictly more natural than substitution, which invents the abbreviation.
+#
+# Senses attested only inside glosses are otherwise unminable. `בא"ח` =
+# `בסיס אימונים חטיבתי` occurs on four Hebrew Wikipedia pages and every one
+# glosses it, so both the natural and the substituted strategies return zero.
+
+# The gloss forms this removes, all anchored on the acronym:
+#   ACR (EXPANSION)        בא"ח (בסיס אימונים חטיבתי)
+#   ACR - EXPANSION        בא"ח - בסיס אימונים חטיבתי      (spaced dash)
+#   ACR – EXPANSION        בא"ח העורף – בסיס אימונים חטיבתי
+# The reverse order (EXPANSION (ACR)) is deliberately NOT handled: removing the
+# expansion there leaves the acronym in a slot the expansion's syntax governed,
+# which is the same dangling-remainder damage substitution already suffers from.
+#
+# Known residual defect: a gloss also appears where the acronym is a proper name
+# *derived* from the expansion — `כפר אז"ר, על שם אז"ר` names a village after the
+# person. Deglossing keeps the sentence, but the acronym there is a name rather
+# than a reading, so such rows need the same human check as any other output of
+# this module. NAMED_AFTER_RE below catches the commonest phrasing.
+def _gloss_patterns(variant: str, expansion: str) -> list[re.Pattern]:
+    v, e = re.escape(variant), re.escape(expansion)
+    return [
+        # ACR (EXPANSION) — including an intervening word: בא"ח העורף (…)
+        re.compile(v + r"(?P<mid>(?:\s+[א-ת\"״'׳-]+){0,2})\s*\(\s*" + e + r"\s*\)"),
+        # ACR – EXPANSION, spaced dash only (a tight hyphen joins a compound)
+        re.compile(v + r"(?P<mid>(?:\s+[א-ת\"״'׳-]+){0,2})\s+[-–—]\s+" + e + r"(?![א-ת])"),
+    ]
+
+
+# "על שם X" / "הקרוי על שמו" mark the acronym as a name given in someone's
+# honour rather than an abbreviation being used — `כפר אז"ר, על שם אז"ר`.
+NAMED_AFTER_RE = re.compile(r"על\s+שמו?\b|הקרוי|קרוי\s+על|נקרא\s+על")
+
+
+def deglossable(sentence: str, acronym: str, expansion: str) -> bool:
+    """True when `sentence` glosses `acronym` with `expansion` removably."""
+    if NAMED_AFTER_RE.search(sentence):
+        return False
+    for variant in hebrew_text.variants(acronym) or [acronym]:
+        for pat in _gloss_patterns(variant, expansion):
+            if pat.search(sentence):
+                return True
+    return False
+
+
+def degloss(sentence: str, acronym: str, expansion: str) -> str:
+    """Strip the inline gloss, keeping the acronym and any words between.
+
+    `בא"ח העורף – בסיס אימונים חטיבתי של חטיבת החילוץ` becomes
+    `בא"ח העורף של חטיבת החילוץ`: the acronym and the material that belongs to
+    the surrounding clause stay, only the parenthetical definition goes.
+    """
+    out = sentence
+    for variant in hebrew_text.variants(acronym) or [acronym]:
+        for pat in _gloss_patterns(variant, expansion):
+            out = pat.sub(lambda m: variant + m.group("mid"), out)
+    return " ".join(out.split()).replace(" ,", ",").replace(" .", ".")
+
+
+def mine_deglossed(
+    api: WikiAPI,
+    acronym: str,
+    expansions: Iterable[str],
+    *,
+    pages_per_expansion: int = 12,
+    max_per_expansion: int = 5,
+) -> Iterator[SenseRow]:
+    """Mine sentences that gloss the acronym, then remove the gloss.
+
+    The text around the acronym is real abbreviated usage, and the gloss makes
+    the sense certain, so the result is a natural item with a known label. Rows
+    carry `provenance="deglossed"` to stay separable from both `natural` and
+    `substituted` — the sentence is genuine but was edited.
+    """
+    for expansion in expansions:
+        found = 0
+        try:
+            titles = [h["title"] for h in api.search_snippets(expansion, limit=pages_per_expansion)]
+        except RuntimeError as exc:
+            LOG.warning("search failed for %r: %s", expansion, exc)
+            continue
+        for title in titles:
+            if found >= max_per_expansion:
+                break
+            try:
+                data = api.get(action="query", prop="extracts", explaintext=1, titles=title)
+            except RuntimeError as exc:
+                LOG.warning("extract failed for %r: %s", title, exc)
+                continue
+            for page in data.get("query", {}).get("pages", []):
+                for raw in SENTENCE_SPLIT_RE.split(page.get("extract") or ""):
+                    sentence = " ".join(raw.split())
+                    # Length is checked after deglossing: the gloss inflates
+                    # the source sentence past MAX_LEN in most cases.
+                    if len(sentence) > MAX_LEN + len(expansion) + 8:
+                        continue
+                    if HEADING_RE.search(sentence) or NON_PROSE_RE.search(sentence):
+                        continue
+                    if not deglossable(sentence, acronym, expansion):
+                        continue
+                    stripped = degloss(sentence, acronym, expansion)
+                    # The expansion must be gone — a second, unhandled mention
+                    # would leave the answer in the input.
+                    if mentions_expansion(stripped, expansion):
+                        continue
+                    # And the result must clear the same bar as mined text.
+                    if not is_clean_sentence(stripped, acronym):
+                        continue
+                    yield SenseRow(acronym, stripped, expansion, "wikipedia", title, "deglossed")
+                    found += 1
+                    if found >= max_per_expansion:
+                        break
+        LOG.info("%s / %s: %d deglossed from %d pages", acronym, expansion, found, len(titles))
