@@ -1,6 +1,6 @@
 # `pipeline/` — validate a dataset, run every eval arm, get one results table
 
-**Historical research entry point; not authorized for S3a.** Use the safe checks and
+**Historical research entry point; requires explicit research authorization.** Use the safe checks and
 local training appendix in [the root README](../README.md). The shell pipeline
 automatically evaluates test when its file exists; `--skip-llm` does not disable it.
 Descriptions below are reference material, not instructions to run during organization.
