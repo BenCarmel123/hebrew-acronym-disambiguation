@@ -15,6 +15,7 @@ import torch
 from tqdm import tqdm
 
 from model.common.pairs import MIN_CANDIDATES, find_span, load_rows, mark_span
+from model.dictabertX.encoding import encode_pairs
 from model.dictabertX.model import load_finetuned
 
 MAX_LEN = 256
@@ -22,45 +23,14 @@ MAX_LEN = 256
 
 def encode_batch(tok, device, acr_open_id, acr_close_id,
                   context: str, candidates: list[str]) -> dict:
-    """One context, several candidates -> a batch of (context, candidate) pairs.
-
-    Mirrors the notebook's encode_batch: truncates the context around the marked span
-    when a pair would exceed MAX_LEN, keeping [ACR]...[/ACR] intact.
-    """
-    cls_id, sep_id = tok.cls_token_id, tok.sep_token_id
-    rows = []
-    ctx_ids = tok.encode(context, add_special_tokens=False)
-    o, c = ctx_ids.index(acr_open_id), ctx_ids.index(acr_close_id)
-    for candidate in candidates:
-        cand_ids = tok.encode(candidate, add_special_tokens=False)
-        budget = MAX_LEN - 3 - len(cand_ids)
-        lo, hi = 0, len(ctx_ids)
-        while (hi - lo) > budget:
-            left_room, right_room = o - lo, hi - (c + 1)
-            if left_room >= right_room and left_room > 0:
-                lo += 1
-            elif right_room > 0:
-                hi -= 1
-            else:
-                break
-        trimmed = ctx_ids[lo:hi]
-        ids = [cls_id] + trimmed + [sep_id] + cand_ids + [sep_id]
-        types = [0] * (len(trimmed) + 2) + [1] * (len(cand_ids) + 1)
-        rows.append((ids, types))
-
-    width = max(len(ids) for ids, _ in rows)
-    pad = tok.pad_token_id or 0
-    input_ids, attention_mask, token_type_ids = [], [], []
-    for ids, types in rows:
-        n = width - len(ids)
-        input_ids.append(ids + [pad] * n)
-        attention_mask.append([1] * len(ids) + [0] * n)
-        token_type_ids.append(types + [0] * n)
-    return {
-        "input_ids": torch.tensor(input_ids, dtype=torch.long, device=device),
-        "attention_mask": torch.tensor(attention_mask, dtype=torch.long, device=device),
-        "token_type_ids": torch.tensor(token_type_ids, dtype=torch.long, device=device),
-    }
+    """One context and its candidates, using the shared target-centred encoding."""
+    if not candidates:
+        # The previous evaluator checked markers before rejecting an empty batch.
+        ctx_ids = tok.encode(context, add_special_tokens=False)
+        ctx_ids.index(acr_open_id)
+        ctx_ids.index(acr_close_id)
+    return encode_pairs(tok, [(context, candidate) for candidate in candidates], device,
+                        max_len=MAX_LEN, acr_open_id=acr_open_id, acr_close_id=acr_close_id)
 
 
 @torch.no_grad()
