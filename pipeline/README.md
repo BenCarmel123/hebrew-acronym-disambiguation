@@ -32,8 +32,9 @@ pipeline/run_pipeline.sh --checkpoint weights/dictabert-crossenc-<ts>.pt
 pipeline/run_pipeline.sh --skip-llm   # fast: skips qwen/gemini (local model + API calls)
 ```
 
-The earlier `/pipeline` tool-specific command referred to a file absent from this
-repository; use the documented entry points when separately authorized.
+The tracked [`/pipeline` command](../.claude/commands/pipeline.md) is a short pointer
+to [AGENTS.md](../AGENTS.md) and the [active instructions](../README.md#start-here).
+Research runs require explicit authorization; the command does not launch the pipeline.
 
 ## What it does
 
