@@ -36,8 +36,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# --test defaults to data/splits/test_items.csv but that file may not exist yet
-# (it's new) — silently skip test validation/eval rather than fail when absent.
+# Skip test validation/evaluation only when the selected test file is absent.
 if [[ ! -f "$TEST" ]]; then
   TEST=""
 fi

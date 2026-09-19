@@ -1,6 +1,6 @@
 """Fine-tuned DictaBERT cross-encoder on the ranking task — the candidate-constrained
 selection arm this project trained, evaluated locally against a checkpoint instead of
-inside the Colab notebook.
+inside the training notebook.
 
 Requires a trained checkpoint (see weights/README.md — not committed, ~700MB).
 Notebook smoke writes no checkpoint; historical checkpoint reproduction is unverified.
