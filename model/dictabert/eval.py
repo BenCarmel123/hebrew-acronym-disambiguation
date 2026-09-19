@@ -21,16 +21,14 @@ the distance fine-tuning had to travel.
 from __future__ import annotations
 
 import argparse
-import csv
 
 import torch
 import torch.nn.functional as F
 from tqdm import tqdm
-from transformers import AutoModel, AutoTokenizer
 
-from model.common.pairs import find_span, mark_span
+from model.common.pairs import find_span, load_rows, mark_span
+from model.dictabert.model import MODEL_ID, build_model
 
-MODEL_ID = "dicta-il/dictabert"
 MAX_LEN = 256
 
 
@@ -69,15 +67,14 @@ def main() -> None:
     a = ap.parse_args()
 
     device = a.device or ("cuda" if torch.cuda.is_available() else "cpu")
-    tok = AutoTokenizer.from_pretrained(MODEL_ID)
-    model = AutoModel.from_pretrained(MODEL_ID).to(device)
+    tok, model = build_model(MODEL_ID)
+    model = model.to(device)
     # No dropout, and the markers are NOT added to the vocabulary here: an untrained
     # embedding row would be pure noise, so the markers stay as ordinary subword text
     # the pretrained model can at least read.
     model.eval()
 
-    with open(a.items, encoding="utf-8-sig", newline="") as f:
-        rows = list(csv.DictReader(f))
+    rows = load_rows(a.items)
 
     res = evaluate(rows, tok, model, device)
     print(f"{a.items}\n")

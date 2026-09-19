@@ -12,13 +12,12 @@ from __future__ import annotations
 import argparse
 
 import torch
-from transformers import AutoModel, AutoTokenizer
 
 from model.baselines import evaluate as evaluate_baselines
 from model.baselines import load_signals
 from model.common.eval import evaluate as evaluate_llm
 from model.common.pairs import load_rows
-from model.dictabert.eval import MODEL_ID as DICTABERT_MODEL_ID
+from model.dictabert.model import MODEL_ID as DICTABERT_MODEL_ID, build_model
 from model.dictabert.eval import evaluate as evaluate_dictabert_zeroshot
 
 
@@ -35,8 +34,8 @@ def run(items_path: str, candidates_path: str, checkpoint: str | None,
                         "n_items": b["n_items"]})
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    tok = AutoTokenizer.from_pretrained(DICTABERT_MODEL_ID)
-    model = AutoModel.from_pretrained(DICTABERT_MODEL_ID).to(device)
+    tok, model = build_model(DICTABERT_MODEL_ID)
+    model = model.to(device)
     model.eval()
     d = evaluate_dictabert_zeroshot(rows, tok, model, device)
     results.append({"arm": "dictabert (untrained)", "accuracy": d["accuracy"],
