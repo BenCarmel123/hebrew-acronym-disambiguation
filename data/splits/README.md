@@ -1,29 +1,33 @@
 # `data/splits/` — what training and eval read
 
-**Layer 3 of the data lifecycle.** See [`../README.md`](../README.md) for all three layers.
-
-The frozen splits an experiment actually consumes. Nothing else belongs here.
+See [the data location map](../README.md) and [dataset card](../mined/DATASET_CARD.md).
+These are historical split inputs and aggregate exports at baseline `8ca117d`; counts
+below are retained from its documentation, not recounted in S3a. Descriptions such as
+“frozen” report historical allocation and do not approve the next scientific protocol.
 
 | File | Rows | Acronym types |
 |---|---|---|
 | `train_items.csv` | 3,115 | 435 |
 | `dev_items.csv` | 289 | 55 |
 | `test_items.csv` | 395 | 60 |
-| `all_items.csv` | 4,649 | 549 | every row above, one file, plus a `category` column |
-| `by_category/*.csv` | — | — | the same rows, one file per `category` value |
+| `all_items.csv` | 4,649 | 549 |
+| `by_category/*.csv` | — | — |
 
-## The split rule
+`all_items.csv` and `by_category/` are separate historical aggregate/category exports.
+They are not asserted to be synchronized with the union of the current split files.
+
+## Historical split rule
 
 **Disjoint by acronym type**, checked between every pair: train/dev, train/test,
 dev/test. No acronym appears on both sides of any pair. Splitting by row instead would
 put the same acronym — often drawn from the same source article or protocol — on both
 sides, and a model that had merely memorised its dominant expansion would score as
 though it had learned to disambiguate. Type-disjointness makes an eval split measure
-generalisation to acronyms never seen in training, which is the actual task.
+generalisation to acronyms never seen in training, which was the task interpretation used in this construction.
 `pipeline/validate_data.py --train --dev --test` enforces this on every change — run it
 after editing any of the three files.
 
-`dev` is **frozen**: it was reviewed once (see Labels, below) and is never rewritten by
+The construction treated `dev` as **frozen**: it was reviewed once (see Labels, below) and is never rewritten by
 later work, including the test-split construction described next. Its 55 types are
 excluded from every later allocation decision, so nothing can accidentally violate its
 disjointness from train.
@@ -31,10 +35,9 @@ disjointness from train.
 ## test: why it needed an unusual construction
 
 `test_items.csv` is a later addition (2026-09-13), built from human-reviewed Knesset
-Corpus rows, previously-unused natural Wikipedia rows, and a small number of disclosed
-AI-authored rows (see Provenance below) — the goal being a held-out set of **real**
-(not mechanically rewritten) acronym usage, so it can measure something dev's
-substituted-only rows cannot.
+Corpus rows, previously-unused natural Wikipedia rows, and disclosed AI-authored rows (see Provenance below). Natural and authored subsets
+are different text origins; their inclusion does not turn authored rows into observed
+natural usage. The intended evaluation role is historical, not approved by S3a.
 
 The complication: every one of the 191 human-reviewed Knesset acronym types turned out
 to already be somewhere in the existing 549-type train+dev inventory — checked directly,
@@ -44,9 +47,8 @@ types' *existing* rows had to be actively removed from `train` and rebuilt from 
 new-source pool instead. `data_preprocess/build_splits.py` does this — see its
 docstring and `../mined/DATASET_CARD.md`'s "Knesset corpus, natural-text pool, and the
 frozen test split" section for the full rationale, the stratification rule, and a known
-accepted leakage condition (page-title overlap between train and test — Knesset
-protocols are long multi-topic transcripts, so this is judged much lower severity than
-the same condition would be for two Wikipedia articles).
+page-title overlap between train and test. The card preserves the earlier rationale
+for accepting it; that rationale is not approval for the next experiment.
 
 ## Provenance: the `category` column
 
@@ -83,10 +85,9 @@ these rows fill an attestation gap for a known sense, they do not introduce new 
 ## Labels
 
 Most `wiki_substituted` rows are **weak-labelled**: the mining pipeline substituted the
-acronym into a sentence that spelled the expansion out, so the label is correct by
-construction rather than by human judgment. That is adequate training signal and is
-*not* held-out evaluation data on its own — a model scoring well on it may have learned
-the substitution rule rather than disambiguation.
+acronym into a sentence that spelled the expansion out, so the label is mechanically derived rather than independently established by that
+operation. Review status is a separate axis; neither the text construction nor the
+column name guarantees a valid evaluation target.
 
 `dev_items.csv` carries a full **human review** (2026-09-12) of every substituted row:
 judged `clean` / `wrong_sense` / `broken` / `unsure`, recorded in `review_verdict` and
@@ -99,7 +100,7 @@ kept rather than dropped.
 
 `knesset` rows carry `label_status=verified` and `review_verdict` values from a
 from-scratch human review against each type's candidate list (not an audit of a
-mechanical label) — see `../mined/knesset_reviewed.csv` for the raw review and the
+mechanical label) — see `../mined/knesset/knesset_reviewed.csv` for the raw review and the
 DATASET_CARD for the full verdict breakdown (941 clean, 100 corrected, 4 dropped as
 genuinely unresolvable).
 

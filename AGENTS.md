@@ -3,8 +3,9 @@
 - Read the current user task and [README.md](README.md) before work. The central
   `PROJECT_PLAN.md` is maintained by the coordinator outside this repository; do not
   copy, move or update it, or create competing PLAN/STATUS/HANDOFF/TODO documents.
-- Current authorization is workspace organization and a limited local environment
-  check (S1 and early S2). Scientific choices remain open: do not decide splits,
+- Obtain the current authorized package from the user task and central plan; do not
+  turn an earlier package boundary into a permanent ban. Scientific choices remain
+  open unless explicitly approved: do not decide splits,
   systems, metrics, labels, candidates, budgets or protocols. Historical claims,
   code comments and “ratified” labels are not evidence of explicit human approval.
 - Distinguish inspected facts, documentation claims, recommendations and Shaked's
@@ -23,13 +24,16 @@
   Avoid frameworks, personal paths, secrets and hidden notebook state.
 - Install only in a new isolated local environment from `requirements.txt`.
   Keep weights, caches, environments, secrets and generated outputs out of Git.
-  Run only the environment check documented in README for this package. No benchmark
-  data, training, evaluation, mining, Ollama or paid API calls. Do not run
-  `pipeline/run_pipeline.sh` or `pipeline.run_all`, including with `--skip-llm`.
-- Preserve data, labels, candidates, splits, prompts, scoring, results, notebooks and
-  model behavior in this package. Report existing defects in the conversation instead
-  of fixing them incidentally. No notebook editing, extraction or execution yet.
-- When notebook restructuring is separately authorized, preserve behavior; put imports
+  Use the safe checks documented in README for structural work. Real-data training,
+  evaluation, mining, Ollama and paid API use require explicit task authorization.
+  `pipeline/run_pipeline.sh` automatically evaluates test if present; `--skip-llm`
+  does not disable test. Do not use it or `pipeline.run_all` as a structural smoke test.
+- Structural extraction preserves data, labels, candidates, splits, prompts, scoring,
+  results and model behavior. Compare to the identified baseline, not only the new
+  implementation. Report existing defects instead of fixing them incidentally.
+  In the historical training path, keep seeding after model initialization and strict
+  development-loss improvement for checkpoint selection unless separately authorized.
+- For an authorized notebook restructuring, preserve behavior; put imports
   and environment setup in the first code cell, then short explanations and function
   calls. Shared logic belongs in source modules. Experimental fixes require separate scope.
 - Write concise formal English technical documentation. README serves readers; this

@@ -1,8 +1,10 @@
-# `data/mined/` — automatically extracted candidates, awaiting human review
+# `data/mined/` — mining exports and review records
 
-**Layer 2 of the data lifecycle.** See [`../README.md`](../README.md) for all three layers.
+See [the data location map](../README.md) and [dataset card](DATASET_CARD.md) for
+processing layers, field meanings and the status of historical records.
 
-The output of the mining pipeline. Machine-produced, unreviewed, and **not labels**.
+This directory contains machine-produced candidate/context tables together with
+review records and applied review outputs. Its contents are not uniformly reviewed.
 
 ## What belongs here
 
@@ -14,9 +16,9 @@ The output of the mining pipeline. Machine-produced, unreviewed, and **not label
 
 ## The rule that matters
 
-**Nothing here is a gold label.** A weak label is a hypothesis with a provenance record.
-It becomes a label only after a person judges it against a written annotation guide, and
-that happens under human review, not here.
+A label's evidence follows its provenance and review record, not its directory.
+Mechanically assigned labels remain weak; a documented review is not independent
+agreement or scientific approval of the next benchmark.
 
 The project has already been burned by this exact confusion: an automatically mined pool
 of 196 acronym types was described as "196 validated types". It was a pool, not a
@@ -28,19 +30,19 @@ is no longer in this repository.)
 | | |
 |---|---|
 | ✅ | `README.md` (this file) |
-| ✅ | Extraction output. Regenerating it is thousands of throttled API calls over hours, so it is committed — but it is still machine output, not data anyone has checked |
+| ✅ | Extraction output. Regenerating it is thousands of throttled API calls over hours, so it is committed with its existing provenance/review status preserved |
 
-If an extraction cannot be regenerated because no script exists, that is a defect in the
-extraction, not a reason to commit its output.
+Preserve existing exports even when reconstruction is incomplete; record that limitation
+rather than discarding evidence or assuming the source can be fetched identically.
 
-## Current state
+## Historical inventory notes (not recounted in S3a)
 
 **Populated.** Mining is complete: `acronym_items.csv` holds 3,386 occurrences over 546
 acronym types, and `candidate_table.csv` the 2,002-row expansion inventory they draw on.
 See [`DATASET_CARD.md`](DATASET_CARD.md) for how both were built and where they are weak.
 
-`dev_review.csv` additionally holds a human pass over every row of the dev split — the
-first verified labels in the project. It is the input to
+`dev_review.csv` additionally holds a human pass over every row of the dev split — a
+review record according to the existing documentation. It is the input to
 [`../../data_preprocess/apply_dev_review.py`](../../data_preprocess/apply_dev_review.py),
 which produces the reviewed `data/splits/dev_items.csv`.
 
@@ -49,7 +51,7 @@ splits — see `DATASET_CARD.md`'s *Deglossed and authored rows* section for wha
 are and why `train_items.csv` and `dev_items.csv` now hold more rows than
 `apply_dev_review.py` alone produces.
 
-## The retry sweep
+## Historical retry sweep
 
 `wikipedia/retry_types.txt` holds 43 acronym types selected from the 92 that the original mining
 swept but that produced no sentences. They were reviewed by hand in two passes,

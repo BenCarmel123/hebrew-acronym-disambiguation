@@ -1,15 +1,29 @@
 # Dataset card — Hebrew acronym disambiguation
 
-How the benchmark data was obtained, what it contains, and where it is known to
-be weak. Mining is complete: all 638 acronym types with two or more candidate
-expansions have been swept. What remains is annotation.
+## Reading the recorded data
 
-**Status: dev reviewed, train unlabelled.** Every substituted row of the dev split
-has been judged by a human (2026-09-12); the verdicts are in `dev_review.csv` and the
-result is the reviewed `data/splits/dev_items.csv`. The original 2,966 train rows
-remain weak-labelled — correct by construction, never judged. See *Substitution
-damage, measured* below for what the review found, and *Deglossed and authored rows*
-for two smaller additions made after the review, both in the splits rather than here.
+**S3a status:** this card preserves construction/review history, not approval of a new
+benchmark. Claims and counts in dated sections refer to their original stages and were
+not recomputed in S3a. The location map is [data/README.md](../README.md).
+
+| Axis | Existing fields or values | Interpretation |
+|---|---|---|
+| Processing stage | Source export, mining, review records, split CSVs | Stages can coexist in a directory; later authored/deglossed additions need not pass through the original mining table. |
+| Source and text construction | `source`, `provenance`, `category`; Wikipedia/Knesset; `natural`, `substituted`, `deglossed`, `authored` | Natural text retains the observed acronym; substitution inserts it; deglossing removes an explanation; authored text is newly composed. These describe inputs, not label reliability. |
+| Aggregate category | `wiki_substituted`, `wiki_natural`, `wiki_deglossed`, `knesset`, `manual`, `wiktionary` | `manual` includes disclosed AI-authored material (`source=claude-sonnet-5`); it does not establish human authorship. Historical totals below describe different stages. |
+| Label evidence | `provisional_expansion`, `gold_expansion`, `label_status`, `label_origin`, `review_verdict`, `review_note` | `weak` is mechanically derived; `verified` records a claimed review/authorship status; `unverified` marks unresolved labeling. Consult provenance/review records; missing evidence remains unknown. |
+| Split role | Existing train/dev/test files | Historical allocation, separate from source and label evidence. No current protocol approval follows from the name `test` or earlier descriptions of a split as frozen. |
+
+A mechanically derived target does not establish its own correctness. Documented review
+is not evidence of independent annotator agreement, and authored text may have a label
+without independent human review. These are not new inclusion or relabeling rules.
+
+## Original mining and subsequent review history
+
+The earlier status described the original 2,966 train rows as weak-labelled and the
+substituted dev rows as human-reviewed on 2026-09-12 (`dev_review.csv`). Later sections
+record Knesset, natural, deglossed and authored additions. That earlier status does not
+describe the complete current train/dev composition.
 
 ## Task
 
@@ -35,7 +49,7 @@ written usage examples.
 
 ## Pipeline
 
-`src/data/data_preprocess/`, driven by `python -m data_preprocess <command>`.
+`data_preprocess/`, driven by `python -m data_preprocess <command>`.
 
 ### 1. Candidate expansions → `candidate_table.csv`
 
@@ -53,7 +67,7 @@ were dropped.
 ### 2. Sentence mining → `data/mined/*_by_sense.csv`
 
 Command: `mine-by-sense --acronyms <types.txt>`. Three strategies exist in
-`mine_sentences.py`; the mining runs use the latter two.
+`data_preprocess/wikipedia/mining.py`; the mining runs use the latter two.
 
 **`mine_sentences`** (flat, not used for the benchmark) searches the acronym
 surface and keeps clean sentences. Fully natural, but it returns whichever
@@ -81,8 +95,8 @@ text after rewriting:
   occurs inside `ב"שירות`, which is a proclitic plus a quoted word. The match
   may not be followed by more Hebrew letters, and may only be preceded by a
   proclitic (ה, ו, ב, כ, ל, מ, ש).
-- **Exactly one acronym.** Any second acronym-shaped token disqualifies the
-  sentence.
+- **Acronym-type filter.** A different acronym type disqualifies the sentence;
+  repeated occurrences of the same type can survive (see Known limitations).
 - **No inline gloss, in either direction.** Both `ח"ש (חודר שריון)` and
   `חודר שריון (ח"ש)` put the answer in the input. A *spaced* dash also glosses
   (`ד"ש – התנועה הדמוקרטית`), while a tight hyphen joins a compound name
@@ -142,7 +156,7 @@ poor proxy for real yield.
 
 ## The two files, and how they differ
 
-`processed/` holds two files that describe the same acronyms at different
+`data/mined/` holds two files that describe the same acronyms at different
 levels. Confusing them is easy and consequential, because one contains
 expansions that are *not* labels.
 
@@ -249,7 +263,7 @@ new rows rather than judgments of existing ones.
 **`deglossed`.** `is_clean_sentence` drops any sentence that glosses the acronym
 inline (`בא"ח (בסיס אימונים חטיבתי)`), since the answer would sit in the input. But
 that is also the one place the corpus proves a rare sense is real *and* shows a
-writer actually abbreviating it. `mine_deglossed()` in `mine_sentences.py` finds such
+writer actually abbreviating it. `mine_deglossed()` in `data_preprocess/wikipedia/mining.py` finds such
 sentences and strips the parenthetical, keeping genuine abbreviated usage with a
 known label — more natural than substitution, which invents the abbreviation rather
 than finding one. A full sweep over the 368 expansions in `candidate_table.csv` with
@@ -259,21 +273,24 @@ organizations sharing the acronym, a genuine disambiguation case the corpus neve
 attested before — and 12 installed in train, 10 filling out existing types and 2
 introducing new ones. One row was discarded by hand: a `מס״ב` gloss that named a
 *place* after a person rather than reading the acronym, the same proper-name defect
-documented above for `דו״ד`. `NAMED_AFTER_RE` in `mine_sentences.py` now filters the
+documented above for `דו״ד`. `NAMED_AFTER_RE` in `data_preprocess/wikipedia/mining.py` now filters the
 common phrasing of this automatically for future runs.
 
 **`authored`.** Two documented real senses — `בא״ח` = `בסיס אימונים חטיבתי`
 ("brigade training base") and `אז״ר` = `אויב זרק רימון` (a military radio warning,
 "enemy threw a grenade") — have zero corpus attestation even after deglossing: every
 Wikipedia sentence containing the phrase glosses it, and the grenade-warning sense is
-spoken slang unlikely to appear in encyclopedic prose at all. Four sentences were
-hand-written to attest these two senses (2 each, in dev for `בא״ח` and train for
-`אז״ר`), `label_status=verified` since the writer is also the labeller.
+spoken slang unlikely to appear in encyclopedic prose at all. The earlier record describes four sentences as
+“hand-written” to attest these two senses (2 each, in dev for `בא״ח` and train for
+`אז״ר`), with `label_status=verified` because the writer also supplied the label.
+This wording is a historical attribution, not independent evidence of human authorship
+or review; source and label-origin fields must be consulted.
 `review_note` says so on every such row; they should never be read as mined text.
 
-**Every `expansion` value is provisional.** For substituted rows it is correct
-by construction, which makes it useless as a training target — a model scoring
-well on it has learned the substitution rule, not disambiguation. For natural
+**Every `expansion` value is provisional.** For substituted rows it is
+mechanically derived from the replaced expansion. It can be consumed as a weak target
+by the existing training code, but neither its correctness nor model quality is
+established by that construction. For natural
 rows it means "the source page also mentioned this expansion", which is
 evidence, not proof: a page about ממלא מקום can still use `מ"מ` for something
 else. Gold labels require human annotation.
@@ -283,18 +300,20 @@ overwhelmingly one sense in real text. Per-expansion mining gives each sense
 its own quota, which surfaces rare senses but does not reflect their true
 frequency.
 
-**Single source.** Everything is Hebrew Wikipedia — encyclopaedic register
+**Original mining-stage source.** The original sentence pool is Hebrew Wikipedia — encyclopaedic register
 only. Hebrew Wikisource was validated as a fallback for rabbinic and
 liturgical types that Wikipedia lacks prose for, but is not wired up.
 
-**No split.** Deliberate: splitting before labelling would bake unverified data
-into the test set.
+**Original mining-stage allocation.** No split had been made at that stage.
+Later split construction is recorded below; this is not the current storage state.
 
-## Reproducing
+## Historical reproduction command
+
+For an authorized mining run only; see [the active entry point](../../README.md).
+Run from the repository root. This command is not part of S3a.
 
 ```
-cd project
-.venv/bin/python3 -m src.data.data_preprocess mine-by-sense \
+.venv/bin/python -m data_preprocess mine-by-sense \
     --acronyms data/mined/wikipedia/retry_types.txt \
     --out data/mined/wikipedia/retry_by_sense.csv \
     --per-expansion 3 --pages-per-expansion 12
@@ -315,8 +334,8 @@ had already written. The API client throttles between calls and backs off on
 | `sentence` | input text; contains the acronym. **Not always exactly once** — 3,260 rows hold one occurrence under mark-folding, 126 hold two or more (see Known limitations) |
 | `provisional_expansion` | machine-assigned sense — **not a gold label** |
 | `sense_id` | stable id for the (acronym, expansion) pair |
-| `gold_expansion` | empty; the human-verified label |
-| `label_status` | `unverified` for every row |
+| `gold_expansion` | label field; the original mining-stage schema left it empty |
+| `label_status` | original mining-stage default `unverified`; subsequent files may differ |
 | `n_candidates`, `candidates` | choice set for the constrained arm, ` \| `-separated |
 | `provenance` | `natural` or `substituted` |
 | `multi_sense_type` | `yes` if the type has ≥2 senses with ≥2 rows each |
@@ -493,7 +512,7 @@ easy/common types (`ד"ר`, `בע"מ`, `רש"י`, …) don't dominate.
 substitution-damage review produced. Its 55 types are excluded from all
 test/train allocation decisions in `build_splits.py`.
 
-**Known, accepted leakage channel: page-level overlap.**
+**Historically recorded page-level overlap (acceptance not established for the next protocol).**
 `pipeline/validate_data.py` now also checks `page_title` overlap across
 splits (previously only `sentence` and acronym-type were checked). This
 surfaced 24 shared page_titles between `train`/`dev` (pre-existing — short
@@ -503,9 +522,9 @@ Wikipedia articles. The latter is judged much lower severity: a Knesset
 protocol is a single long multi-topic session (42% of scanned protocols
 mention more than one acronym type), so two different acronym mentions
 from the same protocol share far less real content than two sentences
-from the same short Wikipedia article would. Accepted as a known condition
-rather than engineered around, given the cost of enforcing document-level
-disjointness on an already-thin stratified type pool.
+from the same short Wikipedia article would. The earlier documentation treated this as an accepted condition
+rather than enforcing document-level disjointness on the thin type pool. That is a
+historical rationale, not evidence of Shaked approving it for the next experiment.
 
 ### `multi_sense_type` is not populated for new rows
 
@@ -517,7 +536,7 @@ human annotation call made when `train`/`dev` were first built, not
 something mechanically re-derivable from the data alone. It is left blank
 for every `knesset`, `wiki_natural`, and `manual` row rather than guessed.
 
-### Scope decisions made and not revisited
+### Historical scope decisions
 
 - **Committee protocols** (~9,000 further shards, a much larger corpus than
   the 1,000 plenary shards used) were listed and one partial download
