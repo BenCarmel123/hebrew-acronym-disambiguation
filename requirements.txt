@@ -1,12 +1,14 @@
-# Data pipeline (acronym_pipeline/)
-requests
+# Verified local check: Python 3.12.11, macOS arm64, 2026-09-19.
+# One dependency source for this repository; not a global-environment freeze.
+requests==2.32.5
+torch==2.8.0
+transformers==4.57.6
+python-dotenv==1.2.1
+tqdm==4.67.1
 
-# Model training (dictabert/, notebooks/)
-torch
-transformers
-
-# LLM eval (model/gemini/) — loads GEMINI_API_KEY from .env, not committed
-python-dotenv
-
-# Progress bars for eval loops (model/common/eval.py)
-tqdm
+# Model-loading/tokenization dependencies exercised by the local check.
+huggingface-hub==0.36.2
+tokenizers==0.22.2
+safetensors==0.8.0
+numpy==2.5.3
+regex==2026.9.10
