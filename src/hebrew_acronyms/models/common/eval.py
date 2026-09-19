@@ -11,8 +11,8 @@ from tqdm import tqdm
 
 from hebrew_acronyms.models.common.pairs import _normalise
 
-#: Fixed per-item ordering, not per-run: an item's candidate order must not depend on
-#: what ran before it, or re-running with --out only won't reproduce the same prompts.
+#: Seed for one random generator per evaluation call. Reproducing candidate order
+#: requires the same ordered inputs and candidate lists; it is not keyed by item ID.
 SHUFFLE_SEED = 42
 
 
@@ -26,13 +26,7 @@ def build_generate_prompt(acronym: str, sentence: str) -> str:
 
 
 def build_select_prompt(acronym: str, sentence: str, shuffled_candidates: list[str]) -> str:
-    """`shuffled_candidates` must already be in the order to display — shuffling is the
-    caller's job (see evaluate), so this function alone can't accidentally reintroduce
-    positional bias by re-deriving its own order.
-
-    Asks for a letter, not the candidate text: a small model reliably outputs a single
-    letter but does not reliably copy a multi-word Hebrew string verbatim.
-    """
+    """Request a letter choice using the candidate order supplied by the caller."""
     letters = string.ascii_uppercase[:len(shuffled_candidates)]
     options = "\n".join(f"{l}. {c}" for l, c in zip(letters, shuffled_candidates))
     return (
@@ -68,23 +62,21 @@ def evaluate(rows: list[dict], generate_fn, mode: str = "generate") -> dict:
     n = 0
     correct = 0
     invalid = 0
-    # One Random instance, seeded once: shuffles are independent draws across items,
-    # not the same permutation repeated, while still reproducing identically run to run.
+    # In select mode, each scored row advances this generator. Earlier rows and their
+    # candidate counts therefore affect the order shown for later rows.
     rng = random.Random(SHUFFLE_SEED)
     details = []  # per-item record, so errors can be sliced later (by acronym, type, etc.)
     for r in tqdm(rows, desc=f"{mode} eval", unit="item"):
-        # Same skip rule as baselines.py/pairs.py: a single-candidate item has no real
-        # choice to make, and a missing gold can't be scored either way.
+        # This evaluator skips rows with fewer than two candidates or an empty gold.
+        # Unlike the encoder evaluators, it does not check the target's text span.
         cands = [c.strip() for c in r["candidates"].split("|") if c.strip()]
         gold = r["gold_expansion"].strip()
         if len(cands) < 2 or not gold:
             continue
         n += 1
 
-        # "generate": no candidate list shown, the model produces the expansion from
-        # scratch. "select": the candidate list is shown (order shuffled per item, so
-        # a model with a positional bias like "always pick A" scores at chance instead
-        # of being flattered by gold sitting first) and the model answers with a letter.
+        # Generate mode shows no candidates. Select mode shuffles their order and
+        # requests a letter; the displayed order is saved with the response.
         shown_order = None  # only meaningful in select mode; logged so the CSV shows
                             # what the model actually saw, not just the row's raw order
         if mode == "generate":

@@ -1,20 +1,12 @@
-"""Untrained DictaBERT on the ranking task — what the encoder knows before fine-tuning.
+"""Rank candidates by cosine similarity using pretrained DictaBERT.
 
-Isolates what fine-tuning actually contributed. The cross-encoder head is randomly
-initialised, so scoring pairs through an untrained head measures nothing but noise;
-instead this uses the pretrained encoder the way it can be used without training —
-EMBEDDING SIMILARITY.
+The marked context and each candidate are encoded separately. Their [CLS] vectors
+are compared by cosine similarity, and the highest-scoring candidate is selected.
+This method uses no task-specific training or learned scoring head.
 
-Each candidate is scored by the cosine similarity between the marked context's [CLS]
-vector and the candidate's own [CLS] vector, and the argmax is the prediction. That is a
-real zero-shot method (it asks "which expansion is most semantically similar to this
-sentence?"), and it needs no labels, no head and no training.
-
-WHAT A LOW NUMBER HERE MEANS. Not that DictaBERT is weak. Sentence similarity via [CLS]
-is known to be a poor sentence representation without fine-tuning — BERT's [CLS] is
-trained for next-sentence prediction, not similarity, which is the finding that motivated
-Sentence-BERT. Read this as the floor a pretrained encoder gives you off the shelf, and
-the distance fine-tuning had to travel.
+It is a separate baseline from the trained cross-encoder, which jointly encodes
+each context/candidate pair and applies a learned head. Their comparison changes
+both the scoring method and training, so it does not isolate the effect of fine-tuning.
 
     python -m hebrew_acronyms.models.dictabert_similarity.eval --items data/splits/dev_items.csv
 """
