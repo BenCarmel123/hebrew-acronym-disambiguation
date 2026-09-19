@@ -31,10 +31,7 @@ from __future__ import annotations
 import argparse
 import csv
 
-
-def load_rows(path: str) -> list[dict]:
-    with open(path, encoding="utf-8-sig", newline="") as f:
-        return list(csv.DictReader(f))
+from model.common.pairs import load_rows
 
 
 def load_signals(path: str) -> tuple[dict[tuple[str, str], int], dict[tuple[str, str], int]]:
