@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import torch
 from torch import nn
 
-from model.common.pairs import ACR_CLOSE, ACR_OPEN
+from hebrew_acronyms.models.common.pairs import ACR_CLOSE, ACR_OPEN
 
 
 class TinyTokenizer:

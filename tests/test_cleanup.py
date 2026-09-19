@@ -9,9 +9,9 @@ from types import ModuleType
 import unittest
 from unittest.mock import patch
 
-from data_preprocess import apply_dev_review, build_splits, review_duplicates_cli
-from data_preprocess.common import csv_io, filters
-from model.common import pairs
+from hebrew_acronyms.data_processing import apply_dev_review, build_splits, review_duplicates_cli
+from hebrew_acronyms.data_processing.common import csv_io, filters
+from hebrew_acronyms.models.common import pairs
 from tests.reference import reference_git
 
 BASE = "63b90acfae36e6b7fee8114760506868e29c681f"
@@ -21,6 +21,7 @@ def old_module(path, name):
     """Load a side-effect-free baseline module; its CLI is never invoked here."""
     source = reference_git(BASE, "show", f"{BASE}:{path}")
     module = ModuleType(name)
+    # Only the import context moves; source bytes still come from the old Git path.
     module.__package__ = name.rpartition(".")[0]
     with patch.dict(sys.modules, {name: module}):
         exec(compile(source, f"git:{BASE}:{path}", "exec"), module.__dict__)
@@ -40,7 +41,7 @@ class CleanupEquivalenceTests(unittest.TestCase):
         self.old_pairs = old_module("model/common/pairs.py", "old_pairs")
         self.old_splits = old_module("data_preprocess/build_splits.py", "old_splits")
         self.old_reviewer = old_module(
-            "data_preprocess/review_duplicates_cli.py", "data_preprocess.old_reviewer")
+            "data_preprocess/review_duplicates_cli.py", "hebrew_acronyms.data_processing.old_reviewer")
 
     def test_csv_readers_share_one_implementation_and_match_baseline(self):
         for loader in (pairs.load_rows, build_splits.load_rows,
@@ -98,7 +99,7 @@ class CleanupEquivalenceTests(unittest.TestCase):
             self.assertEqual(*results)
 
     def test_retained_sentence_filters_match_baseline(self):
-        old = old_module("data_preprocess/common/filters.py", "data_preprocess.common.old_filters")
+        old = old_module("data_preprocess/common/filters.py", "hebrew_acronyms.data_processing.common.old_filters")
         template = "לאחר הישיבה הארוכה נמסר כי {} ימשיך לפעול במקום גם במהלך השבוע הקרוב."
         cases = [template.format(term) for term in
                  ("א״ב", 'א"ב', "בא״ב", "א״ב וגם א״ב", "א״ב וגם ג״ד", "א״ב (אור בהיר)",

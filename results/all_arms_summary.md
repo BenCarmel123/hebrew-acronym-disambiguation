@@ -38,9 +38,9 @@ git show 63b90acfae36e6b7fee8114760506868e29c681f:README.md
 The old-repository commit `a728fc1` records the 0.786 claim; the 12.3-point paragraph
 already appears in `55e1aba`, before the later summary table. These are historical
 attributions, not enough evidence to identify one common run. Other training observations
-are retained in [checkpoint notes](../weights/README.md).
+are retained in [checkpoint notes](../docs/checkpoints.md).
 
-The eight CSVs under [gemini/](gemini/) and [qwen/](qwen/) each retain 285 per-item
+The eight CSVs under [gemini/](gemini) and [qwen/](qwen) each retain 285 per-item
 predictions. Their IDs/acronyms/gold/candidates match the old dev snapshot at `8b8d741`.
 Against current dev, 281 IDs remain and 35 of those have a changed acronym, gold or
 candidate field. Prediction files omit sentence text and a run manifest; do not join

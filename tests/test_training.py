@@ -12,10 +12,10 @@ from unittest.mock import patch
 import torch
 from torch import nn
 
-from model.common import pairs
-from model.dictabertX import model as model_module
-from model.dictabertX import training
-from model.dictabertX import workflow
+from hebrew_acronyms.models.common import pairs
+from hebrew_acronyms.models.dictabert_cross_encoder import model as model_module
+from hebrew_acronyms.models.dictabert_cross_encoder import training
+from hebrew_acronyms.models.dictabert_cross_encoder import workflow
 from tests.fixtures.tiny import TRAINING_PAIRS, tiny_base_model
 from tests.reference import BASE, baseline_notebook_cell, baseline_notebook_namespace
 

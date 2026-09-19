@@ -11,7 +11,7 @@ from typing import Iterable
 import unittest
 from unittest.mock import patch
 
-from data_preprocess.common import candidates, hebrew_text
+from hebrew_acronyms.data_processing.common import candidates, hebrew_text
 from tests.reference import reference_git
 
 BASE = "2b9b84eb20b0be89d728b963cc753924e83b53ea"
@@ -164,15 +164,15 @@ class CandidateTableEquivalenceTests(unittest.TestCase):
                                  self.old["summarise"](old_rows, thresholds))
 
     def test_consumers_share_one_row_class(self):
-        import data_preprocess
-        from data_preprocess import dedupe_expansions, merge_sources
-        from data_preprocess.wikipedia import source as wikipedia
-        from data_preprocess.wiktionary import source as wiktionary
-        for consumer in (data_preprocess, dedupe_expansions, merge_sources,
+        from hebrew_acronyms import data_processing
+        from hebrew_acronyms.data_processing import dedupe_expansions, merge_sources
+        from hebrew_acronyms.data_processing.wikipedia import source as wikipedia
+        from hebrew_acronyms.data_processing.wiktionary import source as wiktionary
+        for consumer in (data_processing, dedupe_expansions, merge_sources,
                          wikipedia, wiktionary):
             self.assertIs(consumer.BulletRow, candidates.BulletRow)
-        self.assertIs(data_preprocess.summarise, candidates.summarise)
-        self.assertIs(data_preprocess.write_csv, candidates.write_csv)
+        self.assertIs(data_processing.summarise, candidates.summarise)
+        self.assertIs(data_processing.write_csv, candidates.write_csv)
 
 
 if __name__ == "__main__":

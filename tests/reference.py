@@ -64,3 +64,36 @@ def baseline_notebook_namespace(names, namespace=None):
 def baseline_module_namespace(path, names, namespace=None):
     """Load only named definitions from a baseline source module."""
     return _definitions([baseline_source(path)], names, namespace)
+
+
+def current_source_path(historical_path):
+    """Locate a moved current file while keeping Git lookups at their original paths."""
+    moves = {
+        "model/dictabertX/": "src/hebrew_acronyms/models/dictabert_cross_encoder/",
+        "model/dictabert/": "src/hebrew_acronyms/models/dictabert_similarity/",
+        "model/": "src/hebrew_acronyms/models/",
+        "data_preprocess/": "src/hebrew_acronyms/data_processing/",
+        "pipeline/": "src/hebrew_acronyms/pipelines/",
+    }
+    for old, new in moves.items():
+        if historical_path.startswith(old):
+            return ROOT / (new + historical_path[len(old):])
+    raise ValueError(f"No source move recorded for {historical_path}")
+
+
+def migrated_imports(node):
+    """Adapt only the moved imports inside the historical combined evaluator.
+
+    All non-import AST nodes, aliases, constants and call arguments remain exact.
+    This does not execute or replace any historical evaluation logic.
+    """
+    moves = {
+        "model.dictabertX.eval": "hebrew_acronyms.models.dictabert_cross_encoder.eval",
+        "model.dictabertX.model": "hebrew_acronyms.models.dictabert_cross_encoder.model",
+        "model.qwen.eval": "hebrew_acronyms.models.qwen.eval",
+        "model.gemini.eval": "hebrew_acronyms.models.gemini.eval",
+    }
+    for child in ast.walk(node):
+        if isinstance(child, ast.ImportFrom) and child.module in moves:
+            child.module = moves[child.module]
+    return node

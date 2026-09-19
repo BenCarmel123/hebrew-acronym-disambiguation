@@ -1,5 +1,5 @@
 # Python virtual environment — ~2GB of installed packages, never committed.
-# Recreate with:  python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+# Recreate with:  python3 -m venv .venv && .venv/bin/python -m pip install -e .
 .venv/
 venv/
 
@@ -30,3 +30,8 @@ data/raw/
 
 # Notebooks
 .ipynb_checkpoints/
+
+# Local package build metadata
+*.egg-info/
+build/
+dist/

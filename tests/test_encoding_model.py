@@ -11,10 +11,10 @@ from unittest.mock import patch
 import torch
 from torch import nn
 
-from model.common import pairs
-from model.dictabertX.encoding import encode_pairs
-from model.dictabertX.eval import encode_batch
-from model.dictabertX.model import CrossEncoder, build_cross_encoder, load_finetuned
+from hebrew_acronyms.models.common import pairs
+from hebrew_acronyms.models.dictabert_cross_encoder.encoding import encode_pairs
+from hebrew_acronyms.models.dictabert_cross_encoder.eval import encode_batch
+from hebrew_acronyms.models.dictabert_cross_encoder.model import CrossEncoder, build_cross_encoder, load_finetuned
 from tests.fixtures.tiny import TinyEncoder, TinyTokenizer, marked_tokenizer, tiny_base_model
 from tests.reference import baseline_module_namespace, baseline_notebook_cell, baseline_notebook_namespace
 
@@ -116,7 +116,7 @@ class EncodingEquivalence(unittest.TestCase):
         context = "מילה " * 20 + " [ACR]ב״ד[/ACR]"
         old = baseline_module_namespace("model/dictabertX/eval.py", ["encode_batch"],
                                         {"torch": torch, "MAX_LEN": 20})["encode_batch"]
-        with patch("model.dictabertX.eval.MAX_LEN", 20):
+        with patch("hebrew_acronyms.models.dictabert_cross_encoder.eval.MAX_LEN", 20):
             self.assert_batch_equal(old(self.tok, "cpu", self.open_id, self.close_id,
                                         context, ["דגם"]),
                                     encode_batch(self.tok, "cpu", self.open_id, self.close_id,
@@ -186,7 +186,7 @@ class ModelEquivalence(unittest.TestCase):
         expected = scope["model"]
         expected_rng = torch.get_rng_state()
         torch.set_rng_state(state)
-        with patch("model.dictabertX.model.build_base_model", side_effect=tiny_base_model) as loader:
+        with patch("hebrew_acronyms.models.dictabert_cross_encoder.model.build_base_model", side_effect=tiny_base_model) as loader:
             with patch("torch.manual_seed", side_effect=AssertionError("factory must not seed")):
                 _, actual, opened, closed = build_cross_encoder(model_id="fixture", revision="fixture-revision")
         loader.assert_called_once_with(model_id="fixture", revision="fixture-revision")
@@ -198,13 +198,13 @@ class ModelEquivalence(unittest.TestCase):
     def test_factory_does_not_resize_when_markers_already_exist(self):
         encoder = TinyEncoder(66)
         with patch.object(encoder, "resize_token_embeddings") as resize:
-            with patch("model.dictabertX.model.build_base_model", return_value=(self.tok, encoder)):
+            with patch("hebrew_acronyms.models.dictabert_cross_encoder.model.build_base_model", return_value=(self.tok, encoder)):
                 build_cross_encoder()
             resize.assert_not_called()
 
     def test_checkpoint_loader_retains_cpu_load_then_device_order(self):
         events = []
-        with patch("model.dictabertX.model.build_base_model", side_effect=tiny_base_model):
+        with patch("hebrew_acronyms.models.dictabert_cross_encoder.model.build_base_model", side_effect=tiny_base_model):
             _, model, _, _ = build_cross_encoder()
         original_to = model.to
         original_load = model.load_state_dict
@@ -222,7 +222,7 @@ class ModelEquivalence(unittest.TestCase):
             events.append("move_device")
             return original_to(device)
 
-        with (patch("model.dictabertX.model.build_cross_encoder", side_effect=construct),
+        with (patch("hebrew_acronyms.models.dictabert_cross_encoder.model.build_cross_encoder", side_effect=construct),
               patch("torch.load", return_value=model.state_dict()),
               patch.object(model, "load_state_dict", side_effect=load),
               patch.object(model, "to", side_effect=move)):
@@ -232,7 +232,7 @@ class ModelEquivalence(unittest.TestCase):
     def test_checkpoint_round_trip_via_real_loader(self):
         for pooling in ("cls", "marker", "span_mean", "concat"):
             with self.subTest(pooling=pooling), tempfile.TemporaryDirectory() as directory:
-                with patch("model.dictabertX.model.build_base_model", side_effect=tiny_base_model):
+                with patch("hebrew_acronyms.models.dictabert_cross_encoder.model.build_base_model", side_effect=tiny_base_model):
                     _, model, _, _ = build_cross_encoder(pooling=pooling)
                     model.eval()
                     checkpoint = Path(directory) / "best.pt"

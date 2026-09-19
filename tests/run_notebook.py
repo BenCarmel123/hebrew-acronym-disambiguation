@@ -7,7 +7,7 @@ from pathlib import Path
 import json
 import sys
 
-from model.dictabertX.workflow import enable_offline
+from hebrew_acronyms.models.dictabert_cross_encoder.workflow import enable_offline
 
 
 def main() -> None:

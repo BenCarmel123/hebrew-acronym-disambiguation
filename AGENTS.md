@@ -19,15 +19,18 @@
 - The old repository, temporary audit copy and synced `sources/` are read-only.
   Selective copies from the old repository must come from `project/`, with repository,
   commit, source path and SHA-256 provenance. Do not merge the old history.
+- Keep importable code under `src/hebrew_acronyms/`; use the installed package in
+  commands and notebooks, without legacy import aliases or `sys.path` shortcuts.
 - Use simple Python, focused functions, explicit inputs and paths, and clear errors.
   Reuse existing shared logic. Imports must not download, train, call APIs or write.
   Avoid frameworks, personal paths, secrets and hidden notebook state.
-- Install only in a new isolated local environment from `requirements.txt`.
+- Install the project in a new isolated local environment with `pip install -e .`;
+  `pyproject.toml` reads the single dependency list from `requirements.txt`.
   Keep weights, caches, environments, secrets and generated outputs out of Git.
   Use the safe checks documented in README for structural work. Real-data training,
   evaluation, mining, Ollama and paid API use require explicit task authorization.
-  `pipeline/run_pipeline.sh` automatically evaluates test if present; `--skip-llm`
-  does not disable test. Do not use it or `pipeline.run_all` as a structural smoke test.
+  `src/hebrew_acronyms/pipelines/run_pipeline.sh` automatically evaluates test if present; `--skip-llm`
+  does not disable test. Do not use it or `hebrew_acronyms.pipelines.run_all` as a structural smoke test.
 - Structural extraction preserves data, labels, candidates, splits, prompts, scoring,
   results and model behavior. Compare to the identified baseline, not only the new
   implementation. Report existing defects instead of fixing them incidentally.
