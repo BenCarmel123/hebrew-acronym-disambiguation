@@ -14,6 +14,8 @@ import logging
 from pathlib import Path
 from typing import Iterable
 
+from .common.reporting import write_summary
+
 LOG = logging.getLogger(__name__)
 
 FIELDS = [
@@ -77,3 +79,25 @@ def write_annotation_table(path: str | Path, rows: list[dict]) -> None:
         writer.writeheader()
         writer.writerows(rows)
     LOG.info("wrote %d rows -> %s", len(rows), path)
+
+
+def build_table(
+    *,
+    candidates_path: str,
+    contexts_path: str,
+    out: str,
+    summary: str | None,
+) -> None:
+    """Join explicit candidate/context inputs and write the table and summary."""
+    import csv as csv_module
+
+    candidates = load_candidates(candidates_path)
+    with open(contexts_path, encoding="utf-8", newline="") as fh:
+        contexts = list(csv_module.DictReader(fh))
+    rows = build_rows(candidates, contexts)
+    write_annotation_table(out, rows)
+    write_summary(
+        out,
+        {"n_rows": len(rows), "n_acronyms": len({r["acronym"] for r in rows})},
+        summary,
+    )

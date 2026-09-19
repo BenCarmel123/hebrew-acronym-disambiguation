@@ -16,7 +16,7 @@ import logging
 from typing import Iterable, Iterator
 
 from ..common import hebrew_text
-from ..wikipedia.source import BulletRow, acronym_script
+from ..common.candidates import BulletRow, acronym_script
 from ..wikipedia.parser import looks_like_person
 from ..wikipedia.client import WikiAPI
 from .parser import ACRONYM_CATEGORY, WIKTIONARY_API, parse_entry
