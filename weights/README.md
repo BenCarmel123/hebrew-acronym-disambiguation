@@ -1,79 +1,37 @@
-# `weights/`
+# Checkpoints
 
-**Historical checkpoint notes.** Use [the current training appendix instructions](../README.md#training-appendix-and-structural-checks).
-The notebook now defaults to inference-only smoke and writes no checkpoint. The runs
-and interpretations below are historical; S3a did not validate these weight files.
-The retained training seed is applied after model initialization, so the older
-repeatability claim below does not establish reproducible initialization.
+Weight files are local and ignored by Git. The [training appendix](../notebooks/train_dictabert.ipynb)
+defaults to smoke and writes no checkpoint. Authorized training requires explicit inputs,
+a cached DictaBERT snapshot and a new output path; see [setup](../README.md#training-appendix).
+Historical weights, full training and GPU execution have not been reproduced.
 
-Trained model weights. **Not committed** — each file is ~700MB, over GitHub's 100MB
-limit. Reproducing a historical checkpoint has not been verified. A new checkpoint
-requires explicitly selecting authorized training inputs and `MODE="train"`; smoke
-does not train or save weights. Current settings are `TrainingConfig.epochs`, `.seed`
-and `.pooling`; `EPOCHS`, `SEED` and `POOLING` below refer to the historical notebook.
+The shared [checkpoint loader](../model/dictabertX/model.py) adds `[ACR]` and `[/ACR]`
+and resizes embeddings before loading the saved state. Pooling is selected through
+`TrainingConfig.pooling`: `cls` uses the pair summary, `marker` the opening marker,
+`span_mean` the target subwords, and `concat` combines summary and span vectors.
+The existing seed is applied after model initialization; a fixed seed alone does not
+establish reproducible initialization.
 
-Naming: `dictabert-crossenc-<YYYYMMDD-HHMMSS>.pt`, timestamped at the run that
-produced it.
+## Historical record
 
-## Runs
+These values are preserved from `63b90acfae36e6b7fee8114760506868e29c681f:weights/README.md`.
+They are documentation claims, not verified checkpoint evaluations. Named artifacts
+may not be available locally; the row previously called “current” had no filename.
+Historical names used `dictabert-crossenc-<YYYYMMDD-HHMMSS>.pt`.
 
-| Checkpoint | Pooling | Config | Dev item accuracy |
-|---|---|---|---|
-| `dictabert-crossenc-20260905-181754.pt` | cls | 3 epochs, epoch 1 selected; lr 2e-5, batch 16, unseeded | **0.815** |
-| (not kept) | cls | 1 epoch, lr 2e-5, batch 16, unseeded | 0.781 |
-| (not kept) | cls | 1 epoch, lr 2e-5, batch 16, seed 42 | 0.770 |
-| (not kept) | span_mean | 1 epoch, lr 2e-5, batch 16, seed 42 | <0.80 |
-| current | cls | 1 epoch, lr 2e-5, batch 16, seed 42, **corrected dev** | **0.786** |
+| Recorded checkpoint | Configuration | Recorded dev item accuracy |
+|---|---|---:|
+| `dictabert-crossenc-20260905-181754.pt` | cls, 3 epochs/epoch 1 selected, lr 2e-5, batch 16, unseeded | 0.815 |
+| Not kept | cls, 1 epoch, lr 2e-5, batch 16, unseeded | 0.781 |
+| Not kept | cls, 1 epoch, lr 2e-5, batch 16, seed 42 | 0.770 |
+| Not kept | span_mean, 1 epoch, lr 2e-5, batch 16, seed 42 | <0.80 |
+| Filename unspecified | cls, 1 epoch, lr 2e-5, batch 16, seed 42; described as corrected dev | 0.786 |
 
-The last row is the first number measured on the corrected 285-item dev set; everything
-above it was scored against the earlier 292-item version, which carried three wrong gold
-labels and seven items with no defensible answer. The two are not comparable, and 0.786
-is the figure to compare future runs against.
-
-Excluding the rabbinic-name types (`מהר״ש`, `מהר״י`, `מהרי״א`, `מהרי״ץ`, `יעב״ץ`) it
-scores **0.855** on the remaining 248 items. Those five types run a 68% error rate
-against 15% everywhere else — they are 13% of dev and 41% of its errors.
-
-Epochs 2 and 3 of the first run only overfit — dev loss rose from 0.42 to 0.53 to 0.54
-while train loss kept falling — so its saved checkpoint is epoch 1 and the notebook now
-defaults to `EPOCHS = 1`.
-
-**All three rows above are the same configuration** — one effective epoch of `cls`
-pooling at lr 2e-5 — and they span 0.770 to 0.815, a spread of 4.5 points on nothing but
-batch order and dropout. Treat that as the noise floor: **a single run cannot establish a
-gain smaller than roughly 5 points.** Comparing two configurations honestly means either
-running each several times and comparing the spread, or accepting that only a large gap
-is evidence.
-
-The notebook pins `SEED = 42`, which makes any given configuration repeatable, but that
-does not shrink the variance — it only fixes which draw you get. Two *different*
-configurations under the same seed still differ by an unknown amount of luck.
-
-## Pooling variants
-
-`POOLING` in the model cell selects which vector the scoring head reads:
-
-| | what it reads |
-|---|---|
-| `cls` | the `[CLS]` summary of the whole pair — the conventional default |
-| `marker` | the `[ACR]` token's own vector, sitting on the target span |
-| `span_mean` | mean of the acronym's own subword tokens, between the markers |
-| `concat` | `[CLS]` and `span_mean` together, `2 x hidden` into the head |
-
-`[CLS]` summarises the sentence; the question is about one span within it. The other
-three read that span directly, which is standard for span-targeted tasks.
-
-**It made no difference.** `span_mean` landed in the same range as `cls`, inside the
-noise floor. A plausible reason: the acronym's own tokens carry no meaning — `מ״מ`
-tokenises to `מ`, `״`, `מ`, the same two characters for all sixteen of its senses — so
-after twelve layers of attention their vectors encode the same surrounding context
-`[CLS]` already summarises. Where you pool from does not matter when the span itself is
-semantically empty and only its context disambiguates it.
-
-`marker` and `concat` were left untried on that reasoning.
-
-## Loading one
-
-The tokenizer gains two tokens (`[ACR]`, `[/ACR]`) and the embedding matrix is resized
-to match before training. Any code loading these weights must repeat that step first,
-or `load_state_dict` fails on a shape mismatch. See [the shared model loader](../model/dictabertX/model.py).
+The earlier notes distinguish a 292-item dev version from a corrected 285-item version
+and report 0.855 on 248 items after excluding five rabbinic-name types. These notes do
+not establish a common run manifest or reconcile the [other recorded scores](../results/all_arms_summary.md).
+The recorded first run's dev losses were 0.42/0.53/0.54 and train losses
+0.178/0.106/0.072, with epoch 1 selected. `marker` and `concat` were described as untried.
+Earlier claims that pooling made no difference, that seed 42 guaranteed repeatability,
+or that a 4.5-point observed range defined a general noise floor are not established
+by these records and are not adopted as current findings.
