@@ -1,14 +1,15 @@
 # Hebrew Acronym Disambiguation
 
-**Active stage: structural organization of the training path (S3a).**
+**Active stage: structural organization of data-processing commands (a bounded S3b package).**
 The scientific protocol has not been approved. Existing results and research claims
 below are historical; they are not current findings or authorization to run experiments.
 
 ## Start here
 
-Use this repository as the permanent working copy. The training extraction branch is
-`extract-training`, based on accepted setup commit
-`8ca117d50c3f01d4473b944c99611c7191af05b4`. The original setup branch
+Use this repository as the permanent working copy. The data-code organization branch is
+`organize-data-code`, based on accepted S3a commit
+`2b9b84eb20b0be89d728b963cc753924e83b53ea` on `extract-training`. S3a follows accepted
+setup commit `8ca117d50c3f01d4473b944c99611c7191af05b4`. The original setup branch
 `setup-workspace` starts from `eb2e7785dab42dc8ae3ca07372d032adafee9dba`
 of [BenCarmel123/hebrew-acronym-disambiguation](https://github.com/BenCarmel123/hebrew-acronym-disambiguation).
 On 2026-09-19, remote `main` and `improve-data` both pointed to `eb2e778`.
@@ -106,20 +107,21 @@ an expansion outside it.
 ## Code responsibilities
 
 The current dependency direction is notebook/entry point → callable source functions.
-Only the cross-encoder training path has been consolidated in S3a.
+S3a consolidated the cross-encoder training path; this S3b package separates data
+command dispatch from processing and moves shared candidate tables out of Wikipedia.
 
 | Responsibility | Current code |
 |---|---|
 | Collection and mining | `data_preprocess/wikipedia/`, `wiktionary/`, `knesset/`; `sefaria/` is exploratory and not wired into the CLI. Each owns source access and source-specific extraction. |
-| Text processing | `data_preprocess/common/`: orthography, acronym matching, gematria and mining filters. |
+| Shared data components | `data_preprocess/common/`: orthography, acronym matching, gematria and mining filters; [candidates.py](data_preprocess/common/candidates.py) owns candidate rows, CSV I/O, resume caches and table summaries; `reporting.py` writes/displays JSON summaries. |
 | Data assembly and review | `merge_sources.py`, `dedupe_expansions.py`, `review_duplicates_cli.py`, `build_annotation_table.py`, `apply_dev_review.py`, `build_splits.py` under `data_preprocess/`. These merge sources, apply recorded review and construct existing input files. |
-| Data command entry point | `data_preprocess/__main__.py` dispatches commands and still contains processing/resume logic; this remains a concrete S3b boundary to review. |
+| Data command entry point | [data_preprocess/__main__.py](data_preprocess/__main__.py) parses arguments, configures logging and calls functions with explicit inputs. [candidate_workflows.py](data_preprocess/candidate_workflows.py) coordinates inventory collection/merge/review; [sentence_workflows.py](data_preprocess/sentence_workflows.py) owns type selection, context export, progress and sense-run resumption; [knesset/workflows.py](data_preprocess/knesset/workflows.py) coordinates shard download/local export. Annotation assembly stays in `build_annotation_table.py`. |
 | Pair construction | [model/common/pairs.py](model/common/pairs.py): CSV reading, quote folding, locating/marking the target, candidate pairs and skip summaries. |
 | Model and input encoding | [dictabert/model.py](model/dictabert/model.py) loads the base encoder; [dictabertX/model.py](model/dictabertX/model.py) owns the shared cross-encoder, marker initialization and checkpoint loading; [encoding.py](model/dictabertX/encoding.py) owns pair cropping/padding. |
 | Training | [training.py](model/dictabertX/training.py): settings, batch order, BCE loss, AdamW and strict development-loss checkpoint selection. [workflow.py](model/dictabertX/workflow.py): local paths, mode selection, cached-model setup and short smoke. The [notebook](notebooks/train_dictabert.ipynb) explains and calls these functions. |
 | Evaluation and decoding | `model/common/eval.py` shares LLM prompts, candidate shuffling, decoding, matching and detail export. `dictabertX/eval.py` retains item selection and calls the shared pair encoder through its compatible wrapper. `dictabert/eval.py` implements the separate similarity method; `baselines.py` implements reference baselines; `qwen/eval.py` and `gemini/eval.py` connect backends. This is not one unified evaluator. |
-| Validation and orchestration | `pipeline/validate_data.py` owns schema/overlap checks; `run_all.py` coordinates methods and summary rendering; `run_pipeline.sh` coordinates validation and dev/test evaluation. These research entry points are not authorized during S3a. `check_environment.py` is the separate safe base-encoder check. |
-| Engineering checks | [tests/](tests/): exact-baseline comparisons, tiny encoder fixtures and the fresh-process notebook runner. [tests/fixtures/](tests/fixtures/) is separate from research inputs. Temporary checkpoint tests use isolated temporary directories; notebook smoke writes no checkpoint. |
+| Validation and orchestration | `pipeline/validate_data.py` owns schema/overlap checks; `run_all.py` coordinates methods and summary rendering; `run_pipeline.sh` coordinates validation and dev/test evaluation. These research entry points are not authorized during structural organization. `check_environment.py` is the separate safe base-encoder check. |
+| Engineering checks | [tests/](tests/): exact-baseline comparisons, temporary data-workflow fixtures, tiny encoder fixtures and the fresh-process notebook runner. [tests/fixtures/](tests/fixtures/) is separate from research inputs. Temporary checkpoint tests use isolated temporary directories; notebook smoke writes no checkpoint. |
 | Inputs and outputs | [data/](data/README.md): mining exports, review records and historical split inputs; [results/](results/): historical predictions/summaries; `weights/`: ignored weight files; [course/](course/): source documents. |
 
 ## Training appendix and structural checks
@@ -137,6 +139,12 @@ downloads or research data. Keep that commit in the local Git history for these 
 It compares encoding tensors, all four pooling modes, state dictionaries, tiny-encoder
 optimizer updates, late seeding and strict checkpoint selection. Temporary round trips
 use the real checkpoint loader with a tiny fixture encoder, not historical weights.
+
+Data-processing equivalence checks use Python sources from accepted S3a commit
+`2b9b84eb20b0be89d728b963cc753924e83b53ea`. They compare command parsing and
+temporary fixture outputs with network access blocked; no research inputs are mined
+or evaluated. See [data-processing checks](data_preprocess/README.md#structural-checks).
+The data-only extraction does not require rerunning the cached-model notebook smoke.
 
 The notebook runner executes every code cell in a fresh Python process. No Jupyter
 server is required for this check; when using a notebook UI, select the same prepared
@@ -160,8 +168,8 @@ scoring, GPU execution and historical checkpoint validation were not run in S3a.
 
 Known encoding edge behavior remains unchanged: missing markers/empty batches raise
 errors; an oversized candidate or target may exceed the length budget. Other active
-paths still duplicate CSV/model loading, and some mining logic lives in CLI handlers.
-Those boundaries require S3b review; S3a does not complete repository-wide organization.
+paths still duplicate CSV/model loading, and evaluation boundaries remain for later
+S3b review. The data-command extraction does not complete repository-wide organization.
 
 The old Colab instructions fetched code/data from a moving branch and ran training.
 They have been replaced by the local appendix above. No analysis notebook or final
