@@ -1,9 +1,7 @@
 """Parse Hebrew Wiktionary acronym entries.
 
-Wiktionary is the complementary source to Wikipedia: its entries state *literal
-expansions* where Wikipedia disambiguation pages mostly list referents (see
-`research/source_evidence/REPORT.md`). Since the ratified prediction target is
-the literal expansion string, this is the higher-value inventory of the two.
+Extract candidate expansions and domain labels from entry markup. The parser does
+not validate whether a candidate belongs in the research benchmark.
 
 Entry structure (from `מ"מ`, `ש"ס`):
 

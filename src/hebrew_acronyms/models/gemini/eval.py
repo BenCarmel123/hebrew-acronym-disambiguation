@@ -1,9 +1,8 @@
-"""Open-generation / candidate-select evaluation against Gemini — the SOTA/strong LLM
-arm, same prompts and scoring as src/hebrew_acronyms/models/qwen/eval.py, over the hosted API instead of
-a local model.
+"""Evaluate open generation or candidate selection through the Gemini API.
 
-Requires GEMINI_API_KEY in a local .env file (never committed — see .gitignore). Get a
-free key at https://aistudio.google.com/apikey.
+Uses the shared LLM prompts and scoring. Requires GEMINI_API_KEY in the environment
+or a local ignored .env file. Account access and quotas must be checked before an
+authorized service run.
 
     python -m hebrew_acronyms.models.gemini.eval --mode generate
     python -m hebrew_acronyms.models.gemini.eval --mode select
@@ -24,20 +23,18 @@ load_dotenv()
 
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 
-#: Billing is enabled, so the free-tier RPM caps that forced a delay/lite-model
-#: workaround no longer apply. Kept at 0 (not removed) so a retry-on-429 still exists
-#: for transient issues, without slowing down a normal run.
+#: Delay before each request, separate from the retry backoff for HTTP 429.
 REQUEST_DELAY_SECONDS = 0.0
 MAX_RETRIES = 5
 
 
 def gemini_generate(prompt: str, model: str = "gemini-3.6-flash", thinking: bool = False) -> str:
-    """`thinking=False` (the default) sends the minimum thinkingBudget this model
-    accepts. thinkingBudget=0 is rejected with a 400 (INVALID_ARGUMENT) on
-    gemini-3.6-flash — unlike some other Gemini models it cannot fully disable
-    thinking — so 1 is the practical floor. This is a short classification task, not
-    one that benefits from extended reasoning, and thinking tokens cost latency and
-    money for no expected accuracy gain. Set thinking=True to compare against it.
+    """Send a prompt using the retained request configuration.
+
+    thinking=False sends thinkingBudget=1; thinking=True omits that configuration,
+    leaving the budget to the model's default. These flags do not establish that
+    thinking is disabled or enabled. Model availability and support for the request
+    settings must be verified before an authorized run.
     """
     api_key = os.environ["GEMINI_API_KEY"]
     body = {"contents": [{"parts": [{"text": prompt}]}]}
@@ -64,7 +61,7 @@ def main() -> None:
     ap.add_argument("--model", default="gemini-3.6-flash")
     ap.add_argument("--mode", default="generate", choices=["generate", "select"])
     ap.add_argument("--thinking", action="store_true",
-                    help="enable extended thinking (off by default — see gemini_generate)")
+                    help="omit the explicit thinking budget and use the model's default")
     ap.add_argument("--out", default=None)
     a = ap.parse_args()
     model_tag = a.model.replace("gemini-", "").replace("-latest", "").replace(".", "")
