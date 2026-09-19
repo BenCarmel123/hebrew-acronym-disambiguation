@@ -3,8 +3,8 @@
 A TAU NLP course project on interpreting Hebrew acronyms in context: generating an
 expansion freely or selecting one from a supplied candidate list. The repository
 contains data construction code, existing model implementations, a training notebook
-and an outline of the complete experimental workflow. Scientific choices and the
-final experiment protocol remain open.
+and a preliminary companion for experimental methods and analysis. Scientific choices
+and the final experiment protocol remain open.
 
 The code is organized for local development and inspection. Fixture tests and CPU
 smoke checks establish execution and structural compatibility, not model quality.
@@ -21,7 +21,7 @@ AI-authored examples remain disclosed in the [data documentation](data/README.md
 | ↳ `models/` | Shared input/scoring helpers, baselines, `dictabert_similarity`, `dictabert_cross_encoder`, Gemini and Qwen implementations. |
 | ↳ `pipelines/` | Environment check, data validation and research evaluation entry points. See [execution reference](docs/pipelines.md). |
 | [data/](data/README.md) | Source exports, review evidence and historical split/aggregate inputs. |
-| [notebooks/](notebooks/) | [Project workflow](notebooks/project_workflow.ipynb): environment check and experiment outline. [Training appendix](notebooks/train_dictabert.ipynb): runnable source calls; default is offline smoke. |
+| [notebooks/](notebooks/) | [Experimental methods and analysis](notebooks/experimental_study.ipynb): environment check and study outline. [Training appendix](notebooks/train_dictabert.ipynb): runnable source calls; default is offline smoke. |
 | [results/](results/all_arms_summary.md) | Preserved historical predictions and summaries. |
 | [docs/](docs/) | [Course sources](docs/course/README.md), command references and [checkpoint notes](docs/checkpoints.md). |
 | [tests/](tests/) | Baseline-equivalence tests and invented fixtures, separate from research data. |
@@ -30,7 +30,9 @@ The manuscript and its figures will live in `paper/` when writing begins; no emp
 paper scaffold is maintained. Checkpoint files remain local and ignored by Git.
 
 [AGENTS.md](AGENTS.md) is the single source of operating instructions for agents.
-The coordinator maintains the existing project plan outside this repository.
+The coordinator maintains the existing project plan at `../PROJECT_PLAN.md`, alongside
+this repository. The next phase is research clarification with Shaked; existing
+experiment proposals are not approved execution settings.
 
 ## Install and check
 
@@ -79,9 +81,11 @@ pooler/marker/scoring parameters in smoke checks are expected and imply no learn
 
 ## Project notebooks
 
-Start with [project_workflow.ipynb](notebooks/project_workflow.ipynb) for the sequence
-from data preparation to the paper's results. Its environment check is executable;
-the remaining sections describe inputs and outputs pending protocol finalization.
+Start with [experimental_study.ipynb](notebooks/experimental_study.ipynb),
+**Experimental Methods and Analysis**, for the sequence from corpus preparation to
+the manuscript's results. Its environment check is executable; the remaining sections
+outline methods pending protocol finalization. They will be completed alongside the
+approved data, evaluation and analysis work, rather than deferred to final packaging.
 It does not yet execute the complete experiment or reproduce research results.
 
 ### Training appendix
