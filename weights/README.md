@@ -1,5 +1,11 @@
 # `weights/`
 
+**Historical checkpoint notes.** Use [the current training appendix instructions](../README.md#training-appendix-and-structural-checks).
+The notebook now defaults to inference-only smoke and writes no checkpoint. The runs
+and interpretations below are historical; S3a did not validate these weight files.
+The retained training seed is applied after model initialization, so the older
+repeatability claim below does not establish reproducible initialization.
+
 Trained model weights. **Not committed** — each file is ~700MB, over GitHub's 100MB
 limit, and they are reproducible by re-running the notebook.
 
@@ -67,4 +73,4 @@ semantically empty and only its context disambiguates it.
 
 The tokenizer gains two tokens (`[ACR]`, `[/ACR]`) and the embedding matrix is resized
 to match before training. Any code loading these weights must repeat that step first,
-or `load_state_dict` fails on a shape mismatch. See `model/encoder.py`.
+or `load_state_dict` fails on a shape mismatch. See [the shared model loader](../model/dictabertX/model.py).
