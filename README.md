@@ -1,19 +1,22 @@
 # Hebrew Acronym Disambiguation
 
-**Local handoff (S4): structural organization and safe checks are complete; independent review is pending.**
+**Local handoff accepted: structural organization and safe checks passed independent review.**
 The scientific protocol has not been approved. Existing results and research claims
 below are historical; they are not current findings or authorization to run experiments.
 
 ## Start here
 
-Use the reviewed local repository with its full Git history. The accepted code baseline
-is `35488bf036bdbddb87df2a05f2c329d1c68e1e2d`; a handoff commit may add documentation.
+Use branch `review-handoff` in the reviewed local repository with its full Git history.
+The independently checked handoff snapshot is `a0eab21c30c6ad1b56fb726b03bb03ab71bb30a0`;
+subsequent closure documentation does not change its code or data. Superseded local
+work branches were removed after verifying that their commits are retained here.
+Local `main` remains at the original baseline; no merge or push was performed.
 The remote `main` baseline does not contain these structural changes. A source archive
 or shallow clone may also omit the historical commits required by the fixture tests.
 For a separate check, clone the reviewed local copy into a new directory:
 
 ```bash
-git clone --no-hardlinks /path/to/reviewed/local/repository hebrew-acronym-check
+git clone --no-hardlinks --branch review-handoff /path/to/reviewed/local/repository hebrew-acronym-check
 cd hebrew-acronym-check
 git rev-parse HEAD
 git status --short
