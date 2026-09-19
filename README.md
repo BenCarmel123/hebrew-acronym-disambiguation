@@ -2,8 +2,9 @@
 
 A TAU NLP course project on interpreting Hebrew acronyms in context: generating an
 expansion freely or selecting one from a supplied candidate list. The repository
-contains data construction code, existing model implementations and a thin training
-notebook. Scientific choices and the final experiment protocol remain open.
+contains data construction code, existing model implementations, a training notebook
+and an outline of the complete experimental workflow. Scientific choices and the
+final experiment protocol remain open.
 
 The code is organized for local development and inspection. Fixture tests and CPU
 smoke checks establish execution and structural compatibility, not model quality.
@@ -20,7 +21,7 @@ AI-authored examples remain disclosed in the [data documentation](data/README.md
 | ↳ `models/` | Shared input/scoring helpers, baselines, `dictabert_similarity`, `dictabert_cross_encoder`, Gemini and Qwen implementations. |
 | ↳ `pipelines/` | Environment check, data validation and research evaluation entry points. See [execution reference](docs/pipelines.md). |
 | [data/](data/README.md) | Source exports, review evidence and historical split/aggregate inputs. |
-| [notebooks/](notebooks/train_dictabert.ipynb) | Training code appendix: explanations and source calls; default is offline smoke. |
+| [notebooks/](notebooks/) | [Project workflow](notebooks/project_workflow.ipynb): environment check and experiment outline. [Training appendix](notebooks/train_dictabert.ipynb): runnable source calls; default is offline smoke. |
 | [results/](results/all_arms_summary.md) | Preserved historical predictions and summaries. |
 | [docs/](docs/) | [Course sources](docs/course/README.md), command references and [checkpoint notes](docs/checkpoints.md). |
 | [tests/](tests/) | Baseline-equivalence tests and invented fixtures, separate from research data. |
@@ -76,7 +77,14 @@ the Jupyter interface; Jupyter is not installed by `requirements.txt`. GPU execu
 full training and historical checkpoint reproduction remain unverified. Newly initialized
 pooler/marker/scoring parameters in smoke checks are expected and imply no learned result.
 
-## Training appendix
+## Project notebooks
+
+Start with [project_workflow.ipynb](notebooks/project_workflow.ipynb) for the sequence
+from data preparation to the paper's results. Its environment check is executable;
+the remaining sections describe inputs and outputs pending protocol finalization.
+It does not yet execute the complete experiment or reproduce research results.
+
+### Training appendix
 
 The notebook's first code cell holds imports, paths and mode settings. Later cells
 load inputs, prepare pairs, load the model, call the selected action and summarize it.
