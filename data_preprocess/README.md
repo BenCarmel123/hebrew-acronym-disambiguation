@@ -1,6 +1,7 @@
 # Acronym candidate tables
 
-**Historical construction reference.** Mining and dataset changes are not part of S3a.
+**Historical construction reference.** Live mining and dataset changes require explicit
+authorization and are not part of the current structural package.
 See [the root README](../README.md) for safe checks and the
 [dataset card](../data/mined/DATASET_CARD.md) for definitions and limitations.
 
@@ -44,6 +45,31 @@ The 3,678 / 701 counts reproduce the source probe's independently-derived
 Run from the repository root. Each command also writes `<out>.summary.json`.
 All three CSVs share one column set.
 
+## Structural checks
+
+The command names, flags and defaults above are unchanged. The CLI delegates to
+functions with explicit paths and settings; see the root README's
+[code responsibilities](../README.md#code-responsibilities) for their locations.
+Candidate rows and CSV helpers now live in
+[`common/candidates.py`](common/candidates.py), shared by both source counters and
+merge/review code. Wikipedia parsing and counting remain in `wikipedia/source.py`.
+
+Run the fixture suite from the repository root:
+
+```bash
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 .venv/bin/python -B -m unittest discover -s tests -v
+```
+
+The data checks compare against Git commit `2b9b84eb20b0be89d728b963cc753924e83b53ea`,
+using invented responses and temporary files with network access blocked. They cover
+parsing, row order, CSV/JSON bytes, summaries, restart and resume; they do not run the
+research pipeline. Retain this commit in local history for the comparisons.
+
+Existing resume behavior is preserved: sense mining appends a re-mined final type
+when earlier complete types exist, retaining its previous partial rows. Types with
+no output rows are not recorded as completed. This extraction does not repair those
+limitations or change the mining filters described below.
+
 ## Columns
 
 | Column | Meaning |
@@ -63,6 +89,11 @@ All three CSVs share one column set.
 senses, because that is the corpus contexts would be drawn from.
 
 ## Known limitations
+
+- **Annotation context input does not strip a UTF-8 BOM.** `build-annotation-table`
+  reads contexts as plain UTF-8, while the mining writers emit UTF-8 with a BOM.
+  Feeding such output directly to the annotation command raises `KeyError('acronym')`.
+  The fixture comparison preserves this existing mismatch; it needs a separate fix.
 
 - **`hits` counts articles containing the phrase, not occurrences**, and does not
   account for Hebrew proclitics (`כמפקד מחלקה` does not match `"מפקד מחלקה"`).
