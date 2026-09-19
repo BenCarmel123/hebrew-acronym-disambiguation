@@ -18,7 +18,7 @@ def reference_git(commit, *args, text=True):
         raise RuntimeError(
             f"Cannot read Git reference {commit}. Equivalence checks require Git "
             "and the full project history; a ZIP or shallow clone is insufficient. "
-            "Use a full clone of review-handoff (see README, Start here). "
+            "Use a full clone of review-handoff (see the root README). "
             "If this is already a full clone, verify the requested reference/path. "
             "This is a failed check, not a skip."
         ) from error

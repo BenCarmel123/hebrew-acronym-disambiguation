@@ -1,7 +1,7 @@
 """Build train/dev/test from the full labeled pool: existing train+dev rows,
 plus human-reviewed Knesset rows (data/mined/knesset/knesset_reviewed.csv).
 
-Policy (decided with the user, 2026-09-13):
+Historical construction policy (2026-09-13), not approval of a new experiment:
 
 - **dev is frozen.** It is never rewritten by this script — it already went
   through its own substitution-damage review and stays the fixed iteration
@@ -60,6 +60,8 @@ import random
 from collections import defaultdict
 from pathlib import Path
 
+from .common.csv_io import load_rows
+
 TRAIN_DEV_FIELDS = [
     "item_id", "acronym", "sentence", "provisional_expansion", "sense_id",
     "gold_expansion", "label_status", "n_candidates", "candidates",
@@ -78,11 +80,6 @@ def _n_candidates_bucket(n: int) -> str:
 
 def _row_count_bucket(n: int) -> str:
     return "well_attested" if n >= 5 else "thin"
-
-
-def load_rows(path: str) -> list[dict]:
-    with open(path, encoding="utf-8-sig", newline="") as fh:
-        return list(csv.DictReader(fh))
 
 
 def knesset_row_to_split_schema(row: dict, item_id: str) -> dict:

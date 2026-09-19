@@ -336,7 +336,18 @@ import pipeline.run_all
 
     def test_shared_builder_defaults_custom_revision_and_no_mode_change(self):
         self.assertEqual(base_model.build_model.__defaults__, (base_model.MODEL_ID, None))
-        self.assertEqual(source("model/dictabert/model.py"), source("model/dictabert/model.py", True))
+        current = ast.parse(source("model/dictabert/model.py"))
+        baseline = ast.parse(source("model/dictabert/model.py", True))
+        # Only the stale module description and standalone download demo were removed.
+        # Compare every retained statement, including defaults and the loader body.
+        self.assertIsInstance(current.body[0], ast.Expr)
+        self.assertIsInstance(current.body[0].value, ast.Constant)
+        self.assertIsInstance(current.body[0].value.value, str)
+        self.assertIsInstance(baseline.body[-1], ast.If)
+        self.assertEqual(ast.unparse(baseline.body[-1].test), "__name__ == '__main__'")
+        current.body = current.body[1:]
+        baseline.body = baseline.body[1:-1]
+        self.assertEqual(ast.dump(current), ast.dump(baseline))
         for args, expected_id, revision in (((), base_model.MODEL_ID, None),
                                            (("fixture-model",), "fixture-model", None),
                                            (("fixture-model", "fixture-revision"),

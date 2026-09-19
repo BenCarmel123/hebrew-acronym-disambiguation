@@ -13,13 +13,13 @@ contexts will be drawn from.
 from __future__ import annotations
 
 import logging
-from typing import Iterable, Iterator
+from typing import Iterator
 
 from ..common import hebrew_text
 from ..common.candidates import BulletRow, acronym_script
 from ..wikipedia.parser import looks_like_person
 from ..wikipedia.client import WikiAPI
-from .parser import ACRONYM_CATEGORY, WIKTIONARY_API, parse_entry
+from .parser import ACRONYM_CATEGORY, parse_entry
 
 LOG = logging.getLogger(__name__)
 
