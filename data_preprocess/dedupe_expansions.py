@@ -13,7 +13,7 @@ from collections import defaultdict
 from dataclasses import replace
 from typing import Sequence
 
-from .wikipedia.source import BulletRow
+from .common.candidates import BulletRow
 
 LOG = logging.getLogger(__name__)
 

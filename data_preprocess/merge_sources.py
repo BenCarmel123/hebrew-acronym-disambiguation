@@ -14,7 +14,7 @@ from dataclasses import replace
 from typing import Iterable, Sequence
 
 from .common import hebrew_text
-from .wikipedia.source import BulletRow
+from .common.candidates import BulletRow
 
 LOG = logging.getLogger(__name__)
 
