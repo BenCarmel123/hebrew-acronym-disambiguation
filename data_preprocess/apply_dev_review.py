@@ -21,6 +21,8 @@ from __future__ import annotations
 import argparse
 import csv
 
+from .common.csv_io import load_rows
+
 DAMAGED_VERDICTS = {"wrong_sense", "broken"}
 
 
@@ -102,10 +104,8 @@ def main() -> None:
     ap.add_argument("out", help="output path (may be the same as `items`)")
     args = ap.parse_args()
 
-    with open(args.review, encoding="utf-8-sig", newline="") as fh:
-        review_rows = list(csv.DictReader(fh))
-    with open(args.items, encoding="utf-8-sig", newline="") as fh:
-        items_rows = list(csv.DictReader(fh))
+    review_rows = load_rows(args.review)
+    items_rows = load_rows(args.items)
 
     out, stats = apply_review(items_rows, review_rows)
     fields = list(items_rows[0].keys())

@@ -1,10 +1,4 @@
-"""Load DictaBERT: the pinned Hebrew encoder and its tokenizer.
-
-    from model import build_model
-    tok, encoder = build_model()
-
-Nothing else. No head, no loss, no training.
-"""
+"""Load the base DictaBERT tokenizer and encoder without a task-specific head."""
 #: Hugging Face id for DictaBERT (base, ~184M params, Hebrew).
 MODEL_ID = "dicta-il/dictabert"
 
@@ -19,11 +13,3 @@ def build_model(model_id=MODEL_ID, revision=REVISION):
     tok = AutoTokenizer.from_pretrained(model_id, revision=revision)
     enc = AutoModel.from_pretrained(model_id, revision=revision)
     return tok, enc
-
-
-if __name__ == "__main__":
-    tok, enc = build_model()
-    print(f"loaded {MODEL_ID}")
-    print(f"  vocab size:  {len(tok)}")
-    print(f"  hidden size: {enc.config.hidden_size}")
-    print(f"  parameters:  {sum(p.numel() for p in enc.parameters()):,}")

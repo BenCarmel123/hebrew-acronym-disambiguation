@@ -11,14 +11,10 @@ import csv
 import sys
 from pathlib import Path
 
+from .common.csv_io import load_rows as load
 from .dedupe_expansions import REVIEW_FIELDS
 
 KEYS = {"m": "merge", "k": "keep", "s": "", "q": None}
-
-
-def load(path: Path) -> list[dict]:
-    with open(path, encoding="utf-8-sig", newline="") as fh:
-        return list(csv.DictReader(fh))
 
 
 def save(path: Path, rows: list[dict]) -> None:

@@ -3,8 +3,7 @@
 A sentence is kept when it:
 
 - contains the target acronym (in either quote variant),
-- contains no *other* acronym-shaped token, so the item is unambiguous
-  (relaxed for acronym-dense genres — see `is_clean_sentence_multi_acronym`),
+- contains no *other* acronym-shaped token, so the item is unambiguous,
 - does not gloss the acronym inline (`אח"ם (אגף חקירות ומודיעין)`), which
   would give the answer away in the input,
 - carries no section-header, list, citation or Hebrew-numeral-reference
@@ -29,7 +28,7 @@ class ContextRow:
 
     acronym: str
     context: str
-    source: str  # "wikipedia" | "wiktionary" | "sefaria" | "knesset"
+    source: str  # "wikipedia" | "wiktionary" | "knesset"
     page_title: str
 
 
@@ -161,33 +160,10 @@ def is_clean_sentence(sentence: str, acronym: str) -> bool:
     return not (present - canonical)
 
 
-def is_clean_sentence_multi_acronym(sentence: str, acronym: str) -> bool:
-    """`is_clean_sentence`, but tolerant of *other*, different acronyms.
-
-    Rabbinic/Talmudic prose is acronym-dense — a sentence naming מהר"ש will
-    routinely also carry ז"ל, רשב"י, מהרח"ו. Rejecting every sentence with more
-    than one acronym-shaped token (as `is_clean_sentence` does for Wikipedia)
-    would reject almost this entire genre. What must still hold is that the
-    *target* acronym itself is unambiguous — it names one type, once, not
-    several distinct forms of the same letters mixed together — since a human
-    reviewer reading the sentence still knows which acronym they are being
-    asked about even when others appear nearby.
-    """
-    variants = hebrew_text.variants(acronym) or [acronym]
-    if not _passes_common_filters(sentence, acronym, variants):
-        return False
-    canonical = {v.replace("״", '"') for v in variants}
-    present = [t.replace("״", '"') for t in ACRONYM_TOKEN_RE.findall(sentence)]
-    target_hits = [t for t in present if t in canonical]
-    return len(target_hits) == 1
-
-
 def page_sentences(text: str, acronym: str, *, is_clean=is_clean_sentence) -> Iterator[str]:
     """Clean sentences mentioning `acronym`, from one article's/segment's plain text.
 
-    `is_clean` is pluggable so a different-genre source (Sefaria's acronym-
-    dense rabbinic prose) can supply `is_clean_sentence_multi_acronym` instead
-    of the Wikipedia-tuned default.
+    `is_clean` accepts a sentence and its target acronym.
     """
     for raw in SENTENCE_SPLIT_RE.split(text):
         sentence = " ".join(raw.split())

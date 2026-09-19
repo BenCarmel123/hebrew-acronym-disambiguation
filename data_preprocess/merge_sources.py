@@ -11,7 +11,7 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from dataclasses import replace
-from typing import Iterable, Sequence
+from typing import Sequence
 
 from .common import hebrew_text
 from .common.candidates import BulletRow

@@ -1,13 +1,7 @@
-"""Preprocessing for the DictaBERT cross-encoder: rows -> (marked context, candidate, label) pairs.
-
-Self-contained; standard library only. Used by both local code and the Colab training
-notebook (fetched by raw URL), so this is the ONE place span-marking and pair-building
-happen — if the notebook built its own copy, training and any later local scoring could
-silently drift apart in how a span is marked or a pair is assembled.
-"""
+"""Build target-marked context/candidate pairs for training and evaluation."""
 from __future__ import annotations
 
-import csv
+from data_preprocess.common.csv_io import load_rows
 
 #: Marker tokens wrapping the target acronym occurrence, added to the tokenizer as real
 #: tokens by whoever builds the model (see model.py). Defined here because pair-building
@@ -45,12 +39,6 @@ def mark_span(sentence: str, span: tuple[int, int]) -> str:
     """Wrap the given span in the marker tokens."""
     s, e = span
     return f"{sentence[:s]}{ACR_OPEN}{sentence[s:e]}{ACR_CLOSE}{sentence[e:]}"
-
-
-def load_rows(path: str) -> list[dict]:
-    """Read one of the acronym_items-shaped CSVs (utf-8-sig: these carry a BOM)."""
-    with open(path, encoding="utf-8-sig", newline="") as f:
-        return list(csv.DictReader(f))
 
 
 def build_pairs(rows: list[dict]) -> list[tuple[str, str, int]]:

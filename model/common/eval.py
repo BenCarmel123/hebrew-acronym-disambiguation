@@ -9,7 +9,7 @@ import string
 
 from tqdm import tqdm
 
-from model.common.pairs import _normalise, load_rows
+from model.common.pairs import _normalise
 
 #: Fixed per-item ordering, not per-run: an item's candidate order must not depend on
 #: what ran before it, or re-running with --out only won't reproduce the same prompts.
