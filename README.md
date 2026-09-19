@@ -15,10 +15,11 @@ The remote `main` baseline does not contain these structural changes. A source a
 or shallow clone may also omit the historical commits required by the fixture tests.
 Missing reference history fails the equivalence checks with a restoration instruction;
 it is not counted as a pass or silently skipped. Use Git and a full clone, not a ZIP.
-For a separate check, clone the reviewed branch into a new directory:
+The reviewed branch is local: publishing it requires repository write access.
+For a separate check, clone the reviewed local copy into a new directory:
 
 ```bash
-git clone --branch review-handoff https://github.com/BenCarmel123/hebrew-acronym-disambiguation.git hebrew-acronym-check
+git clone --no-hardlinks --branch review-handoff /path/to/reviewed/local/repository hebrew-acronym-check
 cd hebrew-acronym-check
 git rev-parse HEAD
 git status --short
