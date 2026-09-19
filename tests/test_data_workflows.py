@@ -19,6 +19,7 @@ import sys
 import tempfile
 import unittest
 from unittest.mock import patch
+from tests.reference import reference_git
 
 BASE = "2b9b84eb20b0be89d728b963cc753924e83b53ea"
 ROOT = Path(__file__).resolve().parents[1]
@@ -54,15 +55,13 @@ class DataWorkflowEquivalenceTests(unittest.TestCase):
         cls.baseline_temp = tempfile.TemporaryDirectory()
         cls.addClassCleanup(cls.baseline_temp.cleanup)
         package = Path(cls.baseline_temp.name) / "baseline_data_preprocess"
-        names = subprocess.check_output(
-            ["git", "ls-tree", "-r", "--name-only", BASE, "data_preprocess"],
-            cwd=ROOT, text=True).splitlines()
+        names = reference_git(
+            BASE, "ls-tree", "-r", "--name-only", BASE, "data_preprocess").splitlines()
         for name in names:
             if name.endswith(".py"):
                 target = package / Path(name).relative_to("data_preprocess")
                 target.parent.mkdir(parents=True, exist_ok=True)
-                target.write_bytes(subprocess.check_output(
-                    ["git", "show", f"{BASE}:{name}"], cwd=ROOT))
+                target.write_bytes(reference_git(BASE, "show", f"{BASE}:{name}", text=False))
         spec = importlib.util.spec_from_file_location(
             "baseline_data_preprocess", package / "__init__.py",
             submodule_search_locations=[str(package)])

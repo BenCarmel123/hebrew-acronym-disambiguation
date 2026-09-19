@@ -6,13 +6,13 @@ from dataclasses import asdict, dataclass, fields
 import logging
 from pathlib import Path
 import socket
-import subprocess
 import tempfile
 from typing import Iterable
 import unittest
 from unittest.mock import patch
 
 from data_preprocess.common import candidates, hebrew_text
+from tests.reference import reference_git
 
 BASE = "2b9b84eb20b0be89d728b963cc753924e83b53ea"
 ROOT = Path(__file__).resolve().parents[1]
@@ -21,9 +21,7 @@ NAMES = {"BulletRow", "acronym_script", "read_existing", "write_csv", "summarise
 
 def baseline_tables():
     """Execute only table definitions, excluding source access and all API calls."""
-    source = subprocess.check_output(
-        ["git", "show", f"{BASE}:data_preprocess/wikipedia/source.py"],
-        cwd=ROOT, text=True)
+    source = reference_git(BASE, "show", f"{BASE}:data_preprocess/wikipedia/source.py")
     nodes = [node for node in ast.parse(source).body
              if (isinstance(node, (ast.FunctionDef, ast.ClassDef)) and node.name in NAMES)
              or (isinstance(node, ast.Assign)

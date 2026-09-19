@@ -65,7 +65,9 @@ def configure_run(root: Path, mode: str = "smoke", snapshot: Path | None = None,
         raise ValueError(f"Not a repository root: {root}")
     local = find_snapshot(Path(snapshot) if snapshot is not None else None)
     if local is None:
-        raise FileNotFoundError("Model NOT RUN: no local DictaBERT snapshot; set SNAPSHOT")
+        raise FileNotFoundError(
+            "Model NOT RUN: no local DictaBERT snapshot; set DICTABERT_SNAPSHOT "
+            "for the notebook or pass snapshot= to configure_run")
     if mode == "train":
         if train_path is None or dev_path is None or checkpoint_path is None:
             raise ValueError("Training requires explicit train_path, dev_path and checkpoint_path")

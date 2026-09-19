@@ -1,4 +1,4 @@
-"""Isolate definitions from the accepted Git baseline without running its notebook."""
+"""Read fixed Git references for automated structural comparisons."""
 
 import ast
 import json
@@ -9,10 +9,24 @@ BASE = "8ca117d50c3f01d4473b944c99611c7191af05b4"
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def reference_git(commit, *args, text=True):
+    """Fail explicitly when a required reference cannot be read; never skip checks."""
+    try:
+        return subprocess.check_output(
+            ["git", *args], cwd=ROOT, text=text, stderr=subprocess.PIPE)
+    except (subprocess.CalledProcessError, FileNotFoundError) as error:
+        raise RuntimeError(
+            f"Cannot read Git reference {commit}. Equivalence checks require Git "
+            "and the full project history; a ZIP or shallow clone is insufficient. "
+            "Use a full clone of review-handoff (see README, Start here). "
+            "If this is already a full clone, verify the requested reference/path. "
+            "This is a failed check, not a skip."
+        ) from error
+
+
 def baseline_source(path):
-    """Read an exact tracked file from the accepted commit, never the working tree."""
-    return subprocess.check_output(
-        ["git", "show", f"{BASE}:{path}"], cwd=ROOT, text=True)
+    """Read an exact tracked file from the fixed commit, never the working tree."""
+    return reference_git(BASE, "show", f"{BASE}:{path}")
 
 
 def baseline_notebook_cell(index):

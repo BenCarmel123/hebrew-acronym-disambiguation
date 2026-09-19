@@ -24,6 +24,7 @@ import torch
 from model import baselines
 from model.common import pairs
 from model.dictabert import model as base_model
+from tests.reference import reference_git
 
 BASE = "f528183164dde019351ad5b00d3f60f354c69989"
 ROOT = Path(__file__).resolve().parents[1]
@@ -33,8 +34,7 @@ PIPELINE = "pipeline/run_all.py"
 
 def source(path, baseline=False):
     if baseline:
-        return subprocess.check_output(["git", "show", f"{BASE}:{path}"],
-                                       cwd=ROOT, text=True)
+        return reference_git(BASE, "show", f"{BASE}:{path}")
     return (ROOT / path).read_text(encoding="utf-8")
 
 
@@ -251,10 +251,23 @@ class LoadingEquivalenceTests(unittest.TestCase):
         self.assertEqual(ast.dump(new), ast.dump(old))
         for path, names in ((PIPELINE, ("main", "to_markdown")),
                             (EVAL, ("embed", "evaluate")),
+                            ("model/dictabertX/eval.py", ("evaluate", "main")),
                             ("model/baselines.py", ("load_signals", "evaluate", "main"))):
             for name in names:
                 self.assertEqual(ast.dump(definition(path, name)),
                                  ast.dump(definition(path, name, True)))
+
+    def test_cross_encoder_selects_highest_score_and_first_tie(self):
+        from model.dictabertX import eval as cross_eval
+
+        rows = [dict(sentence="דוגמה א״ב", acronym="א״ב", candidates="אלף|בית",
+                     gold_expansion=gold) for gold in ("בית", "אלף")]
+        scores = iter((torch.tensor([-2.0, 4.0]), torch.tensor([5.0, 5.0])))
+        with (patch.object(cross_eval, "encode_batch", return_value={}),
+              patch.object(cross_eval, "tqdm", side_effect=lambda values, **_: values)):
+            result = cross_eval.evaluate(
+                rows, None, lambda **_: next(scores), 1, 2, "cpu")
+        self.assertEqual(result, {"n_items": 2, "accuracy": 1.0})
 
     def test_fresh_imports_do_not_write_read_research_inputs_or_use_network(self):
         code = """
