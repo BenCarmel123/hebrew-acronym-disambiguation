@@ -45,9 +45,12 @@ providing real inputs is an execution step and may overwrite an output.
 | `knesset-download` | Download selected corpus shards. |
 | `knesset-mine` | Mine acronym contexts from local shards. |
 
-The standalone modules `review_duplicates_cli`, `apply_dev_review` and `build_splits`
-also have `python -m hebrew_acronyms.data_processing.<module> --help` interfaces. They remain because
-they capture distinct manual-review or reconstruction steps, not alternate pipelines.
+The standalone modules `apply_dev_review` and `build_splits` also provide
+`python -m hebrew_acronyms.data_processing.<module> --help` interfaces.
+The interactive reviewer takes a CSV filename directly and has no `--help` option:
+`.venv/bin/python -m hebrew_acronyms.data_processing.review_duplicates_cli <review.csv>`.
+It saves each decision to that file; `q` exits without deciding the current pair.
+These tools support distinct review or reconstruction steps, not alternate pipelines.
 
 ## Candidate table fields
 
