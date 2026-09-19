@@ -1,8 +1,9 @@
 # Agent operating rules
 
 - Read the current user task and [README.md](README.md) before work. The central
-  `PROJECT_PLAN.md` is maintained by the coordinator outside this repository; do not
-  copy, move or update it, or create competing PLAN/STATUS/HANDOFF/TODO documents.
+  `../PROJECT_PLAN.md` is maintained by the coordinator alongside this repository.
+  Only the coordinator updates it; other agents report decisions and handoffs to the
+  coordinator. Do not copy or move it, or create competing PLAN/STATUS/HANDOFF/TODO documents.
 - Obtain the current authorized package from the user task and central plan; do not
   turn an earlier package boundary into a permanent ban. Scientific choices remain
   open unless explicitly approved: do not decide splits,
@@ -39,6 +40,10 @@
 - For an authorized notebook restructuring, preserve behavior; put imports
   and environment setup in the first code cell, then short explanations and function
   calls. Shared logic belongs in source modules. Experimental fixes require separate scope.
+- Maintain `notebooks/experimental_study.ipynb` as the main methods and analysis
+  companion and `notebooks/train_dictabert.ipynb` as the training appendix. Extend
+  the main notebook as approved research components are completed. Its current
+  outline is not a finalized protocol or evidence of completed experiments.
 - Write concise formal English technical documentation. README serves readers; this
   file serves agents. Explain NLP terms for readers with basic ML knowledge. Record AI
   assistance truthfully when preparing submission material; do not claim human work.
