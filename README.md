@@ -1,6 +1,6 @@
 # Hebrew Acronym Disambiguation
 
-**Local handoff (S4): structural organization is accepted; clean-install checks are being verified.**
+**Local handoff (S4): structural organization and safe checks are complete; independent review is pending.**
 The scientific protocol has not been approved. Existing results and research claims
 below are historical; they are not current findings or authorization to run experiments.
 
@@ -59,13 +59,21 @@ to the same check command. Several snapshots without a usable reference require 
 argument. Exit codes: `0` = all checks passed; `1` = failure; `2` = model not run because
 no snapshot was found. A skipped model check is not a pass.
 
-Verified on 2026-09-19: Python 3.12.11, macOS 26.6.2 arm64, CPU available,
-CUDA unavailable, MPS available (availability only; no MPS execution).
-With local revision `8884c6db002aba4002ee638fe4070c92e9ffbbf1`, imports, all four
-invented pairs, tokenization and the CPU forward passed; output shape was `(2, 23, 768)`
-and all values were finite. Loading reported newly initialized BERT pooler weights;
-the check inspects `last_hidden_state`, not pooled scores or model quality.
-This revision identifies the check only and does not change the model's research default.
+Verified on 2026-09-19 from a fresh local clone of the accepted code baseline
+`35488bf036bdbddb87df2a05f2c329d1c68e1e2d`, with documentation-only handoff updates:
+Python 3.12.11, macOS 26.6.2 arm64, a new isolated venv installed from
+`requirements.txt` (no copied environment or global packages). `pip check` and all
+**51 fixture tests passed**. CPU was used; CUDA was unavailable and MPS availability
+was detected without running on it.
+
+Both smoke checks passed using existing cached revision
+`8884c6db002aba4002ee638fe4070c92e9ffbbf1`, with no weight download. The base check
+produced finite output of shape `(2, 23, 768)`; all six notebook code cells ran in a
+fresh Python process and produced four pairs, input `(4, 16)` and finite logits `(4,)`.
+No research files, training or saved checkpoint were involved. Newly initialized
+pooler weights, marker embeddings and scoring-head parameters are expected here;
+these checks establish execution, not model quality. The cached revision identifies
+this check only and does not change the research model default.
 
 This command checks the base tokenizer/encoder only. The separate S3a checks below
 cover the shared pair encoder and cross-encoder; neither validates the scientific
@@ -175,10 +183,8 @@ mode without gradients. Set `DICTABERT_SNAPSHOT` to an existing local snapshot d
 if automatic discovery is unsuitable. A missing cache stops the notebook with `NOT RUN`;
 it never downloads or substitutes a different model.
 
-The local S3a smoke passed on revision `8884c6db002aba4002ee638fe4070c92e9ffbbf1`:
-four pairs, encoded shape `(4, 16)`, logits shape `(4,)`, all finite. The loader reports
-new pooler parameters and newly initialized marker embeddings; the scoring head is also
-new. These are engineering checks, not model-quality measurements.
+The clean-install smoke results are recorded in [Start here](#start-here). They
+verify the notebook as a code appendix, not historical research results.
 
 The explicit `train` mode is retained for later authorized use. It requires local
 train/development CSV paths and a new checkpoint output path in an existing directory.
