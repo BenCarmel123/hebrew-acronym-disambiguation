@@ -26,16 +26,10 @@ def _cross_split_overlaps(
 ) -> tuple[list[str], list[str]]:
     """Pairwise type/sentence/page overlap checks across all given splits.
 
-    -> (errors, warnings). Type and sentence overlap are errors: either means
-    an eval split can't measure what it's supposed to. Page-title overlap is
-    a warning, not an error — it is a real but much softer leakage channel
-    (the same source document can supply both a train and an eval row with
-    different acronym types and no literal duplicate), and for a source like
-    the Knesset Corpus, where one long multi-topic protocol transcript
-    routinely mentions several unrelated acronym types, some overlap here is
-    close to unavoidable without shrinking an already-thin stratified split
-    further. See data/mined/DATASET_CARD.md's "known, accepted leakage
-    channel" note.
+    Return errors for shared acronym types or sentences and warnings for shared
+    page titles, preserving the historical validator policy. This distinction
+    does not establish an approved leakage policy for a future experiment;
+    see data/README.md for the current split inventory and limitations.
     """
     errors: list[str] = []
     warnings: list[str] = []
@@ -51,7 +45,7 @@ def _cross_split_overlaps(
                 errors.append(
                     f"{name_a}/{name_b} share {len(overlap)} acronym type(s) — splits "
                     f"should be type-disjoint, or eval measures memorization rather "
-                    f"than generalization (see data/splits/README.md): "
+                    f"than generalization (see data/README.md): "
                     f"{sorted(overlap)[:10]}" + (" ..." if len(overlap) > 10 else "")
                 )
 

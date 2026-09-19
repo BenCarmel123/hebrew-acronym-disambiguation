@@ -1,6 +1,6 @@
 """Mine natural acronym usage from the Knesset Proceedings Corpus.
 
-Unlike Wikipedia/Sefaria, this source is not queried per-acronym over an API
+Unlike Wikipedia, this source is not queried per-acronym over an API
 — it is a bulk dataset of already-segmented sentences
 (huggingface.co/datasets/HaifaCLGroup/KnessetCorpus), downloaded as .jsonl.bz2
 shards and scanned locally. Each shard is one protocol (a plenary or committee
