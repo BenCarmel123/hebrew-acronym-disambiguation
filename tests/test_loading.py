@@ -21,10 +21,10 @@ from unittest.mock import patch
 
 import torch
 
-from model import baselines
-from model.common import pairs
-from model.dictabert import model as base_model
-from tests.reference import reference_git
+from hebrew_acronyms.models import baselines
+from hebrew_acronyms.models.common import pairs
+from hebrew_acronyms.models.dictabert_similarity import model as base_model
+from tests.reference import current_source_path, migrated_imports, reference_git
 
 BASE = "f528183164dde019351ad5b00d3f60f354c69989"
 ROOT = Path(__file__).resolve().parents[1]
@@ -35,7 +35,7 @@ PIPELINE = "pipeline/run_all.py"
 def source(path, baseline=False):
     if baseline:
         return reference_git(BASE, "show", f"{BASE}:{path}")
-    return (ROOT / path).read_text(encoding="utf-8")
+    return current_source_path(path).read_text(encoding="utf-8")
 
 
 def definition(path, name, baseline=False):
@@ -248,17 +248,17 @@ class LoadingEquivalenceTests(unittest.TestCase):
         old, new = [definition(PIPELINE, "run", baseline) for baseline in (True, False)]
         _, old.body = loading_block(old)
         _, new.body = loading_block(new)
-        self.assertEqual(ast.dump(new), ast.dump(old))
+        self.assertEqual(ast.dump(new), ast.dump(migrated_imports(old)))
         for path, names in ((PIPELINE, ("main", "to_markdown")),
                             (EVAL, ("embed", "evaluate")),
                             ("model/dictabertX/eval.py", ("evaluate", "main")),
                             ("model/baselines.py", ("load_signals", "evaluate", "main"))):
             for name in names:
                 self.assertEqual(ast.dump(definition(path, name)),
-                                 ast.dump(definition(path, name, True)))
+                                 ast.dump(migrated_imports(definition(path, name, True))))
 
     def test_cross_encoder_selects_highest_score_and_first_tie(self):
-        from model.dictabertX import eval as cross_eval
+        from hebrew_acronyms.models.dictabert_cross_encoder import eval as cross_eval
 
         rows = [dict(sentence="דוגמה א״ב", acronym="א״ב", candidates="אלף|בית",
                      gold_expansion=gold) for gold in ("בית", "אלף")]
@@ -293,19 +293,19 @@ def guard(event, args):
                 raise RuntimeError('Research input read during import')
 
 sys.addaudithook(guard)
-import model.baselines
-import model.common.pairs
-import model.dictabert.model
-import model.dictabert.eval
-import pipeline.run_all
+import hebrew_acronyms.models.baselines
+import hebrew_acronyms.models.common.pairs
+import hebrew_acronyms.models.dictabert_similarity.model
+import hebrew_acronyms.models.dictabert_similarity.eval
+import hebrew_acronyms.pipelines.run_all
 """
         result = subprocess.run([sys.executable, "-B", "-c", code], cwd=ROOT,
                                 capture_output=True, text=True, timeout=30)
         self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_callers_use_the_same_shared_functions(self):
-        from model.dictabert import eval as dictabert_eval
-        from pipeline import run_all
+        from hebrew_acronyms.models.dictabert_similarity import eval as dictabert_eval
+        from hebrew_acronyms.pipelines import run_all
 
         self.assertIs(dictabert_eval.load_rows, pairs.load_rows)
         self.assertIs(run_all.load_rows, pairs.load_rows)

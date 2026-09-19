@@ -21,13 +21,13 @@ def guard(event, args):
         raise RuntimeError('File write during import')
 
 sys.addaudithook(guard)
-import model.dictabert.model
-import model.dictabertX.model
-import model.dictabertX.encoding
-import model.dictabertX.training
-import model.dictabertX.workflow
-import model.dictabertX.eval
-import pipeline.check_environment
+import hebrew_acronyms.models.dictabert_similarity.model
+import hebrew_acronyms.models.dictabert_cross_encoder.model
+import hebrew_acronyms.models.dictabert_cross_encoder.encoding
+import hebrew_acronyms.models.dictabert_cross_encoder.training
+import hebrew_acronyms.models.dictabert_cross_encoder.workflow
+import hebrew_acronyms.models.dictabert_cross_encoder.eval
+import hebrew_acronyms.pipelines.check_environment
 """
         result = subprocess.run([sys.executable, "-B", "-c", code], cwd=ROOT,
                                 capture_output=True, text=True, timeout=30)
@@ -50,14 +50,14 @@ import pipeline.check_environment
         self.assertIn('MODE = "smoke"', setup)
         self.assertNotIn("manual_seed", setup)
         definitions = []
-        for path in (ROOT / "model").rglob("*.py"):
+        for path in (ROOT / "src/hebrew_acronyms/models").rglob("*.py"):
             for node in ast.walk(ast.parse(path.read_text())):
                 if isinstance(node, ast.ClassDef) and node.name == "CrossEncoder":
                     definitions.append(path)
-        self.assertEqual(definitions, [ROOT / "model/dictabertX/model.py"])
-        self.assertIn("from model.dictabertX.encoding import encode_pairs",
-                      (ROOT / "model/dictabertX/training.py").read_text())
-        self.assertIn("encode_pairs", (ROOT / "model/dictabertX/eval.py").read_text())
+        self.assertEqual(definitions, [ROOT / "src/hebrew_acronyms/models/dictabert_cross_encoder/model.py"])
+        self.assertIn("from hebrew_acronyms.models.dictabert_cross_encoder.encoding import encode_pairs",
+                      (ROOT / "src/hebrew_acronyms/models/dictabert_cross_encoder/training.py").read_text())
+        self.assertIn("encode_pairs", (ROOT / "src/hebrew_acronyms/models/dictabert_cross_encoder/eval.py").read_text())
 
 
 if __name__ == "__main__":

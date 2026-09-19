@@ -69,7 +69,7 @@ class DataWorkflowEquivalenceTests(unittest.TestCase):
         sys.modules[spec.name] = module
         spec.loader.exec_module(module)
         cls.old = importlib.import_module("baseline_data_preprocess.__main__")
-        cls.new = importlib.import_module("data_preprocess.__main__")
+        cls.new = importlib.import_module("hebrew_acronyms.data_processing.__main__")
         cls.addClassCleanup(cls.remove_baseline_modules)
 
     @staticmethod
@@ -157,6 +157,15 @@ class DataWorkflowEquivalenceTests(unittest.TestCase):
             return next(a for a in parser._actions
                         if isinstance(a, argparse._SubParsersAction)).choices
         self.assertEqual(list(subcommands(new)), list(subcommands(old)))
+        # The public module name changed; normalize only argparse's displayed program.
+        self.assertEqual(old.prog, "data_preprocess")
+        self.assertEqual(new.prog, "hebrew_acronyms.data_processing")
+        old.prog = new.prog
+        for command, parser in subcommands(old).items():
+            self.assertEqual(parser.prog, f"data_preprocess {command}")
+            self.assertEqual(subcommands(new)[command].prog,
+                             f"hebrew_acronyms.data_processing {command}")
+            parser.prog = subcommands(new)[command].prog
         for command, parser in subcommands(old).items():
             required = ["--acronyms", "fixture.txt"] if command in (
                 "mine-by-sense", "knesset-mine") else []
@@ -208,7 +217,6 @@ class DataWorkflowEquivalenceTests(unittest.TestCase):
 import importlib
 import os
 import sys
-sys.path.insert(0, sys.argv[1])
 def audit(event, args):
     if event == "open":
         _, mode, flags = args
@@ -220,17 +228,17 @@ def audit(event, args):
         raise AssertionError("side effect during import: " + event)
 sys.addaudithook(audit)
 for name in (
-    "data_preprocess.__main__", "data_preprocess.candidate_workflows",
-    "data_preprocess.sentence_workflows", "data_preprocess.knesset.workflows",
-    "data_preprocess.build_annotation_table", "data_preprocess.common.reporting",
-    "data_preprocess.common.candidates", "data_preprocess.wikipedia.source",
-    "data_preprocess.wiktionary.source", "data_preprocess.dedupe_expansions",
-    "data_preprocess.merge_sources",
+    "hebrew_acronyms.data_processing.__main__", "hebrew_acronyms.data_processing.candidate_workflows",
+    "hebrew_acronyms.data_processing.sentence_workflows", "hebrew_acronyms.data_processing.knesset.workflows",
+    "hebrew_acronyms.data_processing.build_annotation_table", "hebrew_acronyms.data_processing.common.reporting",
+    "hebrew_acronyms.data_processing.common.candidates", "hebrew_acronyms.data_processing.wikipedia.source",
+    "hebrew_acronyms.data_processing.wiktionary.source", "hebrew_acronyms.data_processing.dedupe_expansions",
+    "hebrew_acronyms.data_processing.merge_sources",
 ):
     importlib.import_module(name)
 '''
         with tempfile.TemporaryDirectory() as directory:
-            result = subprocess.run([sys.executable, "-B", "-c", code, str(ROOT)],
+            result = subprocess.run([sys.executable, "-B", "-c", code],
                                     cwd=directory, capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(list(Path(directory).iterdir()), [])

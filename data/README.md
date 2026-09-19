@@ -14,11 +14,11 @@ from CSVs at `63b90acfae36e6b7fee8114760506868e29c681f` on 2026-09-19; no data w
 | Mined items | [acronym_items.csv](mined/acronym_items.csv) | Wikipedia contexts with provisional labels and provenance. |
 | Review evidence | [duplicate_review.csv](mined/duplicate_review.csv), [dev_review.csv](mined/dev_review.csv), [merge_review.csv](mined/merge_review.csv), [unmined_triage.csv](mined/wikipedia/unmined_triage.csv), [knesset_reviewed.csv](mined/knesset/knesset_reviewed.csv) | Recorded corrections, verdicts and applied review output. Preserve the records and their attribution. |
 | Historical inputs | [train_items.csv](splits/train_items.csv), [dev_items.csv](splits/dev_items.csv), [test_items.csv](splits/test_items.csv) | Existing allocation for training/development/test; not a newly approved protocol. |
-| Aggregate exports | [all_items.csv](splits/all_items.csv), [by_category/](splits/by_category/) | Separate artifacts, not interchangeable copies of the split union. |
+| Aggregate exports | [all_items.csv](splits/all_items.csv), [by_category/](splits/by_category) | Separate artifacts, not interchangeable copies of the split union. |
 
 Later deglossed/authored additions did not all pass through the original mining tables.
 The retained construction scripts do not alone reproduce every committed addition.
-Invented engineering inputs live in [tests/fixtures/](../tests/fixtures/), outside research data.
+Invented engineering inputs live in [tests/fixtures/](../tests/fixtures), outside research data.
 
 ## Current contents
 
@@ -80,6 +80,6 @@ authored text is not observed usage. Neither filenames nor categories settle the
 - [Historical predictions](../results/all_arms_summary.md) refer to an older dev snapshot.
   They must not be joined to current rows or cited as current scores without reconciliation.
 
-See [data processing commands](../data_preprocess/README.md) for code responsibilities
+See [data processing commands](../docs/data_processing.md) for code responsibilities
 and retained execution limits. Preserve source exports and review work even where the
 original retrieval or full reconstruction is unavailable.

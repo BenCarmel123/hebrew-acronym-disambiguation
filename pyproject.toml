@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hebrew-acronym-disambiguation"
+version = "0.1.0"
+description = "Hebrew acronym disambiguation research code"
+requires-python = ">=3.12"
+dynamic = ["dependencies"]
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["hebrew_acronyms*"]
+
+[tool.setuptools.package-data]
+"hebrew_acronyms.pipelines" = ["run_pipeline.sh"]
