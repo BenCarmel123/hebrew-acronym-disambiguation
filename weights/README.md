@@ -7,7 +7,10 @@ The retained training seed is applied after model initialization, so the older
 repeatability claim below does not establish reproducible initialization.
 
 Trained model weights. **Not committed** — each file is ~700MB, over GitHub's 100MB
-limit, and they are reproducible by re-running the notebook.
+limit. Reproducing a historical checkpoint has not been verified. A new checkpoint
+requires explicitly selecting authorized training inputs and `MODE="train"`; smoke
+does not train or save weights. Current settings are `TrainingConfig.epochs`, `.seed`
+and `.pooling`; `EPOCHS`, `SEED` and `POOLING` below refer to the historical notebook.
 
 Naming: `dictabert-crossenc-<YYYYMMDD-HHMMSS>.pt`, timestamped at the run that
 produced it.
