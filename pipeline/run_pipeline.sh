@@ -2,7 +2,7 @@
 # Validate a train/dev(/test) set, then run every eval arm against dev — and, if
 # --test is given (or data/splits/test_items.csv exists), against test too — and
 # print/save the combined results table(s). Training (dictabertX) is NOT run here —
-# it needs a Colab GPU — see notebooks/train_dictabert.ipynb. Pass its downloaded
+# see README.md for the prepared local training environment. Pass an existing
 # checkpoint with --checkpoint to include that arm; otherwise it's skipped and the
 # table shows "—".
 #
@@ -48,8 +48,8 @@ echo
 
 if [[ -z "$CHECKPOINT" ]]; then
   echo "No --checkpoint given: dictabertX (fine-tuned) will be skipped in the table."
-  echo "To include it, train first in Colab (notebooks/train_dictabert.ipynb),"
-  echo "download the resulting .pt, then re-run with --checkpoint <path-to-.pt>."
+  echo "To include it, supply a checkpoint from an explicitly authorized training run;"
+  echo "see README.md, then use --checkpoint <path-to-.pt> when evaluation is authorized."
   echo
 fi
 

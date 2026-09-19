@@ -2,8 +2,8 @@
 selection arm this project trained, evaluated locally against a checkpoint instead of
 inside the Colab notebook.
 
-Requires a trained checkpoint (see weights/README.md — not committed, ~700MB;
-reproduce it by running notebooks/train_dictabert.ipynb).
+Requires a trained checkpoint (see weights/README.md — not committed, ~700MB).
+Notebook smoke writes no checkpoint; historical checkpoint reproduction is unverified.
 
     python -m model.dictabertX.eval --checkpoint weights/dictabert-crossenc-<ts>.pt
 """

@@ -1,22 +1,24 @@
 # Hebrew Acronym Disambiguation
 
-**Local handoff accepted: structural organization and safe checks passed independent review.**
+**Structural organization passed separate AI-agent reviews; this is not human sign-off.**
 The scientific protocol has not been approved. Existing results and research claims
 below are historical; they are not current findings or authorization to run experiments.
 
 ## Start here
 
-Use branch `review-handoff` in the reviewed local repository with its full Git history.
+Use branch `review-handoff` with its full Git history.
 The independently checked handoff snapshot is `a0eab21c30c6ad1b56fb726b03bb03ab71bb30a0`;
 subsequent closure documentation does not change its code or data. Superseded local
 work branches were removed after verifying that their commits are retained here.
-Local `main` remains at the original baseline; no merge or push was performed.
+Local `main` remains at the original baseline; research execution still requires authorization.
 The remote `main` baseline does not contain these structural changes. A source archive
 or shallow clone may also omit the historical commits required by the fixture tests.
-For a separate check, clone the reviewed local copy into a new directory:
+Missing reference history fails the equivalence checks with a restoration instruction;
+it is not counted as a pass or silently skipped. Use Git and a full clone, not a ZIP.
+For a separate check, clone the reviewed branch into a new directory:
 
 ```bash
-git clone --no-hardlinks --branch review-handoff /path/to/reviewed/local/repository hebrew-acronym-check
+git clone --branch review-handoff https://github.com/BenCarmel123/hebrew-acronym-disambiguation.git hebrew-acronym-check
 cd hebrew-acronym-check
 git rev-parse HEAD
 git status --short
@@ -28,6 +30,9 @@ read-only historical reference; its history is not merged here.
 
 From the repository root, create a new local environment with Python 3.12 and install
 from the single dependency file (do not reuse an unrelated environment):
+
+The file pins selected dependencies, not the entire transitive dependency graph;
+the recorded environment is a tested installation, not a complete lockfile.
 
 ```bash
 python3.12 -m venv .venv && .venv/bin/python -m pip install -r requirements.txt
@@ -191,6 +196,10 @@ verify the notebook as a code appendix, not historical research results.
 
 The explicit `train` mode is retained for later authorized use. It requires local
 train/development CSV paths and a new checkpoint output path in an existing directory.
+Both modes require a model snapshot prepared locally before starting the process.
+Both install a network-blocking audit hook for the rest of that Python process; restart
+the kernel/process before unrelated network work. Colab setup and external GPU execution
+have not been validated. Training does not download a model automatically.
 Settings remain in `TrainingConfig`; the seed is applied after model initialization,
 and `best.pt` remains selected by strict improvement in development **pair loss**.
 Pair accuracy is not per-item candidate-selection accuracy. Full training, real dev/test
@@ -372,8 +381,9 @@ test when its file exists, and `--skip-llm` does not disable test. No training,
 benchmark evaluation, mining, Ollama, or paid API use is part of the current package.
 
 - `weights/` holds a `dictabertX` checkpoint trained **before** this session's data
-  changes (Knesset Corpus, the frozen test split, the thin-sense fixes). Retrain against
-  the current `data/splits/train_items.csv` in Colab before trusting that arm's numbers.
+  changes (Knesset Corpus, the frozen test split, the thin-sense fixes). Any future
+  retraining requires approved inputs and a prepared environment as described in the
+  training appendix; these historical notes do not authorize it.
 - `pipeline/run_pipeline.sh` has not yet been re-run against the current data — the
   Results section above is stale and says so. Re-run it (with a fresh checkpoint) and
   update Results once training is done.
