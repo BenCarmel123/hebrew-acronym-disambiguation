@@ -1,117 +1,77 @@
-# Acronym candidate tables
+# Data processing reference
 
-**Historical construction reference.** Live mining and dataset changes require explicit
-authorization and are not part of the current structural package.
-See [the root README](../README.md) for safe checks and the
-[dataset card](../data/mined/DATASET_CARD.md) for definitions and limitations.
+These modules retain the historical collection and construction steps. They can write
+research data, contact live sources or download large corpora; use them only for an
+explicitly authorized task. For safe local checks, use the [root README](../README.md#install-and-check).
+[The data inventory](../data/README.md) separates source exports, review evidence and
+split inputs; [the construction record](../data/mined/DATASET_CARD.md) explains their history.
 
-Builds the candidate-expansion inventory for the Hebrew acronym disambiguation
-project, with a corpus-frequency count attached to every candidate.
+## Responsibilities
 
-This is **exploration evidence, not gold data.** Nothing here is filtered on
-plausibility: person senses and initials mismatches are *flagged in their own
-columns* so the whole distribution stays visible and thresholds can be chosen
-from the data. Every row is candidate evidence requiring human adjudication.
-
-## Why two sources
-
-An earlier source report (not retained in this repository) described Wiktionary as
-a source of literal expansions and Wikipedia disambiguation pages as mostly referents.
-That historical rationale motivated combining their partially overlapping inventories.
-The previous reference to `planning/DECISIONS.md` also points outside this repository;
-neither reference establishes approval of the current scientific protocol.
-
-| Source | Types | Polysemous |
-|---|---:|---:|
-| Wikipedia `קטגוריה:פירושון ראשי תיבות` | 117 | ~80 |
-| Wiktionary `קטגוריה:ראשי תיבות` | 3,678 | 701 |
-| Shared types | 50 | |
-
-The 3,678 / 701 counts reproduce the source probe's independently-derived
-3,680 / 710 to within 1.3%, using different code.
-
-## Usage
-
-    # one row per Wikipedia disambiguation bullet
-    python -m data_preprocess wikipedia   --out data/mined/wikipedia/bullet_counts.csv
-
-    # one row per Wiktionary sense (--min-senses 2 = polysemous types only)
-    python -m data_preprocess wiktionary  --min-senses 2 \
-        --out data/mined/wiktionary/wiktionary_counts.csv
-
-    # union of the two
-    python -m data_preprocess merge --out data/mined/merged_counts.csv
-
-Run from the repository root. Each command also writes `<out>.summary.json`.
-All three CSVs share one column set.
-
-## Structural checks
-
-The command names, flags and defaults above are unchanged. The CLI delegates to
-functions with explicit paths and settings; see the root README's
-[code responsibilities](../README.md#code-responsibilities) for their locations.
-Candidate rows and CSV helpers now live in
-[`common/candidates.py`](common/candidates.py), shared by both source counters and
-merge/review code. Wikipedia parsing and counting remain in `wikipedia/source.py`.
-
-Run the fixture suite from the repository root:
-
-```bash
-HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 .venv/bin/python -B -m unittest discover -s tests -v
-```
-
-The data checks compare against Git commit `2b9b84eb20b0be89d728b963cc753924e83b53ea`,
-using invented responses and temporary files with network access blocked. They cover
-parsing, row order, CSV/JSON bytes, summaries, restart and resume; they do not run the
-research pipeline. Retain this commit in local history for the comparisons.
-
-Existing resume behavior is preserved: sense mining appends a re-mined final type
-when earlier complete types exist, retaining its previous partial rows. Types with
-no output rows are not recorded as completed. This extraction does not repair those
-limitations or change the mining filters described below.
-
-## Columns
-
-| Column | Meaning |
+| Component | Purpose |
 |---|---|
-| `acronym` | normalised surface, gershayim (`מ״מ`) |
-| `page_title` | source page the candidate came from |
-| `expansion` | the candidate expansion |
-| `hits` | **Hebrew Wikipedia** articles containing the phrase |
-| `script` | `hebrew` / `latin` / `other` |
-| `initials_match` | expansion's initials match the acronym; empty for non-Hebrew |
-| `looks_like_person` | biographical-sense heuristic |
-| `source` | `wikipedia`, `wiktionary`, or `wikipedia+wiktionary` in the merge |
-| `domain` | Wiktionary register label (`מתמטיקה`, `צה"ל`); empty for Wikipedia |
-| `raw_line` | the original line, for auditing any row |
+| `__main__.py` | Argument parsing, logging and dispatch for the ten commands below. |
+| `candidate_workflows.py` | Collect/merge candidate tables and apply duplicate review. |
+| `sentence_workflows.py` | Select types, mine contexts and handle output/progress/resume. |
+| `wikipedia/`, `wiktionary/`, `knesset/` | Source access and source-specific extraction; Knesset workflow also manages shards. |
+| `common/` | Shared candidate representation, CSV reading, Hebrew matching, filters and reporting. |
+| `merge_sources.py`, `dedupe_expansions.py`, `review_duplicates_cli.py` | Merge inventories, flag possible duplicates and collect interactive decisions. |
+| `build_annotation_table.py` | Convert candidate/context tables to annotation rows. |
+| `apply_dev_review.py` | Apply the saved historical development review. |
+| `build_splits.py` | Historical Knesset allocation step; does not recreate all later additions. |
 
-`hits` is always measured against Hebrew **Wikipedia**, including for Wiktionary
-senses, because that is the corpus contexts would be drawn from.
+`common/candidates.py` owns candidate rows and candidate-table I/O; `common/csv_io.py`
+reads general CSV rows. Specialized readers retain their own validation/conversion.
+The abandoned Sefaria probe is recoverable from Git, as recorded in the dataset card.
 
-## Known limitations
+## Command map
 
-- **Annotation context input does not strip a UTF-8 BOM.** `build-annotation-table`
-  reads contexts as plain UTF-8, while the mining writers emit UTF-8 with a BOM.
-  Feeding such output directly to the annotation command raises `KeyError('acronym')`.
-  The fixture comparison preserves this existing mismatch; it needs a separate fix.
+Invoke data commands from the repository root as
+`.venv/bin/python -m data_preprocess <command>`. Append `--help` to inspect arguments;
+providing real inputs is an execution step and may overwrite an output.
 
-- **`hits` counts articles containing the phrase, not occurrences**, and does not
-  account for Hebrew proclitics (`כמפקד מחלקה` does not match `"מפקד מחלקה"`).
-  Treat it as a lower bound and a ranking signal, not a token frequency.
-- **`looks_like_person` is a crude proxy.** What actually matters for building
-  contexts is `hits`, which measures usability directly.
-- **Parser precision is unmeasured** against a human reading, for both sources.
-- Wiktionary senses are semi-structured free text; a trailing definition clause
-  is trimmed heuristically.
-- **`mine_substituted` filters honorifics inconsistently.** Every other gate calls
-  `is_numeral_reference()`, which exempts the honorific letters `ר ד ע`; the substitution
-  path calls `HEBREW_NUMERAL_REF_RE.search()` directly, so a sentence containing `ר׳`
-  (rabbi) is dropped before substitution is attempted. Confirmed: for
-  `"כתב על כך ר׳ משה…"` the helper returns `False` and the bare regex `True`. This
-  **reduces recall in exactly the rabbinic articles the rarer acronyms live in**; it does
-  not affect the correctness of rows already mined. Fix it, with a regression test, before
-  any further network sweep.
-- **`is_clean_sentence` does not enforce one occurrence of the target.** Its final check
-  compares sets, so it rejects a different acronym type but keeps repeats of the target.
-  See [the dataset card](../data/mined/DATASET_CARD.md).
+| Command | Action |
+|---|---|
+| `wikipedia` | Collect/count Wikipedia disambiguation candidates. |
+| `wiktionary` | Collect/count Wiktionary senses. |
+| `merge` | Merge candidate inventories. |
+| `flag-duplicates` | Propose near-duplicate expansions for review. |
+| `apply-review` | Apply recorded duplicate decisions. |
+| `mine-sentences` | Export natural, unlabelled acronym contexts. |
+| `mine-by-sense` | Export contexts for selected candidate senses; supports resume. |
+| `build-annotation-table` | Assemble annotation rows from candidates and contexts. |
+| `knesset-download` | Download selected corpus shards. |
+| `knesset-mine` | Mine acronym contexts from local shards. |
 
+The standalone modules `review_duplicates_cli`, `apply_dev_review` and `build_splits`
+also have `python -m data_preprocess.<module> --help` interfaces. They remain because
+they capture distinct manual-review or reconstruction steps, not alternate pipelines.
+
+## Candidate table fields
+
+| Field | Meaning |
+|---|---|
+| `acronym`, `expansion` | Normalized acronym surface and possible long form. |
+| `page_title`, `raw_line` | Source location and original parsed line. |
+| `hits` | Hebrew Wikipedia articles containing the expansion, including for Wiktionary senses. |
+| `script`, `initials_match` | Script and heuristic acronym/expansion compatibility. |
+| `looks_like_person` | Biographical-sense heuristic; not a verified label. |
+| `source`, `domain` | Source inventory and optional Wiktionary register. |
+
+Parser precision is unmeasured. Wiktionary definition trimming is heuristic, and phrase
+hits do not count occurrences or cover every proclitic. Candidate evidence requires
+interpretation before use as a scientific inventory.
+
+## Preserved execution limitations
+
+- Sense-mining resume can retain partial rows and re-mine the last type when earlier
+  complete types exist; types with no output are not recorded as complete.
+- Annotation context input uses plain UTF-8, while mining writers emit a BOM. Feeding
+  such output directly can raise `KeyError('acronym')`; organization does not repair it.
+- Numeral/honorific filtering and repeated-target handling retain the behavior described
+  in the dataset card. No research filters or label rules were changed by cleanup.
+
+The fixture suite compares commands, row order, CSV/JSON bytes, summaries and resume
+against Git baseline `2b9b84eb20b0be89d728b963cc753924e83b53ea`, with temporary inputs
+and network access blocked. Shared-reader checks also compare their pre-cleanup sources.
+Keep the full history; do not use live mining as a smoke test.
