@@ -1,7 +1,8 @@
 # Data locations and processing layers
 
-These are existing research inputs and historical exports at the S3a baseline
-`8ca117d50c3f01d4473b944c99611c7191af05b4`. S3a changes documentation only.
+These research inputs and historical exports remain unchanged since baseline
+`8ca117d50c3f01d4473b944c99611c7191af05b4`. Structural organization and handoff
+checks do not rebuild the data or remeasure the recorded research results.
 The [dataset card](mined/DATASET_CARD.md) is the source for field definitions,
 construction history and limitations; the next scientific protocol remains open.
 

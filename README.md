@@ -1,21 +1,27 @@
 # Hebrew Acronym Disambiguation
 
-**Active stage: consolidating existing CSV and base-model loading (the final S3b package).**
+**Local handoff (S4): structural organization is accepted; clean-install checks are being verified.**
 The scientific protocol has not been approved. Existing results and research claims
 below are historical; they are not current findings or authorization to run experiments.
 
 ## Start here
 
-Use this repository as the permanent working copy. The loading consolidation branch is
-`simplify-loading`, based on accepted data-code commit
-`f528183164dde019351ad5b00d3f60f354c69989` on `organize-data-code`. That package follows
-accepted S3a commit `2b9b84eb20b0be89d728b963cc753924e83b53ea` on `extract-training`
-and setup commit `8ca117d50c3f01d4473b944c99611c7191af05b4`. The original setup branch
-`setup-workspace` starts from `eb2e7785dab42dc8ae3ca07372d032adafee9dba`
-of [BenCarmel123/hebrew-acronym-disambiguation](https://github.com/BenCarmel123/hebrew-acronym-disambiguation).
-On 2026-09-19, remote `main` and `improve-data` both pointed to `eb2e778`.
-The old [nlp-hw-team repository](https://github.com/ShakedSchnarch/nlp-hw-team)
-is a read-only historical reference; its history is not merged here.
+Use the reviewed local repository with its full Git history. The accepted code baseline
+is `35488bf036bdbddb87df2a05f2c329d1c68e1e2d`; a handoff commit may add documentation.
+The remote `main` baseline does not contain these structural changes. A source archive
+or shallow clone may also omit the historical commits required by the fixture tests.
+For a separate check, clone the reviewed local copy into a new directory:
+
+```bash
+git clone --no-hardlinks /path/to/reviewed/local/repository hebrew-acronym-check
+cd hebrew-acronym-check
+git rev-parse HEAD
+git status --short
+```
+
+Confirm the expected handoff commit and a clean tree before installation. The old
+[nlp-hw-team repository](https://github.com/ShakedSchnarch/nlp-hw-team) remains a
+read-only historical reference; its history is not merged here.
 
 From the repository root, create a new local environment with Python 3.12 and install
 from the single dependency file (do not reuse an unrelated environment):
@@ -24,13 +30,22 @@ from the single dependency file (do not reuse an unrelated environment):
 python3.12 -m venv .venv && .venv/bin/python -m pip install -r requirements.txt
 ```
 
-Run the local check in a fresh process:
+Run these safe checks from the repository root, each in a fresh process:
 
 ```bash
+.venv/bin/python -m pip check
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 .venv/bin/python -B -m unittest discover -s tests -v
 .venv/bin/python -B -m pipeline.check_environment
+.venv/bin/python -B -m tests.run_notebook
 ```
 
-The check reports Python, installed packages, OS and device availability; imports the
+The fixture suite uses invented inputs. The two smoke checks need an **existing local
+DictaBERT cache** and do not download weights. Missing cache means **NOT RUN**, not a
+successful model check. These commands do not train on research data or evaluate the
+benchmark. The research pipeline is separate: `--skip-llm` does not prevent its test
+evaluation. See [the training appendix and check details](#training-appendix-and-structural-checks).
+
+`pipeline.check_environment` reports Python, installed packages, OS and device availability; imports the
 required packages and model modules; verifies exact pairs and target marking on two
 invented Hebrew sentences; and attempts one short base-encoder forward pass on CPU in
 evaluation mode without gradients. It reads no benchmark data and writes no results.
@@ -128,12 +143,7 @@ existing item reader and base-model loader across the affected model entry point
 
 ## Training appendix and structural checks
 
-From the repository root, run the fixture equivalence suite and the notebook smoke:
-
-```bash
-HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 .venv/bin/python -B -m unittest discover -s tests -v
-.venv/bin/python -B -m tests.run_notebook
-```
+The commands in [Start here](#start-here) run the fixture suite and notebook smoke.
 
 The suite isolates definitions and training operations from Git commit
 `8ca117d50c3f01d4473b944c99611c7191af05b4`, without running the old notebook's setup,
@@ -157,9 +167,9 @@ still precedes model loading, then callers move the model to the device and call
 `eval()` without adding tokens or setting a seed. These structural checks do not
 require rerunning the cached-model notebook smoke.
 
-The notebook runner executes every code cell in a fresh Python process. No Jupyter
-server is required for this check; when using a notebook UI, select the same prepared
-Python environment. The first code cell contains imports, paths and mode settings.
+The notebook runner executes every code cell in a fresh Python process. This checks
+Python cell execution, not the Jupyter interface or kernel setup. Jupyter/IPython are
+not installed by `requirements.txt` and are not needed for this runner. The first code cell contains imports, paths and mode settings.
 `MODE="smoke"` uses invented rows and the cached real DictaBERT model, in CPU evaluation
 mode without gradients. Set `DICTABERT_SNAPSHOT` to an existing local snapshot directory
 if automatic discovery is unsuitable. A missing cache stops the notebook with `NOT RUN`;
@@ -180,8 +190,8 @@ scoring, GPU execution and historical checkpoint validation were not run in S3a.
 Known encoding edge behavior remains unchanged: missing markers/empty batches raise
 errors; an oversized candidate or target may exceed the length budget. Evaluators
 retain their distinct candidate selection, scoring and skip rules; shared loading does
-not make them one evaluator. S4 reader/setup review and scientific decisions remain
-pending after this package.
+not make them one evaluator. Scientific decisions remain pending; these structural
+checks do not approve a protocol or establish model quality.
 
 The old Colab instructions fetched code/data from a moving branch and ran training.
 They have been replaced by the local appendix above. No analysis notebook or final
@@ -309,10 +319,11 @@ Read the [data location map](data/README.md), then the
 limitations. [The split document](data/splits/README.md) describes the existing files.
 Processing layer, text origin/construction, label status and split role are separate
 axes. A reviewed file or `gold_expansion` column does not prove approval of the next
-experiment; `manual` includes disclosed AI-authored text. S3a changes documentation only.
+experiment; `manual` includes disclosed AI-authored text. Research inputs and results
+remain unchanged by structural organization and handoff checks.
 
 <details>
-<summary>Historical inventory summary retained from the setup baseline (not recounted in S3a)</summary>
+<summary>Historical inventory summary retained from the setup baseline (not recounted during handoff)</summary>
 
 | File | Rows | Types | What |
 |---|---|---|---|
@@ -333,8 +344,9 @@ in this structural package; use the source files and identified revision for ana
 
 ## Historical data regeneration instructions
 
-`data_preprocess/` builds the dataset from scratch against the live sources; see
-`data_preprocess/README.md`. A full sweep is thousands of throttled API calls (Wikipedia)
+`data_preprocess/` contains historical collection and construction steps; see
+[its documentation](data_preprocess/README.md). These scripts do not alone reconstruct
+every later reviewed or authored addition to the committed splits. A full sweep is thousands of throttled API calls (Wikipedia)
 or a multi-GB download (the Knesset Corpus shards) — hours either way — which is why the
 mined output is committed rather than regenerated on demand.
 
