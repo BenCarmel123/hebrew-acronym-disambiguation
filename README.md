@@ -1,5 +1,88 @@
 # Hebrew Acronym Disambiguation
 
+**Active stage: workspace organization (S1 and an early local part of S2).**
+The scientific protocol has not been approved. Existing results and research claims
+below are historical; they are not current findings or authorization to run experiments.
+
+## Start here
+
+Use this repository as the permanent working copy. The initial setup branch is
+`setup-workspace`, based on commit `eb2e7785dab42dc8ae3ca07372d032adafee9dba`
+of [BenCarmel123/hebrew-acronym-disambiguation](https://github.com/BenCarmel123/hebrew-acronym-disambiguation).
+On 2026-09-19, remote `main` and `improve-data` both pointed to that commit.
+The old [nlp-hw-team repository](https://github.com/ShakedSchnarch/nlp-hw-team)
+is a read-only historical reference; its history is not merged here.
+
+From the repository root, create a new local environment with Python 3.12 and install
+from the single dependency file (do not reuse an unrelated environment):
+
+```bash
+python3.12 -m venv .venv && .venv/bin/python -m pip install -r requirements.txt
+```
+
+Run the local check in a fresh process:
+
+```bash
+.venv/bin/python -B -m pipeline.check_environment
+```
+
+The check reports Python, installed packages, OS and device availability; imports the
+required packages and model modules; verifies exact pairs and target marking on two
+invented Hebrew sentences; and attempts one short base-encoder forward pass on CPU in
+evaluation mode without gradients. It reads no benchmark data and writes no results.
+It enforces Hugging Face offline mode and blocks Python socket network operations.
+Installation may use the network; the check does not download weights.
+
+The check discovers DictaBERT under the standard Hugging Face cache (respecting
+`HF_HOME` / `HF_HUB_CACHE`), using its local `main` reference or a sole snapshot.
+To specify a cached snapshot explicitly, append `--snapshot /path/to/local/snapshot`
+to the same check command. Several snapshots without a usable reference require this
+argument. Exit codes: `0` = all checks passed; `1` = failure; `2` = model not run because
+no snapshot was found. A skipped model check is not a pass.
+
+Verified on 2026-09-19: Python 3.12.11, macOS 26.6.2 arm64, CPU available,
+CUDA unavailable, MPS available (availability only; no MPS execution).
+With local revision `8884c6db002aba4002ee638fe4070c92e9ffbbf1`, imports, all four
+invented pairs, tokenization and the CPU forward passed; output shape was `(2, 23, 768)`
+and all values were finite. Loading reported newly initialized BERT pooler weights;
+the check inspects `last_hidden_state`, not pooled scores or model quality.
+This revision identifies the check only and does not change the model's research default.
+
+This is a base-tokenizer/encoder check, not validation of the notebook's custom encoding,
+training loop, trained checkpoints, or scientific protocol. The external GPU environment
+was **not verified in this package**. S2 is not complete.
+
+Reader map: [data layers](data/README.md), [dataset card](data/mined/DATASET_CARD.md),
+[existing notebook](notebooks/train_dictabert.ipynb) (read-only in this stage), and
+[agent operating rules](AGENTS.md). Technical explanations assume basic ML knowledge;
+NLP-specific terms should be explained when introduced.
+
+## Course documents and provenance
+
+The PDF bytes were checked with SHA-256 against the tracked files at these source commits:
+
+- **Old source:** [ShakedSchnarch/nlp-hw-team](https://github.com/ShakedSchnarch/nlp-hw-team), local commit `3bae9130a6a7086e3861235afc5360e4d08bc7ea` (includes unpublished local history).
+- **New baseline:** [BenCarmel123/hebrew-acronym-disambiguation at eb2e7785dab42dc8ae3ca07372d032adafee9dba](https://github.com/BenCarmel123/hebrew-acronym-disambiguation/tree/eb2e7785dab42dc8ae3ca07372d032adafee9dba).
+
+| Local document | Source path and status | SHA-256 |
+|---|---|---|
+| [ID-named proposal](course/209533108_209233857_315110841_NLP_Project_Proposal.pdf) | Copied unchanged from old source `project/proposal/209533108_209233857_315110841_NLP_Project_Proposal.pdf`. Identified there as submitted. | `1e335e6baddcb699aecadcc290801785a2e62bea010e82c4a5ecb876f7e72c56` |
+| [Earlier proposal draft](course/hebrew_acronym_disambiguation_proposal.pdf) | Already present at new baseline `course/hebrew_acronym_disambiguation_proposal.pdf`; identical to old source `project/proposal/hebrew_acronym_disambiguation_proposal.pdf`. Preserved unchanged. | `27c92cb4ff6378418c6d0b162008453cd3885c1a893a1c42e9e5c44606da0b5f` |
+| [Course guidelines](course/NLP_course_2025b___project_guidelines.pdf) | Already present at new baseline `course/NLP_course_2025b___project_guidelines.pdf`; identical to old source `project/guidelines/NLP_course_2025b___project_guidelines.pdf`. Preserved unchanged. | `cc67f99fe1efb1a373d564a2332a64509772f3b166afc551769bd3a5676aaaa4` |
+
+The old source commit's `project/proposal/README.md`
+identifies the ID-named PDF as the submitted artifact and the other as an earlier draft.
+This is documentary identification, not direct verification of submission or acceptance.
+The submitted-identified proposal describes open generation versus candidate selection;
+its planned systems and metrics remain source material, not approval of the current protocol.
+
+[Instructor feedback](course/mor_feedback.md), inherited at new baseline path
+`course/mor_feedback.md`, asks for a clear research question, related literature and
+motivation in light of what large language models may already accomplish through prompting.
+It is retained as course context, not a final experimental system selection.
+
+## Existing research implementation (reference)
+
 Given a Hebrew sentence containing an acronym and a list of possible expansions, pick the
 one the sentence actually means.
 
@@ -39,23 +122,21 @@ pipeline/          validate_data.py, run_all.py, run_pipeline.sh — one command
 results/           eval outputs per arm — per-item CSVs and the combined summary table
 ```
 
-## Setup
+## Historical training instructions — not the current entry point
 
-```bash
-python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt
-```
-
-## Training
+Do not run these instructions during the workspace-organization stage.
 
 Open `notebooks/train_dictabert.ipynb` in Colab
 ([direct link, `improve-data` branch](https://colab.research.google.com/github/BenCarmel123/hebrew-acronym-disambiguation/blob/improve-data/notebooks/train_dictabert.ipynb)),
 set `Runtime > Change runtime type > T4 GPU`, and run all cells. It pulls the data and
 `model/common/pairs.py` from this repo, so there is nothing to upload. Point it at the
-branch that actually has the `train_items.csv` you want to train on — `main` is behind
-`improve-data` as of this writing (see Data, below).
+branch that actually has the `train_items.csv` you want to train on; both branches pointed to the same base commit at setup (see Start here).
 
-## Results
+## Historical results and interpretation
+
+The following tables and interpretations are preserved from the baseline README.
+Their scientific claims were not revalidated by the environment check. References
+to a next run below are historical plans, not current execution instructions.
 
 > **Stale as of 2026-09-13.** Every number below was measured on an earlier dev set
 > (285 items, later corrected by hand to 292 — see the note further down). Since then,
@@ -64,7 +145,7 @@ branch that actually has the `train_items.csv` you want to train on — `main` i
 > and now stands at **289 items over 55 acronym types**. `pipeline/run_pipeline.sh` has
 > not yet been re-run against it, so every figure below should be treated as
 > **not yet verified against the current data** rather than corrected or withdrawn.
-> Re-running the pipeline and updating this section is the next step.
+> Re-running the pipeline was the earlier proposed next step; it is deferred pending approval.
 
 Dev split (as measured below): 285 items over 55 acronym types, none seen during training.
 
@@ -224,7 +305,7 @@ the systematic gematria/privacy-redaction candidate fixes, and a known accepted 
 condition (page-title overlap between train/dev and train/test — judged low severity;
 see the card for why). Read it before quoting any number.
 
-## Regenerating the data
+## Historical data regeneration instructions
 
 `data_preprocess/` builds the dataset from scratch against the live sources; see
 `data_preprocess/README.md`. A full sweep is thousands of throttled API calls (Wikipedia)
@@ -236,7 +317,12 @@ Source text is Hebrew Wikipedia, Wiktionary, and the
 Sefaria (rabbinic/Talmudic text) was tried and set aside — see the DATASET_CARD's
 "Scope decisions" for why.
 
-## Current status / next steps
+## Historical status and next steps (baseline snapshot)
+
+These earlier instructions are deferred. Do not run `pipeline/run_pipeline.sh` or
+`python -m pipeline.run_all` during setup: the shell entry point automatically evaluates
+test when its file exists, and `--skip-llm` does not disable test. No training,
+benchmark evaluation, mining, Ollama, or paid API use is part of the current package.
 
 - `weights/` holds a `dictabertX` checkpoint trained **before** this session's data
   changes (Knesset Corpus, the frozen test split, the thin-sense fixes). Retrain against
