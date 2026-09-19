@@ -1,15 +1,17 @@
 # Hebrew Acronym Disambiguation
 
-**Active stage: workspace organization (S1 and an early local part of S2).**
+**Active stage: structural organization of the training path (S3a).**
 The scientific protocol has not been approved. Existing results and research claims
 below are historical; they are not current findings or authorization to run experiments.
 
 ## Start here
 
-Use this repository as the permanent working copy. The initial setup branch is
-`setup-workspace`, based on commit `eb2e7785dab42dc8ae3ca07372d032adafee9dba`
+Use this repository as the permanent working copy. The training extraction branch is
+`extract-training`, based on accepted setup commit
+`8ca117d50c3f01d4473b944c99611c7191af05b4`. The original setup branch
+`setup-workspace` starts from `eb2e7785dab42dc8ae3ca07372d032adafee9dba`
 of [BenCarmel123/hebrew-acronym-disambiguation](https://github.com/BenCarmel123/hebrew-acronym-disambiguation).
-On 2026-09-19, remote `main` and `improve-data` both pointed to that commit.
+On 2026-09-19, remote `main` and `improve-data` both pointed to `eb2e778`.
 The old [nlp-hw-team repository](https://github.com/ShakedSchnarch/nlp-hw-team)
 is a read-only historical reference; its history is not merged here.
 
@@ -48,12 +50,13 @@ and all values were finite. Loading reported newly initialized BERT pooler weigh
 the check inspects `last_hidden_state`, not pooled scores or model quality.
 This revision identifies the check only and does not change the model's research default.
 
-This is a base-tokenizer/encoder check, not validation of the notebook's custom encoding,
-training loop, trained checkpoints, or scientific protocol. The external GPU environment
-was **not verified in this package**. S2 is not complete.
+This command checks the base tokenizer/encoder only. The separate S3a checks below
+cover the shared pair encoder and cross-encoder; neither validates the scientific
+protocol or a historical trained checkpoint. The external GPU environment remains
+**not verified**; CPU checks and dependency pins do not reproduce historical training.
 
 Reader map: [data layers](data/README.md), [dataset card](data/mined/DATASET_CARD.md),
-[existing notebook](notebooks/train_dictabert.ipynb) (read-only in this stage), and
+[training code appendix](notebooks/train_dictabert.ipynb) (default: offline smoke), and
 [agent operating rules](AGENTS.md). Technical explanations assume basic ML knowledge;
 NLP-specific terms should be explained when introduced.
 
@@ -100,37 +103,69 @@ with one candidate expansion, score how well they fit, and repeat per candidate.
 argmax is the prediction. The model picks from a fixed candidate list and cannot invent
 an expansion outside it.
 
-## Layout
+## Code responsibilities
 
+The current dependency direction is notebook/entry point → callable source functions.
+Only the cross-encoder training path has been consolidated in S3a.
+
+| Responsibility | Current code |
+|---|---|
+| Collection and mining | `data_preprocess/wikipedia/`, `wiktionary/`, `knesset/`; `sefaria/` is exploratory and not wired into the CLI. Each owns source access and source-specific extraction. |
+| Text processing | `data_preprocess/common/`: orthography, acronym matching, gematria and mining filters. |
+| Data assembly and review | `merge_sources.py`, `dedupe_expansions.py`, `review_duplicates_cli.py`, `build_annotation_table.py`, `apply_dev_review.py`, `build_splits.py` under `data_preprocess/`. These merge sources, apply recorded review and construct existing input files. |
+| Data command entry point | `data_preprocess/__main__.py` dispatches commands and still contains processing/resume logic; this remains a concrete S3b boundary to review. |
+| Pair construction | [model/common/pairs.py](model/common/pairs.py): CSV reading, quote folding, locating/marking the target, candidate pairs and skip summaries. |
+| Model and input encoding | [dictabert/model.py](model/dictabert/model.py) loads the base encoder; [dictabertX/model.py](model/dictabertX/model.py) owns the shared cross-encoder, marker initialization and checkpoint loading; [encoding.py](model/dictabertX/encoding.py) owns pair cropping/padding. |
+| Training | [training.py](model/dictabertX/training.py): settings, batch order, BCE loss, AdamW and strict development-loss checkpoint selection. [workflow.py](model/dictabertX/workflow.py): local paths, mode selection, cached-model setup and short smoke. The [notebook](notebooks/train_dictabert.ipynb) explains and calls these functions. |
+| Evaluation and decoding | `model/common/eval.py` shares LLM prompts, candidate shuffling, decoding, matching and detail export. `dictabertX/eval.py` retains item selection and calls the shared pair encoder through its compatible wrapper. `dictabert/eval.py` implements the separate similarity method; `baselines.py` implements reference baselines; `qwen/eval.py` and `gemini/eval.py` connect backends. This is not one unified evaluator. |
+| Validation and orchestration | `pipeline/validate_data.py` owns schema/overlap checks; `run_all.py` coordinates methods and summary rendering; `run_pipeline.sh` coordinates validation and dev/test evaluation. These research entry points are not authorized during S3a. `check_environment.py` is the separate safe base-encoder check. |
+| Engineering checks | [tests/](tests/): exact-baseline comparisons, tiny encoder fixtures and the fresh-process notebook runner. [tests/fixtures/](tests/fixtures/) is separate from research inputs. Temporary checkpoint tests use isolated temporary directories; notebook smoke writes no checkpoint. |
+| Inputs and outputs | [data/](data/README.md): mining exports, review records and historical split inputs; [results/](results/): historical predictions/summaries; `weights/`: ignored weight files; [course/](course/): source documents. |
+
+## Training appendix and structural checks
+
+From the repository root, run the fixture equivalence suite and the notebook smoke:
+
+```bash
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 .venv/bin/python -B -m unittest discover -s tests -v
+.venv/bin/python -B -m tests.run_notebook
 ```
-data_preprocess/   builds the dataset from Hebrew Wikipedia, Wiktionary, and the Knesset
-                    Proceedings Corpus (see per-source subpackages: wikipedia/, wiktionary/,
-                    knesset/, sefaria/ — the last exploratory, not wired into any pipeline)
-  common/          hebrew_text.py (orthography, gematria), filters.py (shared mining filters)
-  build_splits.py  constructs a type-disjoint test split from newly-reviewed source data
-model/
-  common/          pairs.py (span-marking, pair-building); eval.py (shared LLM-eval loop)
-  baselines.py     random / most-frequent / most-mined / oracle — no model, just stats
-  dictabert/       untrained DictaBERT baseline (model.py, eval.py)
-  dictabertX/      fine-tuned cross-encoder (model.py, eval.py — training is in the notebook)
-  qwen/            local open LLM arm, via Ollama (eval.py)
-  gemini/          hosted SOTA LLM arm (eval.py)
-notebooks/         Colab training notebook (dictabertX only)
-weights/       trained weights (gitignored — ~700MB each)
-data/              the dataset — see data/README.md for the layer rules
-pipeline/          validate_data.py, run_all.py, run_pipeline.sh — one command, one table
-results/           eval outputs per arm — per-item CSVs and the combined summary table
-```
 
-## Historical training instructions — not the current entry point
+The suite isolates definitions and training operations from Git commit
+`8ca117d50c3f01d4473b944c99611c7191af05b4`, without running the old notebook's setup,
+downloads or research data. Keep that commit in the local Git history for these checks.
+It compares encoding tensors, all four pooling modes, state dictionaries, tiny-encoder
+optimizer updates, late seeding and strict checkpoint selection. Temporary round trips
+use the real checkpoint loader with a tiny fixture encoder, not historical weights.
 
-Do not run these instructions during the workspace-organization stage.
+The notebook runner executes every code cell in a fresh Python process. No Jupyter
+server is required for this check; when using a notebook UI, select the same prepared
+Python environment. The first code cell contains imports, paths and mode settings.
+`MODE="smoke"` uses invented rows and the cached real DictaBERT model, in CPU evaluation
+mode without gradients. Set `DICTABERT_SNAPSHOT` to an existing local snapshot directory
+if automatic discovery is unsuitable. A missing cache stops the notebook with `NOT RUN`;
+it never downloads or substitutes a different model.
 
-Open `notebooks/train_dictabert.ipynb` in Colab
-([direct link, `improve-data` branch](https://colab.research.google.com/github/BenCarmel123/hebrew-acronym-disambiguation/blob/improve-data/notebooks/train_dictabert.ipynb)),
-set `Runtime > Change runtime type > T4 GPU`, and run all cells. It pulls the data and
-`model/common/pairs.py` from this repo, so there is nothing to upload. Point it at the
-branch that actually has the `train_items.csv` you want to train on; both branches pointed to the same base commit at setup (see Start here).
+The local S3a smoke passed on revision `8884c6db002aba4002ee638fe4070c92e9ffbbf1`:
+four pairs, encoded shape `(4, 16)`, logits shape `(4,)`, all finite. The loader reports
+new pooler parameters and newly initialized marker embeddings; the scoring head is also
+new. These are engineering checks, not model-quality measurements.
+
+The explicit `train` mode is retained for later authorized use. It requires local
+train/development CSV paths and a new checkpoint output path in an existing directory.
+Settings remain in `TrainingConfig`; the seed is applied after model initialization,
+and `best.pt` remains selected by strict improvement in development **pair loss**.
+Pair accuracy is not per-item candidate-selection accuracy. Full training, real dev/test
+scoring, GPU execution and historical checkpoint validation were not run in S3a.
+
+Known encoding edge behavior remains unchanged: missing markers/empty batches raise
+errors; an oversized candidate or target may exceed the length budget. Other active
+paths still duplicate CSV/model loading, and some mining logic lives in CLI handlers.
+Those boundaries require S3b review; S3a does not complete repository-wide organization.
+
+The old Colab instructions fetched code/data from a moving branch and ran training.
+They have been replaced by the local appendix above. No analysis notebook or final
+experiment protocol has been implemented in this package.
 
 ## Historical results and interpretation
 
@@ -247,63 +282,34 @@ abbreviate, is a different and harder distribution — accuracy there should be 
 be lower, and the gap between the two is the number worth reporting. Scoring against the
 held-out natural-usage set is the next step.
 
-## Data
+## Data and evidence status
+
+Read the [data location map](data/README.md), then the
+[dataset card](data/mined/DATASET_CARD.md) for definitions, construction history and
+limitations. [The split document](data/splits/README.md) describes the existing files.
+Processing layer, text origin/construction, label status and split role are separate
+axes. A reviewed file or `gold_expansion` column does not prove approval of the next
+experiment; `manual` includes disclosed AI-authored text. S3a changes documentation only.
+
+<details>
+<summary>Historical inventory summary retained from the setup baseline (not recounted in S3a)</summary>
 
 | File | Rows | Types | What |
 |---|---|---|---|
 | `data/splits/train_items.csv` | 3,115 | 435 | Training split |
-| `data/splits/dev_items.csv` | 289 | 55 | Dev split — frozen; never rewritten once reviewed |
+| `data/splits/dev_items.csv` | 289 | 55 | Historical development input |
 | `data/splits/test_items.csv` | 395 | 60 | Held-out test split, built from Knesset + natural + authored rows |
-| `data/splits/all_items.csv` | 4,649 | 549 | Every row across train/dev/test, one file, with a `category` column |
+| `data/splits/all_items.csv` | 4,649 | 549 | Separate historical aggregate export; not guaranteed to equal the current split union |
 | `data/splits/by_category/*.csv` | — | — | The same rows split one file per `category` value |
 | `data/mined/acronym_items.csv` | 3,386 | — | Wikipedia mining output — the source most of train/dev were drawn from |
 | `data/mined/knesset/knesset_reviewed.csv` | 1,041 | 191 | Human-reviewed Knesset Corpus rows — the source test/part of train were drawn from |
 | `data/mined/candidate_table.csv` | 2,700+ | 638 | Acronym → expansion inventory. An input to mining, not a result |
 
-`data/splits/` holds only what training/eval reads. Everything the mining pipeline
-produced, including the full occurrence tables, stays in `data/mined/`.
+The baseline also reported approximately 3,250 substituted Wikipedia rows and 229
+`manual` rows in its aggregate description. These historical counts were not reconciled
+in this structural package; use the source files and identified revision for analysis.
 
-**Train and dev are disjoint by acronym type**, so dev measures generalization to
-acronyms never seen in training rather than recall of a memorized expansion. **Test is
-disjoint from both train and dev** — this required actively removing 60 types' existing
-rows from train and rebuilding them from the newer source pool (Knesset, natural
-Wikipedia usage, and disclosed AI-authored examples); see
-`data_preprocess/build_splits.py` and `data/mined/DATASET_CARD.md`'s
-"Knesset corpus, natural-text pool, and the frozen test split" section for why that
-carve-out was necessary rather than optional.
-
-### The `category` column
-
-Every row in `all_items.csv` (and the split files) carries one of six values:
-
-| category | rows | meaning |
-|---|---:|---|
-| `wiki_substituted` | ~3,250 | Wikipedia, mechanically rewritten from a spelled-out phrase |
-| `knesset` | 1,041 | Knesset Corpus, human-reviewed |
-| `wiki_natural` | 112 | Wikipedia, real unedited usage |
-| `manual` | 229 | Disclosed AI-authored (`source=claude-sonnet-5`) — written to fill specific sense gaps, never passed off as mined |
-| `wiki_deglossed` | 16 | Wikipedia, real usage with an inline gloss removed |
-| `wiktionary` | 0 | Placeholder — no such rows exist in the current dataset (header-only file) |
-
-`wiki_substituted` vs. `wiki_deglossed`: both start from Wikipedia prose, but
-substitution *invents* the abbreviated form (a sentence that never used the acronym is
-rewritten to use it), while deglossing finds a sentence where a Wikipedia author
-**already used the acronym** and only removes a nearby parenthetical explanation.
-
-### Label status
-
-| status | meaning |
-|---|---|
-| `weak` | Correct by construction — the mining pipeline substituted the acronym into a sentence that spelled the expansion out. Usable for training; not held-out evaluation data |
-| `verified` | Hand-annotated or human-reviewed (natural Wikipedia usage, Knesset review, or disclosed AI-authored) |
-| `unverified` | Skipped during annotation, left unlabeled — dropped wherever it would leave a row with no gold answer |
-
-`data/mined/DATASET_CARD.md` documents the mining process, every filter, and the known
-limitations — including a full human review of the dev split's substituted rows (a
-measured 7.3% damage rate, 95% CI 4.1–10.6%), the Knesset Corpus addition and its review,
-the systematic gematria/privacy-redaction candidate fixes, and a known accepted leakage
-condition (page-title overlap between train/dev and train/test — judged low severity;
-see the card for why). Read it before quoting any number.
+</details>
 
 ## Historical data regeneration instructions
 

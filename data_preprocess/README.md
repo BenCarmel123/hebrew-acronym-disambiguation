@@ -1,5 +1,9 @@
 # Acronym candidate tables
 
+**Historical construction reference.** Mining and dataset changes are not part of S3a.
+See [the root README](../README.md) for safe checks and the
+[dataset card](../data/mined/DATASET_CARD.md) for definitions and limitations.
+
 Builds the candidate-expansion inventory for the Hebrew acronym disambiguation
 project, with a corpus-frequency count attached to every candidate.
 
@@ -10,12 +14,11 @@ from the data. Every row is candidate evidence requiring human adjudication.
 
 ## Why two sources
 
-`research/source_evidence/REPORT.md` established that the two wikis carry
-different evidence: **Wiktionary states literal expansions, Wikipedia
-disambiguation pages mostly list referents.** Since the ratified prediction
-target is the literal expansion string (`planning/DECISIONS.md` §1), Wiktionary
-is the higher-value inventory — but the overlap is only partial, so the union is
-strictly larger than either.
+An earlier source report (not retained in this repository) described Wiktionary as
+a source of literal expansions and Wikipedia disambiguation pages as mostly referents.
+That historical rationale motivated combining their partially overlapping inventories.
+The previous reference to `planning/DECISIONS.md` also points outside this repository;
+neither reference establishes approval of the current scientific protocol.
 
 | Source | Types | Polysemous |
 |---|---:|---:|
@@ -79,5 +82,5 @@ senses, because that is the corpus contexts would be drawn from.
   any further network sweep.
 - **`is_clean_sentence` does not enforce one occurrence of the target.** Its final check
   compares sets, so it rejects a different acronym type but keeps repeats of the target.
-  See `data/splits/DATASET_CARD.md`.
+  See [the dataset card](../data/mined/DATASET_CARD.md).
 
