@@ -79,13 +79,13 @@ item-071438a276299da64e85ba03,item,24,inventory_conflict|quote_variant|review_no
 item-24fb90899c439b7e93fc2293,item,24,inventory_conflict|quote_variant|review_not_proven|target_multiple,train,false,item_audit.csv,,78
 item-2ad788b07d89dd7e5421b20f,item,24,inventory_conflict|quote_variant|review_not_proven|target_multiple,aggregate_only,false,item_audit.csv,,79
 item-46fb1b90b75a2871698d5fa2,item,24,inventory_conflict|quote_variant|review_not_proven|target_multiple,aggregate_only,false,item_audit.csv,,80
-item-743231daf6861b0f5bd32f29,item,24,inventory_conflict|natural_dev_proposal|quote_variant|target_multiple,aggregate_only,true,item_audit.csv,,81
+item-743231daf6861b0f5bd32f29,item,24,inventory_conflict|natural_dev_proposal|quote_variant|target_multiple,aggregate_only,true,item_audit.csv,accept,81
 item-788589b75b0c8c81343b2d9a,item,24,inventory_conflict|natural_dev_proposal|quote_variant|target_multiple,aggregate_only,true,item_audit.csv,,82
-item-82b09eac472d8c63ed2aec90,item,24,inventory_conflict|natural_dev_proposal|quote_variant|target_multiple,aggregate_only,true,item_audit.csv,,83
+item-82b09eac472d8c63ed2aec90,item,24,inventory_conflict|natural_dev_proposal|quote_variant|target_multiple,aggregate_only,true,item_audit.csv,uncertain,83
 item-86b4b42c7693dace97aa5dc5,item,24,inventory_conflict|quote_variant|review_not_proven|target_multiple,train,false,item_audit.csv,,84
 item-8c5d718eca8a8f64ffbc6aef,item,24,inventory_conflict|natural_dev_proposal|quote_variant|target_multiple,aggregate_only,true,item_audit.csv,,85
 item-fa3f959ec861d6a3f1a0e847,item,24,inventory_conflict|quote_variant|review_not_proven|target_multiple,train,false,item_audit.csv,,86
-item-c5f94c4458d409441c440fcd,item,23,definition_or_expansion_in_sentence|inventory_conflict|natural_dev_proposal|quote_variant,aggregate_only,true,item_audit.csv,,87
+item-c5f94c4458d409441c440fcd,item,23,definition_or_expansion_in_sentence|inventory_conflict|natural_dev_proposal|quote_variant,aggregate_only,true,item_audit.csv,accept,87
 item-fb9a99d94440be18aa980b60,item,23,definition_or_expansion_in_sentence|inventory_conflict|natural_dev_proposal|quote_variant,aggregate_only,true,item_audit.csv,,88
 item-0f247f673263b9df1876cdb3,item,22,document_overlap|inventory_conflict|review_not_proven,train,false,item_audit.csv,,89
 item-0f8b998fbfe7498b61cb0e63,item,22,inventory_conflict|missing_provenance|target_prefix_or_embedded,train,false,item_audit.csv,,90
@@ -593,7 +593,7 @@ item-01074af7bb09553752142f50,item,16,inventory_conflict|missing_provenance,trai
 item-01ca657bf65d16409a6f0604,item,16,inventory_conflict|quote_variant|review_not_proven,train,false,item_audit.csv,,592
 item-0393d3a810430ab327a000f0,item,16,inventory_conflict|missing_provenance,test,false,item_audit.csv,,593
 item-046a3c47dc0c7c9442c8fc1d,item,16,inventory_conflict|missing_provenance,train,false,item_audit.csv,,594
-item-04ea81a4e75bccdc7a2d1438,item,16,inventory_conflict|natural_dev_proposal|quote_variant,aggregate_only,true,item_audit.csv,,595
+item-04ea81a4e75bccdc7a2d1438,item,16,inventory_conflict|natural_dev_proposal|quote_variant,aggregate_only,true,item_audit.csv,correct,595
 item-06ef255bbefea69366ead320,item,16,inventory_conflict|quote_variant|review_not_proven,train,false,item_audit.csv,,596
 item-07598e0df2d4bd455a1ffcc9,item,16,inventory_conflict|missing_provenance,train,false,item_audit.csv,,597
 item-0997580794b20fd091daf38e,item,16,inventory_conflict|missing_provenance,train,false,item_audit.csv,,598

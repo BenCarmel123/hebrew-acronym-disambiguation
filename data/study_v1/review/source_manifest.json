@@ -1,7 +1,7 @@
 {
   "schema_version": "p1-proposal-v2",
   "proposal_status": "protocol pending",
-  "source_repository_commit": "8ae803e00005e5e4738acda4d2386e6eb8d9a152",
+  "source_repository_commit": "a65135be817c9dfd506a18828c68003350a49df3",
   "generator_sha256": "117da785766289b9683d28b49e57a6e4298791398783984abf6a2879736b0a4e",
   "sources": [
     {
