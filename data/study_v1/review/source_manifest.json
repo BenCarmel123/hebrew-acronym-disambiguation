@@ -1,0 +1,224 @@
+{
+  "schema_version": "p1-proposal-v1",
+  "proposal_status": "protocol pending",
+  "source_repository_commit": "7e42e8540764d428ba0801a436810c7f5a9f9b31",
+  "generator_sha256": "15978b7b1ece7b763a374dc1e7f8500874b4ac0a54895d76947d60920a1339e0",
+  "sources": [
+    {
+      "path": "data/README.md",
+      "sha256": "a708d814578e3f488f6156f15caf25797d8d6da8746b3eb7dc6da77cfe28116e",
+      "bytes": 6368,
+      "csv_records": null
+    },
+    {
+      "path": "data/mined/DATASET_CARD.md",
+      "sha256": "c1a3bcfbfab79d3bdc6205d739dee4687c5a99f493f9473c1b12a51eaf081f8d",
+      "bytes": 12499,
+      "csv_records": null
+    },
+    {
+      "path": "data/mined/acronym_items.csv",
+      "sha256": "241392d16b720edb3faef4404c2e3fc4b3eed46b4acd9df91b3f1ec205ce73d8",
+      "bytes": 1445757,
+      "csv_records": 3386
+    },
+    {
+      "path": "data/mined/candidate_table.csv",
+      "sha256": "f50fbcb3a8461bc83c9af63e6903e948372a4e0c8fcbccf3beb227afb5dd7e40",
+      "bytes": 164985,
+      "csv_records": 2702
+    },
+    {
+      "path": "data/mined/dev_review.csv",
+      "sha256": "c035e2a7bb8c93f9edea09da52751189250c423d1c0ab188f80c617fed86b6e7",
+      "bytes": 16373,
+      "csv_records": 283
+    },
+    {
+      "path": "data/mined/duplicate_review.csv",
+      "sha256": "2cda93579d68b5d7f527d5676fa1c8df0b9e1207f0fca09140bc9a9b5b44802c",
+      "bytes": 17900,
+      "csv_records": 214
+    },
+    {
+      "path": "data/mined/knesset/knesset_mined.csv",
+      "sha256": "2cc768da11ec9d1623fdbdc7a752c27f857412b865e4dc318938bae284845aa7",
+      "bytes": 232626,
+      "csv_records": 1045
+    },
+    {
+      "path": "data/mined/knesset/knesset_mined.csv.summary.json",
+      "sha256": "bc9c11a4c3dda985300c61f85016984f0ca70618ce3888e25f9cc097e9022801",
+      "bytes": 80,
+      "csv_records": null
+    },
+    {
+      "path": "data/mined/knesset/knesset_reviewed.csv",
+      "sha256": "38c50f78ce44847b0a86c95837359487571786a836d93796a9a9fb0bc558e978",
+      "bytes": 449437,
+      "csv_records": 1041
+    },
+    {
+      "path": "data/mined/knesset/target_types.txt",
+      "sha256": "ffeb23c5aa42ba5fb7bbf4c71e1a0d85dff34bc845e18eb95dfb33af2c77b66d",
+      "bytes": 4667,
+      "csv_records": null
+    },
+    {
+      "path": "data/mined/merge_review.csv",
+      "sha256": "89d6683671c52f53d5757b3c10610f8bcd75455464f291990ae7aeaa88bd69ba",
+      "bytes": 7376,
+      "csv_records": 127
+    },
+    {
+      "path": "data/mined/merged_counts.csv",
+      "sha256": "53bcb0fc3194f053eaac3f236d7082024b4356ad6b47457047d4d3292b580d49",
+      "bytes": 355500,
+      "csv_records": 2451
+    },
+    {
+      "path": "data/mined/merged_counts.csv.summary.json",
+      "sha256": "b1485793c4d0d0a720d58ca6c0690c0e2ebfa0385fe2ccbcf5adb35933a3b85f",
+      "bytes": 756,
+      "csv_records": null
+    },
+    {
+      "path": "data/mined/wikipedia/bullet_counts.csv",
+      "sha256": "ab548f2d8c9192bc646c44375e6c9d1cf938fc70789739b77d1e8d0cad3c05f4",
+      "bytes": 93814,
+      "csv_records": 520
+    },
+    {
+      "path": "data/mined/wikipedia/bullet_counts.csv.summary.json",
+      "sha256": "cb425ba1c569b7229da2e6ee05d3135f41460de724657b1e08000b2c0e67ff5e",
+      "bytes": 515,
+      "csv_records": null
+    },
+    {
+      "path": "data/mined/wikipedia/retry_by_sense.csv",
+      "sha256": "e898cae4e6449a0bc76a0cf199844a0d23102f67a1367aee8090c5e3bcb3c574",
+      "bytes": 4036,
+      "csv_records": 15
+    },
+    {
+      "path": "data/mined/wikipedia/retry_by_sense.csv.summary.json",
+      "sha256": "187b1da054aea8510eb8e7e1b3bd3fd7b629c0d96d689f81aa58ddc221dfbcb1",
+      "bytes": 35,
+      "csv_records": null
+    },
+    {
+      "path": "data/mined/wikipedia/retry_types.txt",
+      "sha256": "ba3352dacd8f4ea0a10ad8548b01169467f64b2c7efabab57ab524a3a1ec4897",
+      "bytes": 393,
+      "csv_records": null
+    },
+    {
+      "path": "data/mined/wikipedia/unmined_triage.csv",
+      "sha256": "b33c0a736e17e929a478ff1b4eb3e00138a154f459a027ece94659bf3005547d",
+      "bytes": 12480,
+      "csv_records": 226
+    },
+    {
+      "path": "data/mined/wiktionary/wiktionary_counts.csv",
+      "sha256": "61975200bf04207bb3a7ef0c8a137658c589d5702055c03e7fc6d22470fffc12",
+      "bytes": 282993,
+      "csv_records": 2109
+    },
+    {
+      "path": "data/mined/wiktionary/wiktionary_counts.csv.summary.json",
+      "sha256": "50a18360d5458f8c77dd4b0d348defb6b8bc511d564bc08cb4bba8589324a8ee",
+      "bytes": 522,
+      "csv_records": null
+    },
+    {
+      "path": "data/splits/all_items.csv",
+      "sha256": "2b9c976e72ee3947f3bb65e7d2da789c56fcf105a040819583ff05011d830960",
+      "bytes": 2200710,
+      "csv_records": 4649
+    },
+    {
+      "path": "data/splits/by_category/knesset.csv",
+      "sha256": "27d825eb4b4681d29ddeb62d77732c25b66a04ef30cefc215b568c0cffbf3a3c",
+      "bytes": 516755,
+      "csv_records": 1041
+    },
+    {
+      "path": "data/splits/by_category/manual.csv",
+      "sha256": "e0af595708d0254b866a3d583c0ad811566605bba8cabd2cdd432047de45d403",
+      "bytes": 97952,
+      "csv_records": 229
+    },
+    {
+      "path": "data/splits/by_category/wiki_deglossed.csv",
+      "sha256": "d52118ff8a0d29d79ed51582e834ceffb9d80a4fea91a638471f14ef40808a69",
+      "bytes": 8293,
+      "csv_records": 16
+    },
+    {
+      "path": "data/splits/by_category/wiki_natural.csv",
+      "sha256": "d8420699a494ae602a130d5875c2ebab45159cca0252454e16d8ecf6c18c6d25",
+      "bytes": 52087,
+      "csv_records": 112
+    },
+    {
+      "path": "data/splits/by_category/wiki_substituted.csv",
+      "sha256": "b37f74f03d2b72c2d4eab5d08b9c65d7e032f52c4abd6db14d433fb8657ed669",
+      "bytes": 1524980,
+      "csv_records": 3247
+    },
+    {
+      "path": "data/splits/by_category/wiktionary.csv",
+      "sha256": "55f58bc889e4c66887f8b4fa2bf02199dc0529f07a9996bba514028d31dd29fd",
+      "bytes": 207,
+      "csv_records": 0
+    },
+    {
+      "path": "data/splits/dev_items.csv",
+      "sha256": "5da0e0640bc8e841f6d4008243261d074f075feb7316414a579c1f30324665ff",
+      "bytes": 130402,
+      "csv_records": 289
+    },
+    {
+      "path": "data/splits/test_items.csv",
+      "sha256": "6185f241bbaf681556c231080819a07b3233a30a04fd91b1149c685977a092a2",
+      "bytes": 185720,
+      "csv_records": 395
+    },
+    {
+      "path": "data/splits/train_items.csv",
+      "sha256": "5014991efe5ba76608c633928644fdfd1ee223e799ebba686a53b7bb246158d8",
+      "bytes": 1451205,
+      "csv_records": 3115
+    },
+    {
+      "path": "src/hebrew_acronyms/models/common/pairs.py",
+      "sha256": "0d8edf1ca25f2c85cba017e83058f54e112c75448ea111d8b602e7a923a99240",
+      "bytes": 3359,
+      "csv_records": null
+    }
+  ],
+  "definitions": {
+    "item_id": "SHA256 of exact JSON [acronym,sentence,gold_expansion,candidates], first 24 hex; raw metadata differences preserved; not historical item_id",
+    "document": "exact nonempty (source,page_title); normalized-key variants flagged only, not merged",
+    "natural": [
+      "knesset",
+      "wiki_natural"
+    ],
+    "diagnostic_scope": {
+      "contains_string_excluded_proposal": "גימטר",
+      "exact_string_excluded_proposal": "ראשי תיבות שם פרטי ומשפחה (זהות חסויה)"
+    },
+    "span": "zero-based Python Unicode code-point offsets, end-exclusive; length-preserving quote normalization; unique substring only, pending human boundary validation",
+    "independent_inventory": "stored candidate/source exports independent of this per-item label field; not proof of semantic correctness or of upstream independence",
+    "exposure": "aggregate structural label/candidate/document/span inspection; no semantic test adjudication and no system outputs or scores",
+    "extension_selection": "availability-only; final type subset not approved; label coverage calculated only after selection",
+    "source_row_number": "one-based CSV data record, header excluded"
+  },
+  "limits": [
+    "No benchmark freeze, approved labels or inventory, new train, model invocation or network.",
+    "Literal string scope rule does not identify every nonliteral label or candidate.",
+    "Ben evidence preserved as source records; AI preparation is not second human annotation.",
+    "Document normalization is diagnostic; exact keys cannot establish real-world document identity.",
+    "Pair counts and matched updates must be recomputed after human inventory/span decisions."
+  ]
+}

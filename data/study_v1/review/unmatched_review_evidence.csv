@@ -1,0 +1,5 @@
+path,record,reason,source_record_json
+data/mined/dev_review.csv,49,absent_or_ambiguous_item_link,"{""acronym"":""כ״ק"",""expansion"":""כושר קרבי"",""item_id"":""ha-01530"",""note"":"""",""verdict"":""broken""}"
+data/mined/dev_review.csv,61,absent_or_ambiguous_item_link,"{""acronym"":""פ״ח"",""expansion"":""פיתוחי חותם"",""item_id"":""ha-02613"",""note"":"""",""verdict"":""broken""}"
+data/mined/dev_review.csv,85,absent_or_ambiguous_item_link,"{""acronym"":""מהר״ש"",""expansion"":""רבי שלום רוקח"",""item_id"":""ha-01770"",""note"":"""",""verdict"":""wrong_sense""}"
+data/mined/dev_review.csv,154,absent_or_ambiguous_item_link,"{""acronym"":""סאפ"",""expansion"":""SAP (חברה)"",""item_id"":""ha-02269"",""note"":"""",""verdict"":""broken""}"

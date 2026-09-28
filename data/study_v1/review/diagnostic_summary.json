@@ -1,0 +1,423 @@
+{
+  "split_counts": {
+    "train": {
+      "rows": 3115,
+      "types": 435,
+      "documents": 1998,
+      "missing_document_rows": 142,
+      "categories": {
+        "knesset": 455,
+        "manual": 142,
+        "wiki_deglossed": 8,
+        "wiki_natural": 54,
+        "wiki_substituted": 2456
+      },
+      "observed_type_label_pairs": 1034,
+      "stored_candidate_pairs": 13982,
+      "historical_pair_builder_pairs": 13982
+    },
+    "dev": {
+      "rows": 289,
+      "types": 55,
+      "documents": 202,
+      "missing_document_rows": 2,
+      "categories": {
+        "manual": 2,
+        "wiki_deglossed": 6,
+        "wiki_substituted": 281
+      },
+      "observed_type_label_pairs": 115,
+      "stored_candidate_pairs": 1052,
+      "historical_pair_builder_pairs": 1052
+    },
+    "test": {
+      "rows": 395,
+      "types": 60,
+      "documents": 181,
+      "missing_document_rows": 87,
+      "categories": {
+        "knesset": 267,
+        "manual": 87,
+        "wiki_natural": 41
+      },
+      "observed_type_label_pairs": 100,
+      "stored_candidate_pairs": 1987,
+      "historical_pair_builder_pairs": 1987
+    },
+    "all": {
+      "rows": 4649,
+      "types": 550,
+      "documents": 2669,
+      "missing_document_rows": 233,
+      "categories": {
+        "knesset": 1041,
+        "manual": 233,
+        "wiki_deglossed": 16,
+        "wiki_natural": 112,
+        "wiki_substituted": 3247
+      },
+      "observed_type_label_pairs": 1388,
+      "stored_candidate_pairs": 22809,
+      "historical_pair_builder_pairs": 22809
+    }
+  },
+  "aggregate_minus_split_union": {
+    "rows": 850,
+    "types": 111,
+    "documents": 561,
+    "missing_document_rows": 2,
+    "categories": {
+      "knesset": 319,
+      "manual": 2,
+      "wiki_deglossed": 2,
+      "wiki_natural": 17,
+      "wiki_substituted": 510
+    },
+    "observed_type_label_pairs": 249,
+    "stored_candidate_pairs": 5788,
+    "historical_pair_builder_pairs": 5788
+  },
+  "split_union_records_absent_from_aggregate": 0,
+  "natural_diagnostic_all": {
+    "rows": 986,
+    "types": 153,
+    "documents": 460,
+    "missing_document_rows": 0,
+    "categories": {
+      "knesset": 877,
+      "wiki_natural": 109
+    },
+    "observed_type_label_pairs": 175,
+    "stored_candidate_pairs": 4913,
+    "historical_pair_builder_pairs": 4913
+  },
+  "natural_diagnostic_test": {
+    "rows": 250,
+    "types": 40,
+    "documents": 146,
+    "missing_document_rows": 0,
+    "categories": {
+      "knesset": 209,
+      "wiki_natural": 41
+    },
+    "observed_type_label_pairs": 47,
+    "stored_candidate_pairs": 1189,
+    "historical_pair_builder_pairs": 1189
+  },
+  "extra_knesset_dev_types_before_scope": {
+    "rows": 84,
+    "types": 13,
+    "documents": 48,
+    "missing_document_rows": 0,
+    "categories": {
+      "knesset": 84
+    },
+    "observed_type_label_pairs": 15,
+    "stored_candidate_pairs": 419,
+    "historical_pair_builder_pairs": 419
+  },
+  "extra_knesset_dev_types_in_scope": {
+    "rows": 83,
+    "types": 13,
+    "documents": 48,
+    "missing_document_rows": 0,
+    "categories": {
+      "knesset": 83
+    },
+    "observed_type_label_pairs": 14,
+    "stored_candidate_pairs": 414,
+    "historical_pair_builder_pairs": 414
+  },
+  "natural_dev_proposed": {
+    "rows": 62,
+    "types": 11,
+    "documents": 35,
+    "missing_document_rows": 0,
+    "categories": {
+      "knesset": 62
+    },
+    "observed_type_label_pairs": 12,
+    "stored_candidate_pairs": 331,
+    "historical_pair_builder_pairs": 331
+  },
+  "natural_dev_old_inventory_label_coverage": 32,
+  "natural_dev_scope_before_test_block_old_inventory_coverage": 45,
+  "natural_dev_also_blocking_train_documents": {
+    "rows": 26,
+    "types": 6,
+    "documents": 18,
+    "missing_document_rows": 0,
+    "categories": {
+      "knesset": 26
+    },
+    "observed_type_label_pairs": 7,
+    "stored_candidate_pairs": 120,
+    "historical_pair_builder_pairs": 120
+  },
+  "train_overlap_test_rows": 114,
+  "train_overlap_old_dev_additional_rows": 32,
+  "train_overlap_natural_dev_additional_rows": 28,
+  "train_after_document_proposals": {
+    "rows": 2941,
+    "types": 435,
+    "documents": 1893,
+    "missing_document_rows": 142,
+    "categories": {
+      "knesset": 313,
+      "manual": 142,
+      "wiki_deglossed": 8,
+      "wiki_natural": 54,
+      "wiki_substituted": 2424
+    },
+    "observed_type_label_pairs": 1007,
+    "stored_candidate_pairs": 13164,
+    "historical_pair_builder_pairs": 13164
+  },
+  "extension_available": {
+    "rows": 273,
+    "types": 40,
+    "documents": 190,
+    "missing_document_rows": 2,
+    "categories": {
+      "manual": 2,
+      "wiki_deglossed": 2,
+      "wiki_substituted": 269
+    },
+    "observed_type_label_pairs": 106,
+    "stored_candidate_pairs": 1413,
+    "historical_pair_builder_pairs": 1413
+  },
+  "historical_document_overlap_train_dev": 24,
+  "historical_document_overlap_train_test": 64,
+  "missing_document_keys": {
+    "train": 142,
+    "dev": 2,
+    "test": 87,
+    "all": 233
+  },
+  "content_duplicate_records": {
+    "train": 0,
+    "dev": 0,
+    "test": 0,
+    "all": 0
+  },
+  "acronym_sentence_duplicate_records": {
+    "train": 0,
+    "dev": 0,
+    "test": 0,
+    "all": 0
+  },
+  "legacy_id_collisions": {
+    "train": 0,
+    "dev": 0,
+    "test": 0,
+    "all": 7
+  },
+  "scope_proposal_counts": {
+    "train": {
+      "gematria_string_rule_proposed": 61,
+      "exact_concealed_identity_string_rule_proposed": 24
+    },
+    "dev": {},
+    "test": {
+      "gematria_string_rule_proposed": 40,
+      "exact_concealed_identity_string_rule_proposed": 18
+    },
+    "all": {
+      "gematria_string_rule_proposed": 124,
+      "exact_concealed_identity_string_rule_proposed": 43
+    }
+  },
+  "extension_scenarios": {
+    "all_available": {
+      "rows": 273,
+      "types": 40,
+      "documents": 190,
+      "missing_document_rows": 2,
+      "categories": {
+        "manual": 2,
+        "wiki_deglossed": 2,
+        "wiki_substituted": 269
+      },
+      "observed_type_label_pairs": 106,
+      "stored_candidate_pairs": 1413,
+      "historical_pair_builder_pairs": 1413,
+      "shared_test_items_by_type_availability": 250,
+      "shared_test_type_label_pairs": 47,
+      "test_items_with_observed_extension_label": 189,
+      "test_type_label_pairs_with_observed_extension_label": 31,
+      "unmatched_rows": 29,
+      "control_rows": 244,
+      "control_pairs": 1104,
+      "retained_full_training_usable_pairs": 13164,
+      "replacement_condition_full_usable_pairs": null,
+      "illustrative_unapproved_batch16_epoch1_updates_core": 823,
+      "illustrative_unapproved_batch16_epoch1_updates_extension": null,
+      "illustration_assumptions": "one epoch, effective batch 16, no drop_last, no accumulation remainder change; proposed not approved",
+      "source_candidate_histogram": {
+        "[\"wikipedia\",2]": 65,
+        "[\"wikipedia\",3]": 62,
+        "[\"wikipedia\",4]": 23,
+        "[\"wikipedia\",5]": 26,
+        "[\"wikipedia\",6]": 14,
+        "[\"wikipedia\",7]": 28,
+        "[\"wikipedia\",11]": 26,
+        "[\"wikipedia\",12]": 25
+      },
+      "exact_source_row_pair_match": false,
+      "training_update_budget": "conditional: identical full pair totals, effective batch, epochs, drop_last, accumulation and checkpoint rule required; no training run",
+      "selection_rule": "source/document/legacy-ID/text-hash; document round-robin for cap; no label or system-score selection"
+    },
+    "same_source_substituted": {
+      "rows": 269,
+      "types": 39,
+      "documents": 189,
+      "missing_document_rows": 0,
+      "categories": {
+        "wiki_substituted": 269
+      },
+      "observed_type_label_pairs": 103,
+      "stored_candidate_pairs": 1404,
+      "historical_pair_builder_pairs": 1404,
+      "shared_test_items_by_type_availability": 246,
+      "shared_test_type_label_pairs": 46,
+      "test_items_with_observed_extension_label": 181,
+      "test_type_label_pairs_with_observed_extension_label": 29,
+      "unmatched_rows": 25,
+      "control_rows": 244,
+      "control_pairs": 1104,
+      "retained_full_training_usable_pairs": 13164,
+      "replacement_condition_full_usable_pairs": null,
+      "illustrative_unapproved_batch16_epoch1_updates_core": 823,
+      "illustrative_unapproved_batch16_epoch1_updates_extension": null,
+      "illustration_assumptions": "one epoch, effective batch 16, no drop_last, no accumulation remainder change; proposed not approved",
+      "source_candidate_histogram": {
+        "[\"wikipedia\",2]": 65,
+        "[\"wikipedia\",3]": 62,
+        "[\"wikipedia\",4]": 23,
+        "[\"wikipedia\",5]": 26,
+        "[\"wikipedia\",6]": 14,
+        "[\"wikipedia\",7]": 28,
+        "[\"wikipedia\",11]": 26,
+        "[\"wikipedia\",12]": 25
+      },
+      "exact_source_row_pair_match": false,
+      "training_update_budget": "conditional: identical full pair totals, effective batch, epochs, drop_last, accumulation and checkpoint rule required; no training run",
+      "selection_rule": "source/document/legacy-ID/text-hash; document round-robin for cap; no label or system-score selection"
+    },
+    "exact_candidate_count": {
+      "rows": 244,
+      "types": 38,
+      "documents": 172,
+      "missing_document_rows": 0,
+      "categories": {
+        "wiki_substituted": 244
+      },
+      "observed_type_label_pairs": 94,
+      "stored_candidate_pairs": 1104,
+      "historical_pair_builder_pairs": 1104,
+      "shared_test_items_by_type_availability": 239,
+      "shared_test_type_label_pairs": 44,
+      "test_items_with_observed_extension_label": 174,
+      "test_type_label_pairs_with_observed_extension_label": 27,
+      "unmatched_rows": 0,
+      "control_rows": 244,
+      "control_pairs": 1104,
+      "retained_full_training_usable_pairs": 13164,
+      "replacement_condition_full_usable_pairs": 13164,
+      "illustrative_unapproved_batch16_epoch1_updates_core": 823,
+      "illustrative_unapproved_batch16_epoch1_updates_extension": 823,
+      "illustration_assumptions": "one epoch, effective batch 16, no drop_last, no accumulation remainder change; proposed not approved",
+      "source_candidate_histogram": {
+        "[\"wikipedia\",2]": 65,
+        "[\"wikipedia\",3]": 62,
+        "[\"wikipedia\",4]": 23,
+        "[\"wikipedia\",5]": 26,
+        "[\"wikipedia\",6]": 14,
+        "[\"wikipedia\",7]": 28,
+        "[\"wikipedia\",11]": 26
+      },
+      "exact_source_row_pair_match": true,
+      "training_update_budget": "conditional: identical full pair totals, effective batch, epochs, drop_last, accumulation and checkpoint rule required; no training run",
+      "selection_rule": "source/document/legacy-ID/text-hash; document round-robin for cap; no label or system-score selection"
+    },
+    "capped_5_min_2_documents": {
+      "rows": 155,
+      "types": 35,
+      "documents": 131,
+      "missing_document_rows": 0,
+      "categories": {
+        "wiki_substituted": 155
+      },
+      "observed_type_label_pairs": 81,
+      "stored_candidate_pairs": 556,
+      "historical_pair_builder_pairs": 556,
+      "shared_test_items_by_type_availability": 214,
+      "shared_test_type_label_pairs": 39,
+      "test_items_with_observed_extension_label": 173,
+      "test_type_label_pairs_with_observed_extension_label": 26,
+      "unmatched_rows": 0,
+      "control_rows": 155,
+      "control_pairs": 556,
+      "retained_full_training_usable_pairs": 13164,
+      "replacement_condition_full_usable_pairs": 13164,
+      "illustrative_unapproved_batch16_epoch1_updates_core": 823,
+      "illustrative_unapproved_batch16_epoch1_updates_extension": 823,
+      "illustration_assumptions": "one epoch, effective batch 16, no drop_last, no accumulation remainder change; proposed not approved",
+      "source_candidate_histogram": {
+        "[\"wikipedia\",2]": 57,
+        "[\"wikipedia\",3]": 46,
+        "[\"wikipedia\",4]": 14,
+        "[\"wikipedia\",5]": 15,
+        "[\"wikipedia\",6]": 8,
+        "[\"wikipedia\",7]": 10,
+        "[\"wikipedia\",11]": 5
+      },
+      "exact_source_row_pair_match": true,
+      "training_update_budget": "conditional: identical full pair totals, effective batch, epochs, drop_last, accumulation and checkpoint rule required; no training run",
+      "selection_rule": "source/document/legacy-ID/text-hash; document round-robin for cap; no label or system-score selection"
+    }
+  },
+  "control_substituted_after_document_proposals": {
+    "rows": 2424,
+    "types": 431,
+    "documents": 1637,
+    "missing_document_rows": 0,
+    "categories": {
+      "wiki_substituted": 2424
+    },
+    "observed_type_label_pairs": 925,
+    "stored_candidate_pairs": 10779,
+    "historical_pair_builder_pairs": 10779
+  },
+  "item_audit_rows": 4649,
+  "inventory_proposals": 3287,
+  "review_queue_rows": 7936,
+  "risk_flags": {
+    "adverse_review": 14,
+    "definition_or_expansion_in_sentence": 29,
+    "document_overlap": 174,
+    "historical_adverse_review": 14,
+    "inventory_conflict": 4625,
+    "label_missing_independent_inventory": 11,
+    "legacy_id_collision": 14,
+    "missing_provenance": 233,
+    "natural_dev_proposal": 62,
+    "quote_variant": 1129,
+    "review_not_proven": 3114,
+    "scope_exclusion_proposed": 167,
+    "target_multiple": 182,
+    "target_prefix_or_embedded": 55,
+    "uncertain_review": 38
+  },
+  "metadata_difference_items": 0,
+  "historical_label_changed_review_links": 17,
+  "unmatched_review_records": 4,
+  "pilot": {
+    "prepared_items": 16,
+    "human_status": "not performed",
+    "measured_seconds": null,
+    "review_completion_estimate": null,
+    "estimate_rule": "After human pilot: report median/p75 seconds by risk/source, remaining stratum counts, measured adjudication overhead; no fabricated estimate."
+  }
+}
