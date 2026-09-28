@@ -172,6 +172,123 @@ class ReviewPreparationTests(unittest.TestCase):
         self.assertEqual(unsupported[0]['independent_export_evidence_json'], '[]')
         self.assertEqual(unsupported[0]['human_decision'], '')
 
+    def test_pilot_quotas_are_diverse_deterministic_and_exclude_test(self):
+        audits = []
+        for group, category, role, risk in [
+            ('natural_dev', 'knesset', 'aggregate_only', 'natural_dev_proposal'),
+            ('train_wiki_natural', 'wiki_natural', 'train', 'review_not_proven'),
+            ('routine_reviewed_knesset', 'knesset', 'train', 'inventory_conflict'),
+            ('central_risk', 'wiki_substituted', 'dev', 'uncertain_review')]:
+            for i in range(4):
+                audits.append(dict(stable_item_id=f'{group}-{i}', historical_roles=role,
+                                   natural_dev_proposed=str(group=='natural_dev').lower(),
+                                   raw_category=category, raw_acronym=f'{group}-type-{i}',
+                                   scope_proposal='', flags=risk, risk_score=review.RISK[risk],
+                                   review_evidence_json='[{"verdict":"clean"}]'))
+        # High-risk duplicates of one issue profile must not fill a whole stratum.
+        wiki = [r for r in audits if r['raw_category']=='wiki_natural']
+        audits.extend(dict(r, stable_item_id='high-'+r['stable_item_id'],
+                           raw_acronym='high-'+r['raw_acronym'],
+                           flags='review_not_proven|target_multiple', risk_score=13) for r in wiki)
+        audits.append(dict(audits[0], stable_item_id='forbidden', historical_roles='test'))
+        chosen, coverage = review.select_pilot(audits)
+        self.assertEqual(len(chosen), 16)
+        self.assertEqual(len({r['raw_acronym'] for r,_ in chosen}), 16)
+        self.assertEqual([r['selected'] for r in coverage[:4]], [4,4,4,4])
+        self.assertEqual(coverage[-1]['selected'], 0)
+        self.assertEqual(review.select_pilot(list(reversed(audits))), (chosen, coverage))
+        self.assertFalse(any(r['historical_roles']=='test' for r,_ in chosen))
+        selected_wiki = [r for r,g in chosen if g=='train_wiki_natural']
+        self.assertLessEqual(sum('target_multiple' in r['flags'] for r in selected_wiki), 2)
+
+    def test_additive_decision_migration_preserves_every_legacy_and_unknown_value(self):
+        self.run_prepare()
+        path = self.output/'review_decisions.csv'
+        rows = review.read_csv(path)
+        old_fields = review.DECISION_FIELDS[:-3] + ['future_human_note']
+        old = [{k: r.get(k, '') for k in old_fields} for r in rows]
+        old[0].update(reviewer='Fixture Reviewer', decision='uncertain', elapsed_seconds='23.5',
+                      reason='Preserve all text, commas, and \nline breaks.', future_human_note='unknown field value')
+        path.write_text(review.csv_text(old, old_fields), encoding='utf-8')
+        self.run_prepare()
+        migrated = review.read_csv(path)
+        self.assertEqual([r['review_id'] for r in old], [r['review_id'] for r in migrated])
+        for a,b in zip(old,migrated):
+            self.assertEqual(a, {k:b[k] for k in old_fields})
+            self.assertTrue(all(b[k]=='' for k in review.DECISION_FIELDS[-3:]))
+        before = path.read_bytes()
+        self.run_prepare()
+        self.assertEqual(path.read_bytes(), before)
+
+    def test_invalid_decision_schema_fails_without_overwriting(self):
+        self.run_prepare()
+        path = self.output/'review_decisions.csv'
+        path.write_text('review_id,review_id\nitem-a,item-b\n', encoding='utf-8')
+        before = {p.name:p.read_bytes() for p in self.output.iterdir()}
+        with self.assertRaisesRegex(ValueError, 'Invalid decision schema'):
+            self.run_prepare()
+        self.assertEqual(before, {p.name:p.read_bytes() for p in self.output.iterdir()})
+
+    def test_empty_partial_and_complete_pilot_registration_preserves_decisions(self):
+        report = self.run_prepare()
+        self.assertEqual(report['pilot']['status'], 'empty_registration')
+        self.assertIsNone(report['pilot']['measured_seconds'])
+        path = self.output/'review_decisions.csv'
+        rows = review.read_csv(path)
+        pilot = review.read_csv(self.output/'pilot_items.csv')
+        selected = {r['review_id'] for r in pilot}
+        by_id = {r['review_id']:r for r in rows}
+        by_id[pilot[0]['review_id']]['initial_blind_expansion']='fixture independent answer'
+        by_id[pilot[1]['review_id']]['elapsed_seconds']='12.5'
+        path.write_text(review.csv_text(rows, review.DECISION_FIELDS), encoding='utf-8')
+        before = path.read_bytes()
+        report = self.run_prepare()
+        self.assertEqual(path.read_bytes(), before)
+        self.assertEqual(report['pilot']['status'], 'partial_registration')
+        self.assertEqual(report['pilot']['rows_with_entries'], 2)
+        self.assertEqual(report['pilot']['rows_with_decision'], 0)
+        self.assertEqual(report['pilot']['measured_seconds'], 12.5)
+        for identifier in selected:
+            by_id[identifier].update(reviewer='Fixture Reviewer', decision='uncertain',
+                                     decided_at='2026-09-28T12:00:00+03:00', elapsed_seconds='10', problem_types='label')
+        # An out-of-pilot inventory decision is counted separately in the full queue.
+        extra = next(r for r in rows if r['review_id'] not in selected)
+        extra['reason']='a partial record outside current pilot'
+        path.write_text(review.csv_text(rows, review.DECISION_FIELDS), encoding='utf-8')
+        before = path.read_bytes()
+        report = self.run_prepare()
+        self.assertEqual(path.read_bytes(), before)
+        self.assertEqual(report['pilot']['status'], 'complete_registration')
+        self.assertEqual(report['pilot']['measured_seconds'], 10*len(selected))
+        self.assertEqual(report['review_registration']['rows_with_entries'], len(selected)+1)
+        self.assertEqual(report['pilot']['scientific_approval'], 'not inferred; protocol pending')
+        displayed = {r['review_id']:r for r in review.read_csv(self.output/'review_queue.csv')}
+        self.assertTrue(all(displayed[k]['human_decision']=='uncertain' for k in selected))
+        self.assertTrue(all(r['human_registration_status']=='complete_registration'
+                            for r in review.read_csv(self.output/'pilot_items.csv')))
+        self.assertNotIn('has not been\nperformed', (self.output/'pilot_rubric.md').read_text())
+
+    def test_review_evidence_is_bound_to_resolved_content_not_legacy_tuple(self):
+        first = item('collision', category='knesset', doc='first')
+        second = item('collision', category='knesset', doc='second', sentence='משפט אחר עם א״ב.')
+        for role in ('train','all'):
+            path = self.root/f'data/splits/{role}_items.csv'
+            write(path, FIELDS, review.read_csv(path)+[first,second])
+        write(self.root/'data/mined/knesset/knesset_reviewed.csv', FIELDS, [dict(first, review_verdict='clean')])
+        dev_path = self.root/'data/mined/dev_review.csv'
+        dev_rows = review.read_csv(dev_path)
+        dev_rows.append(dict(item_id='collision', acronym=first['acronym'], expansion=first['gold_expansion'],
+                             verdict='clean', note='No sentence: ambiguous, must stay unassigned'))
+        write(dev_path, list(dev_rows[0]), dev_rows)
+        report = self.run_prepare()
+        by_id = {r['stable_item_id']:r for r in review.read_csv(self.output/'item_audit.csv')}
+        self.assertEqual(len(json.loads(by_id[review.row_id(first)]['review_evidence_json'])), 1)
+        self.assertEqual(json.loads(by_id[review.row_id(second)]['review_evidence_json']), [])
+        self.assertIn('review_not_proven', by_id[review.row_id(second)]['flags'])
+        self.assertEqual(report['unmatched_review_records'], 2)
+        unmatched = review.read_csv(self.output/'unmatched_review_evidence.csv')
+        self.assertTrue(any(json.loads(r['source_record_json'])['item_id']=='collision' for r in unmatched))
+
     def test_import_has_no_write_or_network_side_effect(self):
         with patch.object(socket, 'socket', side_effect=AssertionError('Network forbidden')), \
              patch.object(Path, 'write_text', side_effect=AssertionError('Write forbidden')), \

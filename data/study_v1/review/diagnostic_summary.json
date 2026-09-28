@@ -413,11 +413,112 @@
   "metadata_difference_items": 0,
   "historical_label_changed_review_links": 17,
   "unmatched_review_records": 4,
-  "pilot": {
-    "prepared_items": 16,
-    "human_status": "not performed",
+  "review_registration": {
+    "status": "empty_registration",
+    "rows": 7936,
+    "rows_with_entries": 0,
+    "rows_with_decision": 0,
+    "rows_with_decision_reviewer_date": 0,
+    "rows_with_valid_time": 0,
+    "invalid_time_entries": 0,
+    "complete_registration_rows": 0,
     "measured_seconds": null,
+    "registered_problem_counts": {},
+    "status_definition": "Complete registration means decision, reviewer, date and valid elapsed seconds are present for every row; it is not validation of their contents or closure of uncertain cases.",
+    "scientific_approval": "not inferred; protocol pending"
+  },
+  "pilot": {
+    "status": "empty_registration",
+    "rows": 16,
+    "rows_with_entries": 0,
+    "rows_with_decision": 0,
+    "rows_with_decision_reviewer_date": 0,
+    "rows_with_valid_time": 0,
+    "invalid_time_entries": 0,
+    "complete_registration_rows": 0,
+    "measured_seconds": null,
+    "registered_problem_counts": {},
+    "status_definition": "Complete registration means decision, reviewer, date and valid elapsed seconds are present for every row; it is not validation of their contents or closure of uncertain cases.",
+    "scientific_approval": "not inferred; protocol pending",
+    "prepared_items": 16,
+    "coverage": [
+      {
+        "stratum": "natural_dev",
+        "requested": 4,
+        "available_before_selection": 62,
+        "selected": 4,
+        "shortfall": 0,
+        "distinct_types": 4,
+        "category_counts_json": "{\"knesset\":4}",
+        "risk_counts_json": "{\"definition_or_expansion_in_sentence\":1,\"inventory_conflict\":4,\"natural_dev_proposal\":4,\"quote_variant\":4,\"target_multiple\":2}"
+      },
+      {
+        "stratum": "train_wiki_natural",
+        "requested": 4,
+        "available_before_selection": 52,
+        "selected": 4,
+        "shortfall": 0,
+        "distinct_types": 4,
+        "category_counts_json": "{\"wiki_natural\":4}",
+        "risk_counts_json": "{\"inventory_conflict\":4,\"quote_variant\":3,\"review_not_proven\":4,\"target_multiple\":2,\"target_prefix_or_embedded\":2}"
+      },
+      {
+        "stratum": "routine_reviewed_knesset",
+        "requested": 4,
+        "available_before_selection": 220,
+        "selected": 4,
+        "shortfall": 0,
+        "distinct_types": 4,
+        "category_counts_json": "{\"knesset\":4}",
+        "risk_counts_json": "{\"inventory_conflict\":4,\"quote_variant\":4}"
+      },
+      {
+        "stratum": "central_risk",
+        "requested": 4,
+        "available_before_selection": 555,
+        "selected": 4,
+        "shortfall": 0,
+        "distinct_types": 4,
+        "category_counts_json": "{\"knesset\":1,\"manual\":1,\"wiki_substituted\":2}",
+        "risk_counts_json": "{\"adverse_review\":1,\"document_overlap\":1,\"historical_adverse_review\":1,\"inventory_conflict\":4,\"label_missing_independent_inventory\":1,\"legacy_id_collision\":1,\"missing_provenance\":1,\"quote_variant\":1,\"review_not_proven\":2,\"scope_exclusion_proposed\":1,\"target_multiple\":2,\"target_prefix_or_embedded\":1,\"uncertain_review\":1}"
+      },
+      {
+        "stratum": "quota_shortfall_fallback",
+        "requested": 0,
+        "available_before_selection": 3450,
+        "selected": 0,
+        "shortfall": 0,
+        "distinct_types": 0,
+        "category_counts_json": "{}",
+        "risk_counts_json": "{}"
+      }
+    ],
+    "distinct_types": 16,
+    "category_counts": {
+      "knesset": 9,
+      "wiki_natural": 4,
+      "wiki_substituted": 2,
+      "manual": 1
+    },
+    "risk_counts": {
+      "inventory_conflict": 16,
+      "natural_dev_proposal": 4,
+      "quote_variant": 12,
+      "target_multiple": 6,
+      "definition_or_expansion_in_sentence": 1,
+      "review_not_proven": 6,
+      "target_prefix_or_embedded": 3,
+      "adverse_review": 1,
+      "historical_adverse_review": 1,
+      "label_missing_independent_inventory": 1,
+      "document_overlap": 1,
+      "scope_exclusion_proposed": 1,
+      "legacy_id_collision": 1,
+      "missing_provenance": 1,
+      "uncertain_review": 1
+    },
+    "selection_rule": "Four disjoint quotas: 4 natural-dev proposals; 4 train wiki_natural; 4 literal train Knesset with linked clean review and no critical item flags; 4 train/dev central-risk cases. Prefer unused types globally. Natural/risk strata maximize newly covered flags, then prefer less repeated within-stratum flag profiles, then risk score; routine Knesset minimizes risk. Stable ID breaks ties. Central-risk quota permits at most one scope exclusion and one historical-adverse case. Fill shortages from remaining eligible train/dev/natural-dev in diverse risk order; report quota shortfalls. No historical test. This pilot is not a representative benchmark sample.",
     "review_completion_estimate": null,
-    "estimate_rule": "After human pilot: report median/p75 seconds by risk/source, remaining stratum counts, measured adjudication overhead; no fabricated estimate."
+    "estimate_rule": "Use registered human timings by stratum with adjudication overhead; no estimate is inferred from counts or missing timings."
   }
 }
