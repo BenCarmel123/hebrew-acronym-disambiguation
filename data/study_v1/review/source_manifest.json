@@ -1,8 +1,8 @@
 {
-  "schema_version": "p1-proposal-v1",
+  "schema_version": "p1-proposal-v2",
   "proposal_status": "protocol pending",
-  "source_repository_commit": "7e42e8540764d428ba0801a436810c7f5a9f9b31",
-  "generator_sha256": "15978b7b1ece7b763a374dc1e7f8500874b4ac0a54895d76947d60920a1339e0",
+  "source_repository_commit": "8ae803e00005e5e4738acda4d2386e6eb8d9a152",
+  "generator_sha256": "117da785766289b9683d28b49e57a6e4298791398783984abf6a2879736b0a4e",
   "sources": [
     {
       "path": "data/README.md",

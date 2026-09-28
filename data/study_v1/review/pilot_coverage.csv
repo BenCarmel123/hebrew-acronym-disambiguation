@@ -1,0 +1,6 @@
+stratum,requested,available_before_selection,selected,shortfall,distinct_types,category_counts_json,risk_counts_json
+natural_dev,4,62,4,0,4,"{""knesset"":4}","{""definition_or_expansion_in_sentence"":1,""inventory_conflict"":4,""natural_dev_proposal"":4,""quote_variant"":4,""target_multiple"":2}"
+train_wiki_natural,4,52,4,0,4,"{""wiki_natural"":4}","{""inventory_conflict"":4,""quote_variant"":3,""review_not_proven"":4,""target_multiple"":2,""target_prefix_or_embedded"":2}"
+routine_reviewed_knesset,4,220,4,0,4,"{""knesset"":4}","{""inventory_conflict"":4,""quote_variant"":4}"
+central_risk,4,555,4,0,4,"{""knesset"":1,""manual"":1,""wiki_substituted"":2}","{""adverse_review"":1,""document_overlap"":1,""historical_adverse_review"":1,""inventory_conflict"":4,""label_missing_independent_inventory"":1,""legacy_id_collision"":1,""missing_provenance"":1,""quote_variant"":1,""review_not_proven"":2,""scope_exclusion_proposed"":1,""target_multiple"":2,""target_prefix_or_embedded"":1,""uncertain_review"":1}"
+quota_shortfall_fallback,0,3450,0,0,0,{},{}

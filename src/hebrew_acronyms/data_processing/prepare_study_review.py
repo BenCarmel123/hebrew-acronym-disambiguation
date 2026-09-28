@@ -21,7 +21,7 @@ import subprocess
 
 from hebrew_acronyms.models.common.pairs import find_span
 
-SCHEMA = 'p1-proposal-v1'
+SCHEMA = 'p1-proposal-v2'
 IDENTITY = 'ראשי תיבות שם פרטי ומשפחה (זהות חסויה)'
 CONTENT_FIELDS = ('acronym', 'sentence', 'gold_expansion', 'candidates')
 NATURAL = {'knesset', 'wiki_natural'}
@@ -29,7 +29,8 @@ QUOTE_MAP = str.maketrans({'״': '"', '“': '"', '”': '"', '׳': "'", '‘': 
 DECISION_FIELDS = ['review_id', 'reviewer', 'decision', 'label_decision', 'corrected_label',
                    'target_decision', 'approved_span_start', 'approved_span_end',
                    'inventory_decision', 'approved_aliases', 'evidence_reference',
-                   'reason', 'decided_at', 'elapsed_seconds', 'problem_types']
+                   'reason', 'decided_at', 'elapsed_seconds', 'problem_types',
+                   'initial_blind_expansion', 'canonical_expansion', 'merge_target_inventory_id']
 RISK = {'inventory_conflict': 8, 'label_missing_independent_inventory': 10,
         'missing_label': 10, 'target_missing': 10, 'target_multiple': 8,
         'uncertain_review': 10, 'adverse_review': 10, 'scope_exclusion_proposed': 8,
@@ -266,6 +267,123 @@ def extension_scenarios(retained, extension, natural_test):
     return output, memberships, summaries
 
 
+PILOT_SELECTION_RULE = (
+    'Four disjoint quotas: 4 natural-dev proposals; 4 train wiki_natural; '
+    '4 literal train Knesset with linked clean review and no critical item flags; '
+    '4 train/dev central-risk cases. Prefer unused types globally. Natural/risk '
+    'strata maximize newly covered flags, then prefer less repeated within-stratum flag profiles, then risk score; routine Knesset minimizes '
+    'risk. Stable ID breaks ties. Central-risk quota permits at most one scope '
+    'exclusion and one historical-adverse case. Fill shortages from remaining '
+    'eligible train/dev/natural-dev in diverse risk order; report quota shortfalls. '
+    'No historical test. This pilot is not a representative benchmark sample.')
+
+
+def select_pilot(audits):
+    eligible = [r for r in audits if 'test' not in r['historical_roles'] and
+                (r['historical_roles'] in {'train', 'dev'} or r['natural_dev_proposed']=='true')]
+    flags = lambda r: set(r['flags'].split('|')) - {''}
+    critical = {'scope_exclusion_proposed', 'target_missing', 'target_multiple',
+                'uncertain_review', 'adverse_review', 'historical_adverse_review',
+                'label_missing_independent_inventory', 'definition_or_expansion_in_sentence',
+                'missing_provenance', 'document_overlap', 'duplicate_text'}
+    strata = [
+        ('natural_dev', lambda r: r['natural_dev_proposed']=='true'),
+        ('train_wiki_natural', lambda r: r['historical_roles']=='train' and r['raw_category']=='wiki_natural' and not r['scope_proposal']),
+        ('routine_reviewed_knesset', lambda r: r['historical_roles']=='train' and r['raw_category']=='knesset'
+         and not (flags(r) & critical) and any(x['verdict']=='clean' for x in json.loads(r['review_evidence_json']))),
+        ('central_risk', lambda r: r['historical_roles'] in {'train','dev'} and bool(flags(r) & critical))]
+    chosen, used_types, covered = [], set(), set()
+    coverage = []
+    def choose(pool, stratum, quota):
+        selected = []
+        while pool and len(selected)<quota:
+            candidates = [r for r in pool if stratum!='central_risk' or all(
+                f not in flags(r) or not any(f in flags(x) for x in selected)
+                for f in ('scope_exclusion_proposed','historical_adverse_review'))]
+            if not candidates:
+                break
+            def rank(r):
+                diversity = r['raw_acronym'] in used_types
+                if stratum=='routine_reviewed_knesset':
+                    return (diversity, r['risk_score'], 0, r['stable_item_id'])
+                profile_repeats = sum(flags(r)==flags(x) for x in selected)
+                return (diversity, -len(flags(r)-covered), profile_repeats, -r['risk_score'], r['stable_item_id'])
+            row = min(candidates, key=rank)
+            selected.append(row)
+            chosen.append((row, stratum))
+            used_types.add(row['raw_acronym'])
+            covered.update(flags(row))
+            pool.remove(row)
+        return selected
+    for name, predicate in strata:
+        used_ids = {r['stable_item_id'] for r,_ in chosen}
+        pool = [r for r in eligible if r['stable_item_id'] not in used_ids and predicate(r)]
+        available = len(pool)
+        selected = choose(pool, name, 4)
+        coverage.append({'stratum': name, 'requested': 4, 'available_before_selection': available,
+                         'selected': len(selected), 'shortfall': 4-len(selected),
+                         'distinct_types': len({r['raw_acronym'] for r in selected}),
+                         'category_counts_json': dump(dict(Counter(r['raw_category'] for r in selected))),
+                         'risk_counts_json': dump(dict(Counter(f for r in selected for f in flags(r))))})
+    used_ids = {r['stable_item_id'] for r,_ in chosen}
+    fallback = choose([r for r in eligible if r['stable_item_id'] not in used_ids], 'quota_shortfall_fallback', 16-len(chosen))
+    coverage.append({'stratum': 'quota_shortfall_fallback', 'requested': sum(r['shortfall'] for r in coverage),
+                     'available_before_selection': len(eligible)-len(used_ids), 'selected': len(fallback),
+                     'shortfall': max(0,16-len(chosen)), 'distinct_types': len({r['raw_acronym'] for r in fallback}),
+                     'category_counts_json': dump(dict(Counter(r['raw_category'] for r in fallback))),
+                     'risk_counts_json': dump(dict(Counter(f for r in fallback for f in flags(r))))})
+    return chosen, coverage
+
+
+def read_decisions(path):
+    if not path.exists():
+        return [], list(DECISION_FIELDS)
+    with path.open(encoding='utf-8-sig', newline='') as handle:
+        reader = csv.DictReader(handle)
+        fields = reader.fieldnames or []
+        if 'review_id' not in fields or len(set(fields)) != len(fields):
+            raise ValueError('Invalid decision schema: missing identity or duplicate columns; no outputs refreshed')
+        rows = list(reader)
+    if any(None in row or any(v is None for v in row.values()) for row in rows):
+        raise ValueError('Malformed decision row; no outputs refreshed')
+    return rows, fields + [k for k in DECISION_FIELDS if k not in fields]
+
+
+def registration(rows):
+    # Presence is not correctness or scientific approval. Unknown fields are
+    # preserved but never interpreted as completion or measured time.
+    started, decisions, dated, complete = 0, 0, 0, 0
+    times, invalid_times, problems = [], 0, Counter()
+    for row in rows:
+        started += any(row.get(k, '').strip() for k in DECISION_FIELDS if k!='review_id')
+        has_decision = bool(row.get('decision','').strip())
+        decisions += has_decision
+        has_identity_date = has_decision and bool(row.get('reviewer','').strip()) and bool(row.get('decided_at','').strip())
+        dated += has_identity_date
+        raw_time = row.get('elapsed_seconds','').strip()
+        time = None
+        if raw_time:
+            try:
+                time = float(raw_time)
+                if not math.isfinite(time) or time<0:
+                    raise ValueError
+                times.append(time)
+            except ValueError:
+                time = None
+                invalid_times += 1
+        complete += has_identity_date and time is not None
+        problems.update(x.strip() for x in row.get('problem_types','').split('|') if x.strip())
+    status = ('complete_registration' if rows and complete==len(rows)
+              else 'partial_registration' if started else 'empty_registration')
+    return {'status': status, 'rows': len(rows), 'rows_with_entries': started,
+            'rows_with_decision': decisions, 'rows_with_decision_reviewer_date': dated,
+            'rows_with_valid_time': len(times), 'invalid_time_entries': invalid_times,
+            'complete_registration_rows': complete, 'measured_seconds': sum(times) if times else None,
+            'registered_problem_counts': dict(sorted(problems.items())),
+            'status_definition': 'Complete registration means decision, reviewer, date and valid elapsed seconds are present for every row; it is not validation of their contents or closure of uncertain cases.',
+            'scientific_approval': 'not inferred; protocol pending'}
+
+
 def prepare(repo):
     repo = Path(repo).resolve()
     output = repo / 'data/study_v1/review'
@@ -357,7 +475,7 @@ def prepare(repo):
             possible = aggregate_by_legacy_type[(r.get('item_id'), r.get('acronym'))]
             exact = [x for x in possible if x['gold_expansion']==key[2] and ('sentence' not in r or r['sentence']==x['sentence'])]
             if len(exact)==1:
-                review_lookup[key].append(entry)
+                review_lookup[content_key(exact[0])].append(entry)
             elif len(possible)==1 and 'sentence' not in r:
                 entry['link_basis'] = 'unique legacy_id+acronym; label_changed; historical evidence not current verdict'
                 entry['current_label'] = possible[0]['gold_expansion']
@@ -393,7 +511,7 @@ def prepare(repo):
         flag(any((s > 0 and '\u05d0' <= sentence[s-1] <= '\u05ea') or (e < len(sentence) and '\u05d0' <= sentence[e] <= '\u05ea') for s, e in matches), 'target_prefix_or_embedded')
         flag(any(sentence[s:e] != acronym for s, e in matches), 'quote_variant')
         flag(bool(label and len(label) > 2 and label in sentence) or 'ראשי תיבות' in sentence or any(re.match(r'\s*\(', sentence[e:]) for _, e in matches), 'definition_or_expansion_in_sentence')
-        review_refs = review_lookup[(r['item_id'], acronym, label)]
+        review_refs = review_lookup[key]
         verdicts = {r.get('review_verdict', '')} | {ref['verdict'] for ref in review_refs}
         flag(bool(verdicts & {'unsure', 'uncertain'}), 'uncertain_review')
         flag(bool(verdicts & {'wrong_sense', 'broken', 'reject'}), 'adverse_review')
@@ -440,36 +558,15 @@ def prepare(repo):
     queue.sort(key=lambda r: (-r['risk_score'], r['review_kind'], r['review_id']))
     for rank, row in enumerate(queue, 1):
         row['queue_rank'] = rank
-    eligible_pilot = [r for r in audits if 'test' not in r['historical_roles'] and
-                      (r['historical_roles'] in {'train', 'dev'} or r['natural_dev_proposed']=='true')]
-    eligible_pilot.sort(key=lambda r: (-r['risk_score'], r['stable_item_id']))
-    chosen = []
-    # Coverage of roles and risk classes, followed by deterministic risk order.
-    for criterion in [lambda r: r['natural_dev_proposed']=='true', lambda r: r['historical_roles']=='dev', lambda r: r['historical_roles']=='train'] + [lambda r, f=f: f in r['flags'].split('|') for f in RISK]:
-        match = next((r for r in eligible_pilot if criterion(r) and r not in chosen), None)
-        if match is not None and len(chosen)<16:
-            chosen.append(match)
-    for r in eligible_pilot:
-        if len(chosen) >= 16:
-            break
-        if r not in chosen:
-            chosen.append(r)
-    pilot = [{'pilot_order': i, 'review_id': r['stable_item_id'], 'historical_roles': r['historical_roles'],
-              'natural_dev_proposed': r['natural_dev_proposed'], 'acronym': r['raw_acronym'],
-              'sentence': r['raw_sentence'], 'recorded_label': r['raw_gold_expansion'],
-              'stored_candidates': r['raw_candidates'], 'flags': r['flags'],
-              'source_refs_json': r['source_refs_json'], 'decision_location': 'review_decisions.csv',
-              'human_pilot_status': 'not performed'} for i, r in enumerate(chosen, 1)]
+    chosen, pilot_coverage = select_pilot(audits)
     decisions_path = output/'review_decisions.csv'
-    old_decisions = read_csv(decisions_path) if decisions_path.exists() else []
+    old_decisions, decision_fields = read_decisions(decisions_path)
     ids = {r['review_id'] for r in queue}
     if len(ids) != len(queue):
         raise ValueError('Review IDs are not unique')
     old_by_id = {r['review_id']: r for r in old_decisions}
     if len(old_by_id) != len(old_decisions) or set(old_by_id) - ids:
         raise ValueError('Existing decision IDs duplicated/orphaned; explicit reconciliation required')
-    if old_decisions and list(old_decisions[0]) != DECISION_FIELDS:
-        raise ValueError('Existing decisions schema differs; refusing to overwrite')
     old_manifest_path = output/'source_manifest.json'
     if old_decisions and not old_manifest_path.exists():
         raise ValueError('Existing decisions lack source manifest; explicit reconciliation required')
@@ -477,14 +574,38 @@ def prepare(repo):
         old_hashes = {r['path']: r['sha256'] for r in json.loads(old_manifest_path.read_text())['sources']}
         if old_hashes != source_hashes:
             raise ValueError('Sources changed after review preparation; explicit reconciliation required')
-    decisions = [old_by_id.get(r['review_id'], {k: r['review_id'] if k=='review_id' else '' for k in DECISION_FIELDS}) for r in queue]
+    # Add columns without changing old field values or row order. Unknown columns
+    # are retained verbatim and are not interpreted by this version.
+    decisions = [{k: r.get(k, '') for k in decision_fields} for r in old_decisions]
+    decisions.extend({k: r['review_id'] if k=='review_id' else '' for k in decision_fields}
+                     for r in queue if r['review_id'] not in old_by_id)
+    by_id = {r['review_id']: r for r in decisions}
+    for row in queue:
+        row['human_decision'] = by_id[row['review_id']]['decision']
+    for row in inventory:
+        row['human_decision'] = by_id[row['inventory_id']]['decision']
+    pilot = [{'pilot_order': i, 'review_id': r['stable_item_id'], 'pilot_stratum': stratum,
+              'historical_roles': r['historical_roles'], 'category': r['raw_category'],
+              'natural_dev_proposed': r['natural_dev_proposed'], 'acronym': r['raw_acronym'],
+              'sentence': r['raw_sentence'], 'recorded_label': r['raw_gold_expansion'],
+              'stored_candidates': r['raw_candidates'], 'flags': r['flags'],
+              'source_refs_json': r['source_refs_json'], 'decision_location': 'review_decisions.csv',
+              'human_registration_status': registration([by_id[r['stable_item_id']]])['status']}
+             for i, (r, stratum) in enumerate(chosen, 1)]
+    pilot_registration = registration([by_id[r['review_id']] for r in pilot])
+    pilot_registration.update({'prepared_items': len(pilot), 'coverage': pilot_coverage,
+                               'distinct_types': len({r['acronym'] for r in pilot}),
+                               'category_counts': dict(Counter(r['category'] for r in pilot)),
+                               'risk_counts': dict(Counter(f for r in pilot for f in r['flags'].split('|') if f)),
+                               'selection_rule': PILOT_SELECTION_RULE,
+                               'review_completion_estimate': None,
+                               'estimate_rule': 'Use registered human timings by stratum with adjudication overhead; no estimate is inferred from counts or missing timings.'})
     metrics.update({'item_audit_rows': len(audits), 'inventory_proposals': len(inventory),
                     'review_queue_rows': len(queue), 'risk_flags': dict(sorted(Counter(f for r in audits for f in r['flags'].split('|') if f).items())),
                     'metadata_difference_items': sum(bool(v) for v in metadata_differences.values()),
                     'historical_label_changed_review_links': sum(len(v) for v in historical_reviews.values()),
                     'unmatched_review_records': len(unmatched_reviews),
-                    'pilot': {'prepared_items': len(pilot), 'human_status': 'not performed', 'measured_seconds': None,
-                              'review_completion_estimate': None, 'estimate_rule': 'After human pilot: report median/p75 seconds by risk/source, remaining stratum counts, measured adjudication overhead; no fabricated estimate.'}})
+                    'review_registration': registration(decisions), 'pilot': pilot_registration})
     try:
         commit = subprocess.check_output(['git', '-C', str(repo), 'rev-parse', 'HEAD'], text=True, stderr=subprocess.DEVNULL).strip()
     except (OSError, subprocess.CalledProcessError):
@@ -511,11 +632,12 @@ def prepare(repo):
                'item_audit.csv': csv_text(audits, list(audits[0]) if audits else ['stable_item_id']),
                'inventory_proposed.csv': csv_text(inventory, list(inventory[0]) if inventory else ['inventory_id']),
                'review_queue.csv': csv_text(queue, list(queue[0]) if queue else ['review_id']),
-               'review_decisions.csv': csv_text(decisions, DECISION_FIELDS),
+               'review_decisions.csv': csv_text(decisions, decision_fields),
                'extension_feasibility.csv': csv_text(ext_rows, list(ext_rows[0]) if ext_rows else ['scenario']),
                'extension_membership_proposed.csv': csv_text(ext_members, list(ext_members[0]) if ext_members else ['scenario']),
                'pilot_items.csv': csv_text(pilot, list(pilot[0]) if pilot else ['review_id']),
                'pilot_rubric.md': RUBRIC,
+               'pilot_coverage.csv': csv_text(pilot_coverage, list(pilot_coverage[0])),
                'unmatched_review_evidence.csv': csv_text(unmatched_reviews, ['path', 'record', 'reason', 'source_record_json'])}
     if any((output/name).is_symlink() for name in outputs):
         raise ValueError('Refusing output symlink; no outputs refreshed')
@@ -525,7 +647,8 @@ def prepare(repo):
         if target.is_symlink():
             raise ValueError(f'Refusing output symlink: {name}')
         # Existing decision file is byte-preserved if no new IDs are needed.
-        if name == 'review_decisions.csv' and old_decisions and set(old_by_id)==ids:
+        if (name == 'review_decisions.csv' and old_decisions and set(old_by_id)==ids
+                and list(old_decisions[0]) == decision_fields):
             continue
         target.write_text(contents, encoding='utf-8')
     if source_hashes != {p: hashlib.sha256((repo/p).read_bytes()).hexdigest() for p in source_paths}:
@@ -535,9 +658,12 @@ def prepare(repo):
 
 RUBRIC = '''# P1 human data-review pilot
 
-These are proposals, not approved model inputs. The human pilot has not been
-performed. No elapsed times, human decisions, or agreement estimates are inferred.
-Use `pilot_items.csv` for 16 deterministic dev/train or proposed natural-dev items;
+These are proposals, not approved model inputs. Current registration counts and
+recorded timings are derived from decision rows in `diagnostic_summary.json`;
+registration does not establish that a review was validated or scientifically approved.
+Use `pilot_items.csv` for the deterministic pilot and `pilot_coverage.csv` for quota
+coverage (4 natural-dev, 4 train Wikipedia natural, 4 routine reviewed literal train
+Knesset, 4 central-risk cases; shortages are reported and filled where possible);
 it contains no historical test item. Use `item_audit.csv` and source references for
 evidence, and record all decisions in `review_decisions.csv` using `review_id`.
 
@@ -561,7 +687,74 @@ and Ben's decisions are evidence and are never overwritten.
 Complete reviewer, decision, reason, evidence_reference and decided_at, plus
 elapsed_seconds and problem_types (pipe-separated label/target/inventory/provenance/
 document/definition/other). A held/uncertain case remains open. Decisions and pilot
-measurements must be entered by Shaked; the current blank cells are intentional.
+measurements must be entered by Shaked; blank cells mean no value has been recorded.
+A partial answer or timing alone counts as an entry, not complete registration.
+
+
+## Decision field dictionary
+
+Blank means pending or not applicable, never implicit acceptance. Values below are
+case-sensitive. Required fields describe the human recording contract; this generator
+preserves values and reports presence/timing only, and does not apply or validate
+scientific decisions. Complete registration is explicitly separate from complete
+adjudication. Record an unresolved case rather than force a choice.
+
+| Field | Values, applicability and conditional requirements |
+|---|---|
+| `review_id` | Existing `item-...` or `inv-...` identity; never edit. Inventory and item decisions have separate rows. |
+| `reviewer` | Human name; required for a recorded decision. |
+| `decision` | `accept`, `correct`, `alias`, `merge`, `exclude_proposed`, `uncertain`; overall disposition. Item rows use accept/correct/exclude_proposed/uncertain. Inventory rows may use all six. `uncertain` remains unresolved. |
+| `initial_blind_expansion` | Item only: free-text independent expansion or literal `uncertain`, recorded before viewing stored label/candidates/evidence; required for a newly reviewed item. If already exposed, leave blank and disclose exposure in `reason`; never backfill a blind answer. |
+| `label_decision` | Item only: `accept`, `correct`, `exclude_proposed`, `uncertain`; required when the label was reviewed. |
+| `corrected_label` | Item only: exact proposed replacement label; required iff label_decision=`correct`, otherwise blank. This does not add a candidate automatically. |
+| `target_decision` | Item only: `accept`, `correct`, `missing`, `uncertain`, `not_reviewed`. `accept` confirms the proposed occurrence, `correct` selects a different occurrence/boundary, `missing` states no defensible target, `uncertain` leaves it open. Required for a newly reviewed item. |
+| `approved_span_start`, `approved_span_end` | Item only: nonnegative integers, zero-based Unicode code-point offsets, end-exclusive, with end>start within unchanged sentence; both required when target_decision is `accept` or `correct`, both blank otherwise. Names are retained for compatibility; recording them does not approve the benchmark. |
+| `inventory_decision` | Inventory only: `accept`, `correct`, `alias`, `merge`, `exclude_proposed`, `uncertain`; must match overall decision. For an item, leave blank and use linked inventory rows. |
+| `canonical_expansion` | Inventory only: exact proposed canonical wording. Required for accept/correct/alias/merge. `correct` changes canonical wording without silently identifying two senses; reasons and independent evidence are required. |
+| `approved_aliases` | Inventory only: JSON array of exact alias strings, e.g. `["fictional spelling"]`; required and nonempty for `alias`, optional for accept/correct, blank for merge/exclusion/uncertain. An alias is an equivalent form for this canonical sense, not a separate competing sense. |
+| `merge_target_inventory_id` | Inventory only: existing, different `inv-...` ID for the same acronym type; required only for `merge`. Set canonical_expansion to that target's proposed canonical wording. A merge proposes unifying two inventory entries; it is not an alias spelling declaration. Never invent an ID. |
+| `evidence_reference` | Source path and one-based CSV record, stable reference, or exact review ID; required for accept/correct/alias/merge/exclude_proposed. For uncertain, cite what was checked where available. A sentence label alone cannot validate inventory membership. |
+| `reason` | Free-text rationale, required for every recorded decision; explain corrections, exposure, exclusions, uncertainty and relations to separately recorded inventory decisions. |
+| `decided_at` | ISO 8601 timestamp with timezone, required for a recorded decision. |
+| `elapsed_seconds` | Finite nonnegative number of seconds actually spent on this row; required for timed pilot registration. Never infer elapsed time from a timestamp or fill it for the reviewer. |
+| `problem_types` | Pipe-separated subset of `label`, `target`, `inventory`, `provenance`, `document`, `definition`, `other`, or `none` alone. Required for a completed pilot entry; uncertainty still receives its relevant issue categories. |
+
+On an item, overall accept requires accepted label and target; correct records at
+least one correction. Overall exclude_proposed/uncertain leaves the relevant question
+open for approval/adjudication. On an inventory row, overall and inventory dispositions
+agree. Every proposal remains pending application to a future benchmark.
+
+Invented example, not a research decision: sentence `הסמל א״ב הופיע.` has target
+[5,8). For fictional item `item-EXAMPLE`, record initial_blind_expansion=`אור בהיר`,
+reviewer=`Example Reviewer`, decision=`correct`, label_decision=`correct`,
+corrected_label=`אור בהיר`, target_decision=`accept`, approved_span_start=`5`,
+approved_span_end=`8`, evidence_reference=`fictional-source.csv record 1`,
+reason=`Recorded label differed from independently supported expansion`,
+decided_at=`2026-09-28T12:00:00+03:00`, elapsed_seconds=`42`, problem_types=`label`.
+Leave its inventory fields blank. Separately, fictional inventory `inv-EXAMPLE-A`
+may propose `merge` into existing same-type `inv-EXAMPLE-B`, with canonical_expansion
+=`אור בהיר` and an independent evidence reference/reason. An `alias` proposal instead
+keeps this inventory ID and supplies an explicit JSON alias list; no merge ID is set.
+Example IDs and evidence are explanatory and must not be entered in live decisions.
+
+Before reading stored labels in `pilot_items.csv`, view only its sentence and acronym
+columns and record the initial answer in `review_decisions.csv`. This CSV workflow
+cannot enforce blindness; any premature exposure must be disclosed rather than
+claimed absent. Then reveal the remaining fields and inspect the audit evidence.
+
+Selection is deterministic: prefer types not already selected across strata. Within
+natural/risk strata, maximize newly covered flags, then prefer less repeated
+within-stratum flag profiles before higher risk score; routine
+Knesset uses lower risk score. Stable item ID breaks ties. The risk quota allows at
+most one proposed nonliteral exclusion and one historical-adverse case. Reported
+fallback fills quota shortages from the eligible pool with the same diversity/risk
+ranking. No test item is eligible. This is an intentionally stratified review pilot,
+not a representative error estimate or approval of any research sample.
+
+Existing decision values, unknown extra columns and row order survive additive schema
+migration. New fields start blank. Invalid/ambiguous CSV schemas, orphan IDs or changed
+sources stop generation; an unchanged expanded schema preserves decision file bytes.
+Unknown columns are retained without assigning them a meaning.
 
 After the pilot, summarize median and 75th-percentile seconds by risk/source where
 sample sizes permit, issue categories and unresolved fraction. Estimate remaining
@@ -576,8 +769,8 @@ Shaked approves the required scope and unresolved cases remain open.
 
 Reproduction: from the repository root, use the installed package:
 `.venv/bin/python -m hebrew_acronyms.data_processing.prepare_study_review --repo .`.
-Only `data/study_v1/review` is written; existing decision bytes are preserved on repeat
-runs with identical source hashes. Changed sources or orphan decision IDs stop the
+Only `data/study_v1/review` is written; existing decision values are preserved through additive schema migration, and
+bytes are preserved on repeat runs with the same expanded schema and source hashes. Changed sources or orphan decision IDs stop the
 run for explicit reconciliation. CSV source references count records, not lines.
 
 Local environment caveat observed during P1: the existing editable installation's
