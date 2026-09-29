@@ -1,265 +1,589 @@
 {
-  "schema_version": "p2-readiness-proposal-v1",
-  "status": "proposal_only_not_a_frozen_protocol_or_model_input",
+  "schema_version": "p2-route1-execution-proposal-v2",
+  "status": "proposal_only_pending_shaked_not_frozen_not_model_input",
   "baseline": {
     "branch": "review-handoff",
-    "repository_commit": "63ffa68224e6350446e9913bec2f8de5ae39d8c0",
-    "snapshot_cutoff_utc": "2026-09-29T10:04:07.134100+00:00",
+    "repository_commit": "1d8a5e0083cb642d51480dca24f23a916dacf01b",
+    "snapshot_cutoff_utc": "2026-09-29T11:38:30.370505+00:00",
     "source_manifest_generation_commit": "64e68af00e5c9dee7942954d51c655f633a51502",
-    "generation_commit_note": "The existing P1 manifest names an earlier generation base; it is not the current decision snapshot or authorization."
+    "note": "Existing generation commit is historical; review decisions remain unchanged at the new cutoff."
+  },
+  "supersedes": {
+    "version": "p2-readiness-proposal-v1",
+    "scope_sha256": "6b5f0bf82e26a5262b34affa488e20e2dc8f9804f482a7fff585fbc0504d5ded",
+    "impact_sha256": "700bea57fb6af22de79c46c7df7db0271dc288d98aa6469aab2ece095b3d81bc",
+    "disposition": "The previous map is retained by existing row identities and Git history. Its all-95 pilot inventory tranche and extension diagnostics are not active release gates."
   },
   "source_hashes": [
+    {
+      "path": "../PROJECT_PLAN.md",
+      "sha256": "98764f873fc558c9e2683d637526cb41d979896d5070e127fd5bb440a3c19d69",
+      "bytes": 280813,
+      "snapshot": "external_read_only_at_cutoff"
+    },
     {
       "path": "AGENTS.md",
       "sha256": "ac0416a5fd411e3381c19f37bfeec1351a5e308712930e2cb8e14d94a50866f0",
       "bytes": 4415,
-      "snapshot": "git:63ffa68224e6350446e9913bec2f8de5ae39d8c0"
+      "snapshot": "git:1d8a5e0083cb642d51480dca24f23a916dacf01b"
     },
     {
       "path": "README.md",
-      "sha256": "1c52c6512c1f964e624a6a3a6a80a341a2bd1dea68da13ac82806bce8faaf2f1",
-      "bytes": 6594,
-      "snapshot": "git:63ffa68224e6350446e9913bec2f8de5ae39d8c0"
+      "sha256": "83ec1d31e5e168717cb457d6a72e5731a1a9a99c95d4c984acbfe154ed6407f9",
+      "bytes": 6712,
+      "snapshot": "git:1d8a5e0083cb642d51480dca24f23a916dacf01b"
     },
     {
       "path": "data/README.md",
       "sha256": "a708d814578e3f488f6156f15caf25797d8d6da8746b3eb7dc6da77cfe28116e",
       "bytes": 6368,
-      "snapshot": "git:63ffa68224e6350446e9913bec2f8de5ae39d8c0"
+      "snapshot": "git:1d8a5e0083cb642d51480dca24f23a916dacf01b"
     },
     {
       "path": "data/mined/DATASET_CARD.md",
       "sha256": "c1a3bcfbfab79d3bdc6205d739dee4687c5a99f493f9473c1b12a51eaf081f8d",
       "bytes": 12499,
-      "snapshot": "git:63ffa68224e6350446e9913bec2f8de5ae39d8c0"
+      "snapshot": "git:1d8a5e0083cb642d51480dca24f23a916dacf01b"
     },
     {
       "path": "data/mined/candidate_table.csv",
       "sha256": "f50fbcb3a8461bc83c9af63e6903e948372a4e0c8fcbccf3beb227afb5dd7e40",
       "bytes": 164985,
-      "snapshot": "git:63ffa68224e6350446e9913bec2f8de5ae39d8c0"
+      "snapshot": "git:1d8a5e0083cb642d51480dca24f23a916dacf01b"
     },
     {
       "path": "data/mined/dev_review.csv",
       "sha256": "c035e2a7bb8c93f9edea09da52751189250c423d1c0ab188f80c617fed86b6e7",
       "bytes": 16373,
-      "snapshot": "git:63ffa68224e6350446e9913bec2f8de5ae39d8c0"
+      "snapshot": "git:1d8a5e0083cb642d51480dca24f23a916dacf01b"
     },
     {
       "path": "data/mined/duplicate_review.csv",
       "sha256": "2cda93579d68b5d7f527d5676fa1c8df0b9e1207f0fca09140bc9a9b5b44802c",
       "bytes": 17900,
-      "snapshot": "git:63ffa68224e6350446e9913bec2f8de5ae39d8c0"
+      "snapshot": "git:1d8a5e0083cb642d51480dca24f23a916dacf01b"
     },
     {
       "path": "data/mined/knesset/knesset_reviewed.csv",
       "sha256": "38c50f78ce44847b0a86c95837359487571786a836d93796a9a9fb0bc558e978",
       "bytes": 449437,
-      "snapshot": "git:63ffa68224e6350446e9913bec2f8de5ae39d8c0"
+      "snapshot": "git:1d8a5e0083cb642d51480dca24f23a916dacf01b"
     },
     {
       "path": "data/mined/merged_counts.csv",
       "sha256": "53bcb0fc3194f053eaac3f236d7082024b4356ad6b47457047d4d3292b580d49",
       "bytes": 355500,
-      "snapshot": "git:63ffa68224e6350446e9913bec2f8de5ae39d8c0"
+      "snapshot": "git:1d8a5e0083cb642d51480dca24f23a916dacf01b"
     },
     {
       "path": "data/mined/wikipedia/bullet_counts.csv",
       "sha256": "ab548f2d8c9192bc646c44375e6c9d1cf938fc70789739b77d1e8d0cad3c05f4",
       "bytes": 93814,
-      "snapshot": "git:63ffa68224e6350446e9913bec2f8de5ae39d8c0"
+      "snapshot": "git:1d8a5e0083cb642d51480dca24f23a916dacf01b"
     },
     {
       "path": "data/mined/wiktionary/wiktionary_counts.csv",
       "sha256": "61975200bf04207bb3a7ef0c8a137658c589d5702055c03e7fc6d22470fffc12",
       "bytes": 282993,
-      "snapshot": "git:63ffa68224e6350446e9913bec2f8de5ae39d8c0"
+      "snapshot": "git:1d8a5e0083cb642d51480dca24f23a916dacf01b"
     },
     {
       "path": "data/splits/all_items.csv",
       "sha256": "2b9c976e72ee3947f3bb65e7d2da789c56fcf105a040819583ff05011d830960",
       "bytes": 2200710,
-      "snapshot": "git:63ffa68224e6350446e9913bec2f8de5ae39d8c0"
+      "snapshot": "git:1d8a5e0083cb642d51480dca24f23a916dacf01b"
     },
     {
       "path": "data/splits/dev_items.csv",
       "sha256": "5da0e0640bc8e841f6d4008243261d074f075feb7316414a579c1f30324665ff",
       "bytes": 130402,
-      "snapshot": "git:63ffa68224e6350446e9913bec2f8de5ae39d8c0"
+      "snapshot": "git:1d8a5e0083cb642d51480dca24f23a916dacf01b"
     },
     {
       "path": "data/splits/train_items.csv",
       "sha256": "5014991efe5ba76608c633928644fdfd1ee223e799ebba686a53b7bb246158d8",
       "bytes": 1451205,
-      "snapshot": "git:63ffa68224e6350446e9913bec2f8de5ae39d8c0"
+      "snapshot": "git:1d8a5e0083cb642d51480dca24f23a916dacf01b"
     },
     {
       "path": "data/study_v1/review/diagnostic_summary.json",
       "sha256": "04cdc7b95133faced90386fa4233642227ef55ee834b873076e84983f64ffc92",
       "bytes": 18553,
-      "snapshot": "git:63ffa68224e6350446e9913bec2f8de5ae39d8c0"
+      "snapshot": "git:1d8a5e0083cb642d51480dca24f23a916dacf01b"
     },
     {
       "path": "data/study_v1/review/inventory_proposed.csv",
       "sha256": "81820c4a6aa7e75a4dafd7fb1d9acef35d4f3ec7457feebca9923d2a0bb281b4",
       "bytes": 2109934,
-      "snapshot": "git:63ffa68224e6350446e9913bec2f8de5ae39d8c0"
+      "snapshot": "git:1d8a5e0083cb642d51480dca24f23a916dacf01b"
     },
     {
       "path": "data/study_v1/review/item_audit.csv",
       "sha256": "4b05de5654992113bec2501d6005c58d3ac0cf45f6d3794185a901c7c239399b",
       "bytes": 5432613,
-      "snapshot": "git:63ffa68224e6350446e9913bec2f8de5ae39d8c0"
+      "snapshot": "git:1d8a5e0083cb642d51480dca24f23a916dacf01b"
+    },
+    {
+      "path": "data/study_v1/review/p2_impact_proposed.json",
+      "sha256": "700bea57fb6af22de79c46c7df7db0271dc288d98aa6469aab2ece095b3d81bc",
+      "bytes": 22091,
+      "snapshot": "git:1d8a5e0083cb642d51480dca24f23a916dacf01b"
+    },
+    {
+      "path": "data/study_v1/review/p2_review_scope_proposed.csv",
+      "sha256": "6b5f0bf82e26a5262b34affa488e20e2dc8f9804f482a7fff585fbc0504d5ded",
+      "bytes": 502000,
+      "snapshot": "git:1d8a5e0083cb642d51480dca24f23a916dacf01b"
     },
     {
       "path": "data/study_v1/review/pilot_coverage.csv",
       "sha256": "e5273db9016ff47470b158af461d8725e65e0bc6e7b5d7524fdc0136877c3176",
       "bytes": 1055,
-      "snapshot": "git:63ffa68224e6350446e9913bec2f8de5ae39d8c0"
+      "snapshot": "git:1d8a5e0083cb642d51480dca24f23a916dacf01b"
     },
     {
       "path": "data/study_v1/review/pilot_items.csv",
       "sha256": "7bf4ac1bbe83a0d0c8a85b3e1e129c0c4291c2ba9a6ceade3ea729c97d9a7f90",
       "bytes": 10467,
-      "snapshot": "git:63ffa68224e6350446e9913bec2f8de5ae39d8c0"
+      "snapshot": "git:1d8a5e0083cb642d51480dca24f23a916dacf01b"
     },
     {
       "path": "data/study_v1/review/pilot_rubric.md",
       "sha256": "cca2a9bdb5c0d2aefcb6b0fc7808208b5f3d5b3f974b9e6ac21fd44ac5ffccce",
       "bytes": 11782,
-      "snapshot": "git:63ffa68224e6350446e9913bec2f8de5ae39d8c0"
+      "snapshot": "git:1d8a5e0083cb642d51480dca24f23a916dacf01b"
     },
     {
       "path": "data/study_v1/review/review_decisions.csv",
       "sha256": "c5c6314aacdb5cdf1d41692fabe1c5c259586079f456732200824a0b445cf0bb",
       "bytes": 384029,
-      "snapshot": "git:63ffa68224e6350446e9913bec2f8de5ae39d8c0"
+      "snapshot": "git:1d8a5e0083cb642d51480dca24f23a916dacf01b"
     },
     {
       "path": "data/study_v1/review/review_queue.csv",
       "sha256": "42fc223b33a7db4cfa1beb30380bea2408ec4c98f7da2dd2f986cebab292df71",
       "bytes": 882849,
-      "snapshot": "git:63ffa68224e6350446e9913bec2f8de5ae39d8c0"
+      "snapshot": "git:1d8a5e0083cb642d51480dca24f23a916dacf01b"
     },
     {
       "path": "data/study_v1/review/source_manifest.json",
       "sha256": "590dd95f79488641547ff22cdcdf0ac71381dd068b575f5561aac44b013e990c",
       "bytes": 8330,
-      "snapshot": "git:63ffa68224e6350446e9913bec2f8de5ae39d8c0"
+      "snapshot": "git:1d8a5e0083cb642d51480dca24f23a916dacf01b"
     },
     {
       "path": "docs/data_processing.md",
       "sha256": "a4d7cc2577522fb026d08fc29a98fa17f193ae27d73c4c286d442c3d49366d43",
       "bytes": 4866,
-      "snapshot": "git:63ffa68224e6350446e9913bec2f8de5ae39d8c0"
+      "snapshot": "git:1d8a5e0083cb642d51480dca24f23a916dacf01b"
+    },
+    {
+      "path": "paper/manuscript.md",
+      "sha256": "20fe4f022cf07e4e79de54042baaa428e62cd7aacd925efd34f0453145f1c5f2",
+      "bytes": 28019,
+      "snapshot": "git:1d8a5e0083cb642d51480dca24f23a916dacf01b"
     },
     {
       "path": "src/hebrew_acronyms/data_processing/prepare_study_review.py",
       "sha256": "117da785766289b9683d28b49e57a6e4298791398783984abf6a2879736b0a4e",
       "bytes": 56342,
-      "snapshot": "git:63ffa68224e6350446e9913bec2f8de5ae39d8c0"
+      "snapshot": "git:1d8a5e0083cb642d51480dca24f23a916dacf01b"
     },
     {
-      "path": "../PROJECT_PLAN.md",
-      "sha256": "b0784cde1892d5e44a09c8ab7eaa05092df83a447c1279cb0c5c232498d0c30a",
-      "bytes": 266058,
-      "snapshot": "external_read_only_at_agreed_cutoff"
+      "path": "src/hebrew_acronyms/models/common/eval.py",
+      "sha256": "c0d7c079724b21482a466b14ff180390603b9002bb33e6ac53650d1b66e13391",
+      "bytes": 5641,
+      "snapshot": "git:1d8a5e0083cb642d51480dca24f23a916dacf01b"
+    },
+    {
+      "path": "src/hebrew_acronyms/models/common/pairs.py",
+      "sha256": "0d8edf1ca25f2c85cba017e83058f54e112c75448ea111d8b602e7a923a99240",
+      "bytes": 3359,
+      "snapshot": "git:1d8a5e0083cb642d51480dca24f23a916dacf01b"
+    },
+    {
+      "path": "src/hebrew_acronyms/models/dictabert_cross_encoder/encoding.py",
+      "sha256": "868b795a516826e47db36a5095e4acfeabd5f11f4f6dafeb6b33664814aa78e6",
+      "bytes": 2249,
+      "snapshot": "git:1d8a5e0083cb642d51480dca24f23a916dacf01b"
+    },
+    {
+      "path": "src/hebrew_acronyms/models/dictabert_cross_encoder/eval.py",
+      "sha256": "e0694c7b911c325ce816f8022e894806461cb1790290863b24053d1829977afa",
+      "bytes": 3343,
+      "snapshot": "git:1d8a5e0083cb642d51480dca24f23a916dacf01b"
+    },
+    {
+      "path": "src/hebrew_acronyms/models/dictabert_cross_encoder/training.py",
+      "sha256": "a77ab5ebee22479c358364eaae58795486ba855e7bd74c1d5c83ec6b24a2bc0b",
+      "bytes": 4367,
+      "snapshot": "git:1d8a5e0083cb642d51480dca24f23a916dacf01b"
+    },
+    {
+      "path": "src/hebrew_acronyms/models/dictabert_cross_encoder/workflow.py",
+      "sha256": "a98463d9a2a5fc4be89918f256cc01507884cb8cbbfbb191c915b283edf78697",
+      "bytes": 7877,
+      "snapshot": "git:1d8a5e0083cb642d51480dca24f23a916dacf01b"
+    },
+    {
+      "path": "src/hebrew_acronyms/models/gemini/eval.py",
+      "sha256": "f21f3438163869c946484d184408b31e3bf861f2cf5089f1c09d15bda6863eea",
+      "bytes": 3498,
+      "snapshot": "git:1d8a5e0083cb642d51480dca24f23a916dacf01b"
+    },
+    {
+      "path": "src/hebrew_acronyms/models/qwen/eval.py",
+      "sha256": "832b4ed508e0432356417a0635aee33c4f831fed2e90c9dc7d8fa70cf0c4e7c1",
+      "bytes": 1901,
+      "snapshot": "git:1d8a5e0083cb642d51480dca24f23a916dacf01b"
     }
   ],
   "authority": {
-    "authorized_now": "Prepare these two proposal artifacts and independent review only; no research data changes.",
+    "approved_direction": "Route 1: approximately 100–120 natural evaluation occurrences, aiming at least 20 types; same LLM in generation/selection crossed with sentence/no sentence; small Hebrew encoder on task-unseen types; natural and AI separate.",
     "approved_task_rules": [
       "Use a linguistic expansion valid in sentence usage; entity identification or name etymology alone is insufficient.",
       "Retain the raw acronym surface including attached prefixes in every condition. Do not use context-dependent prefix stripping for the no-sentence arm."
     ],
-    "approved_experiment_direction": "Same LLM: generation/selection crossed with sentence/no sentence; smaller Hebrew encoder on task-unseen types; separate natural/AI reporting. Encoder extension requires a future pre-test decision.",
-    "not_authorized": [
-      "P2 data application",
-      "inventory acceptance",
-      "data freeze",
-      "new pilot selection",
-      "low-risk sample selection",
-      "training or evaluation",
-      "encoder extension"
+    "authorized_now": "Revise these two proposals and perform independent read-only review. All protocol recommendations below require Shaked approval.",
+    "forbidden_now": [
+      "test textual payload access",
+      "active test sample selection",
+      "research-data application",
+      "freeze",
+      "mining",
+      "model/API services",
+      "training",
+      "predictions or scores"
+    ],
+    "extension": "Excluded from this package and all proposed route-1 implementation gates."
+  },
+  "recommended_execution": {
+    "target_natural_test": 100,
+    "minimum_types": 20,
+    "reason": "Use the lower end of the selected 100–120 route to leave qualification margin; do not pad with doubtful examples. This is a scope choice, not a power calculation.",
+    "order": [
+      "Approve the consolidated decisions below.",
+      "Implement explicit release/selection/scoring contracts with fixtures while test text remains sealed.",
+      "Qualify only participating training and natural-development types and occurrences; freeze prompt, scoring and model settings using development only.",
+      "Obtain separate authorization for source-grounded test data qualification; no model outputs enter that process.",
+      "Freeze an eligible 100-occurrence test release if thresholds pass, then obtain separate run authorization."
+    ],
+    "not_required": [
+      "Resolving every historical uncertain case",
+      "Completing every one of the 95 pilot inventory hypotheses",
+      "Reviewing all 7,936 queue rows",
+      "Encoder exposure extension",
+      "A new blind human pilot"
     ]
   },
-  "scope_definition": {
-    "recommended_first_step": "Approve stage A as the smallest next review tranche: retain all 16 pilot occurrence decisions, follow up five remaining occurrence/policy issues, and review 95 existing inventory hypotheses independently across those 16 types. Do not repeat accepted label judgments or blind answers.",
-    "staged_envelope": "The CSV also makes subsequent established natural-dev and train natural-Wikipedia work concrete, conditional on scope/capacity approval. It is not a request to review the full queue.",
-    "occurrence_rule": "Union of the unchanged 16 pilot IDs, all 62 established natural-dev proposals, and all 54 historical train wiki_natural occurrences; exclude historical test roles. Deduplicate by stable item ID.",
-    "inventory_rule": "All existing inventory_proposed hypotheses for the 46 selected types, once per inventory ID; select by type association, never by accepting a sentence label. No new candidate is added.",
-    "occurrences": 124,
-    "types": 46,
-    "inventory_hypotheses": 267,
-    "csv_records": 391,
-    "unchanged_pilot_size": 16,
-    "new_pilot_items": 0,
-    "selected_occurrence_categories": {
-      "knesset": 67,
-      "wiki_natural": 54,
-      "wiki_substituted": 2,
-      "manual": 1
+  "structural_feasibility": {
+    "access_boundary": "Computed from item_audit stable IDs, roles, raw-type metadata converted to family hashes, document IDs, category, existing flags and scope status. No test sentence, label, candidate or selected occurrence list was accessed/output. Count-only type/document max-flow does not choose an active sample.",
+    "copied_historical": {
+      "source": "diagnostic_summary.json (unchanged; copied, not new accepted counts)",
+      "natural_test": {
+        "rows": 250,
+        "types": 40,
+        "documents": 146
+      },
+      "natural_dev": {
+        "rows": 62,
+        "types": 11,
+        "documents": 35
+      },
+      "train_after_document_proposals": {
+        "rows": 2941,
+        "types": 435
+      },
+      "natural_dev_old_inventory_label_coverage": 32
     },
-    "selected_occurrence_roles": {
-      "train": 59,
-      "aggregate_only": 62,
-      "dev": 3
+    "recomputed_proposal_metadata": {
+      "test_family_blocked_rows": 22,
+      "test_additional_exposed_document_blocked_rows": 1,
+      "test_remaining_before_semantic_review": {
+        "rows": 227,
+        "types": 37,
+        "families": 36,
+        "documents": 132
+      },
+      "test_one_document_capacities_by_type_cap": {
+        "1": 37,
+        "5": 104,
+        "6": 112,
+        "7": 118,
+        "8": 123
+      },
+      "test_one_document_one_family_capacity": 36,
+      "training_funnel_rows": [
+        313,
+        244,
+        243,
+        215,
+        210,
+        177
+      ],
+      "training_funnel_meaning": [
+        "Knesset train after reserving all historical dev/test and natural-dev documents",
+        "After existing critical/scope/definition flags are vetoed",
+        "After recorded uncertain/exclude_proposed decisions veto occurrences before ranking",
+        "After conservative family guard",
+        "After five additional targeted non-test occurrence holds (four numeric uses; one departmental context with numeric old label)",
+        "Only raw types with at least three remaining occurrences"
+      ],
+      "training_priority_before_review": {
+        "rows": 153,
+        "types": 30,
+        "inventory_hypothesis_rows": 168
+      },
+      "training_reserve_before_review": {
+        "rows": 24,
+        "types": 8
+      },
+      "dev_after_known_holds_before_review": {
+        "rows": 59,
+        "types": 11,
+        "documents": 33,
+        "one_document_cap4_capacity": 27
+      }
     },
-    "stage_assignment": "Occurrence: existing pilot, else established natural-dev, else train natural Wikipedia. Inventory: earliest stage containing its type; references in later stages do not add work units.",
-    "counting_rule": "Occurrence IDs and inventory IDs are distinct units with different tasks. Count each ID once across all flags/stages; occurrence records exclude inventory adjudication. Eleven pilot carry-forward records require no new occurrence adjudication in this proposal. Related-ID references and per-risk overlaps are not additional units. Counts are not measured effort or approved benchmark sizes.",
-    "train_natural_wikipedia_scope_note": {
-      "historical_rows_in_envelope": 54,
-      "historical_pilot_eligible_stratum_count": 52,
-      "difference": "The pilot stratum excluded two rows with existing scope proposals. This proposal envelope retains them for scope inspection, not benchmark inclusion; it does not add them to the 16-item pilot or override their existing flags.",
-      "existing_scope_flagged_rows": [
-        {
-          "review_id": "item-1bac54a99f447b764d3d85c6",
-          "historical_roles": "train",
-          "scope_proposal": "gematria_string_rule_proposed"
-        },
-        {
-          "review_id": "item-3e8ce1b70f53b6e322fb573a",
-          "historical_roles": "train",
-          "scope_proposal": "gematria_string_rule_proposed"
-        }
+    "interpretation": "123 is maximum combinatorial capacity at cap 8 before semantic/inventory review, not 123 qualified examples and not a guarantee for the fixed sampler. Approved research counts are currently zero; historical human decisions are review evidence, not a release."
+  },
+  "selection_and_separation": {
+    "seed": "shaked-route1-v2-2026-09-29",
+    "type_key": "For grouping only, NFKC + casefold; remove Unicode whitespace and the characters ASCII single/double quote, ״, ׳, “, ”, ‘, ’. Do not alter the raw target input or sentence. A type key is the normalized stored acronym, not a context-derived base.",
+    "family_guard": "Build connected components over all stored type keys. Connect x to x[1:] only if len(x)>=3, first character is in ובכלמשה, and the shorter key exists. Use sorted component members serialized as compact ensure_ascii=False JSON, SHA256 first 24 hex with family- prefix. This is a conservative leakage screen, not a linguistic merge or an alias rule; it can reject unrelated words. Freeze the vocabulary at this snapshot.",
+    "split_policy": "Keep historical type assignments. Natural-dev proposals are development only. All 16 pilot IDs remain development/training evidence and can never become test. Exclude from prospective test any family present in historical dev, natural-dev or pilot, and any document present there. Exclude training rows from all historical dev/test or natural-dev documents and families, even if some held-out rows later fail review. Do not move rejected items across splits.",
+    "documents": "Retain existing doc_id/source-title identity; missing or unresolved document identity makes an item ineligible. Resolve known aliases before freeze. Use one occurrence per document in each final dev/test set; training may contain several same-document occurrences. Hash/text duplicate checks and document-alias validation remain a future release gate, not assumed done by the metadata counts.",
+    "test_source_population": "Historical test role, natural Knesset/wiki_natural categories, no existing scope exclusion proposal, then structural family/document guards. This defines a future candidate population; it is not a selected test release.",
+    "ranking": "Hash UTF-8 seed|domain|value with SHA256, hex ascending and raw value as collision tie-break. Domains: test-type with normalized type key; test-item with stable_item_id; dev-type/dev-item analogously. No label, sense frequency, inventory size, or model score ranks test occurrences. Existing stable IDs are treated as opaque hashes.",
+    "future_test_qualification_algorithm": [
+      "Only after approval to access test content: group the structural candidates by normalized type key and sort types/items by the fixed hashes. Freeze these queues before semantic review.",
+      "First coverage pass: in type order, examine items until the first qualified occurrence with an unused document is obtained or that type queue is exhausted. Continue across all types, subject to the 160-examined-item ceiling. Require at least 20 represented types AND 20 conservative families before filling.",
+      "Fill passes: cycle through the same type order, each pass adding at most one qualified occurrence per type whose accepted count is below 8. Advance each fixed item queue, never re-examine a rejected row; skip already-used documents without semantic review. Stop immediately at 100 admitted occurrences.",
+      "Qualify the complete supported type inventory once when a type is first reached; count every semantically examined occurrence including rejects/uncertain toward 160. A rejected type inventory excludes that type; it does not permit borrowing a new candidate from the sentence.",
+      "If 160 examinations, queue exhaustion, a structural impasse, or fewer than 20 types/families prevents 100 admissions, stop and report the exact shortfall. Do not search alternate seeds, change caps, expose scores or hand-pick replacements. Shaked may authorize a separate extension of the review budget; no automatic fallback changes the rule."
+    ],
+    "development": "Use the existing 62 natural-dev proposals, with known uncertain/exclusion records and definition flags held (59 remain structurally). Same hash round-robin and one-document rule, cap 4/type, target 24; exhaust the 59-candidate envelope if necessary. Minimum runnable-development gate: 16 qualified occurrences across 6 types, including at least 8 multi-candidate occurrences for encoder development loss. If unmet, return to Shaked without changing type assignments.",
+    "training": "Use only historically reviewed natural Knesset train occurrences with complete provenance, outside reserved documents/families, without enumerated critical flags or recorded uncertain/exclude_proposed decisions, and excluding the six specifically documented occurrence holds. No substituted, deglossed, manual or AI rows in core training. There are 210 metadata candidates in 66 raw types after these gates; restrict to 38 types having >=3 candidates (177 rows). Order types by descending eligible occurrence count, then SHA256(seed|train-type|raw_acronym), then raw acronym. First 30 types are the priority envelope (153 rows); other 8 are ordered reserves (24 rows). Qualify types in that order; accept the first 30 with >=3 qualified occurrences and >=2 independent valid candidates. Include all qualified occurrences of an admitted type, up to 8 by hash(seed|train-item|stable_item_id). Stop at 30 types or reserve exhaustion; minimum training gate is 100 qualified occurrences across 20 types. These are pragmatic run-readiness thresholds, not evidence of adequate learning or power.",
+    "critical_training_flags": [
+      "adverse_review",
+      "definition_or_expansion_in_sentence",
+      "historical_adverse_review",
+      "label_missing_independent_inventory",
+      "legacy_id_collision",
+      "missing_provenance",
+      "scope_exclusion_proposed",
+      "uncertain_review"
+    ],
+    "no_new_pilot": "Existing pilot membership, order and initial answers never change; review queue membership is not human pilot membership.",
+    "human_decision_veto": "Before ranking/qualification in every split, recorded uncertain or exclude_proposed occurrence decisions (overall, label or target) veto eligibility even when legacy automatic flags are clear. Recorded corrections and spans remain authoritative evidence; unresolved proposed corrections are not applied. Scope rows never override review_decisions.",
+    "targeted_training_holds": [
+      "item-016a87033e83d75caca50524",
+      "item-5598572ce99609bfae70de2a",
+      "item-83fdc45de383c7a175c037bf",
+      "item-84436bbf594c63164838e20f",
+      "item-888e42ce68d56f3b1450cc17",
+      "item-e102c808caa0170a0459f053"
+    ]
+  },
+  "qualification_and_reuse": {
+    "ben": "Reuse exact linked prior records only after stable identity/source match. A clean verdict is a starting label judgment. Every participating occurrence still needs a brief current-task check of linguistic expansion, intended full target, unchanged natural sentence, provenance and approved inventory coverage. Do not request another blind answer or infer independent double annotation.",
+    "shaked": "Carry all 16 decisions and approved spans verbatim. In particular, BAH initial answer and label/target decisions remain distinct. Approved corrections are not reopened; application needs separate authority. Exclusion proposals remain recorded proposals until that application.",
+    "eligibility": "Exactly one context-valid gold meaning for the marked occurrence; natural unmodified sentence; full target boundary; resolved source/document; no explicit in-sentence expansion under the proposed core rule; approved independent inventory with gold coverage; no unresolved semantic/provenance defect. A proper name may qualify if it is a valid linguistic expansion, not merely an entity description. Recorded uncertain/exclude_proposed decisions veto every split before ranking, independently of automatic flags; the explicitly documented additional holds are proposals, not new human decisions.",
+    "bounded_uncertainty": "For an unresolved case, inspect existing linked evidence and at most one additional primary-source page in a later authorized review. If the answer or inventory remains materially ambiguous, mark held_for_release in a future release ledger and skip under the fixed queue. Keep review_decisions uncertain; no silent scientific adjudication or unbounded search.",
+    "inventory_work": "Review only types actually reached in training/dev/future test queues. Consolidate each type into one decision group with source pointers, distinct linguistic meanings and proposed aliases. Do not count each sentence as another inventory task. All exported hypotheses for a participating type must receive a disposition, but only supported meanings become candidates. A materially unresolved plausible meaning holds the type; obvious event/place titles and numerals can be rejected under an approved rubric. No global requirement to resolve all 95 pilot hypotheses.",
+    "independence": "Inventory evidence must be independent of the particular evaluated sentence and its stored gold. A copied export marked human_review is not automatically an independent source; trace its provenance. Same upstream export repeated across files is one source, not corroboration.",
+    "singleton_policy": "Keep valid singleton inventories in evaluation/dev and report their count plus descriptive multi-candidate stratum; no invented distractors. Exclude singleton types from encoder pair training. All five conditions retain the same evaluation universe, including singleton items. Encoder argmax over one candidate is documented as structurally trivial.",
+    "known_case_recommendations": [
+      {
+        "review_id": "item-c5f94c4458d409441c440fcd",
+        "recommendation": "Preserve accepted נכסי רכישה but exclude the explicit-definition occurrence from the core; do not erase its sentence or ask for a new answer. Other occurrences of this type require independent inventory support."
+      },
+      {
+        "review_id": "item-82b09eac472d8c63ed2aec90",
+        "recommendation": "Keep Rambam uncertain and outside the focused release unless independently resolved during the bounded queue; no item adjudication is needed to start implementation."
+      },
+      {
+        "review_id": "item-1f91791f28b3dd09aede113b",
+        "recommendation": "Keep SUP/SAP case uncertain; it is wiki_natural outside the chosen Knesset training source, so not a core training blocker."
+      },
+      {
+        "review_id": "item-40282f0d0e535efd7b8d61f9",
+        "recommendation": "Keep MaharY uncertain; substituted dev is outside natural development, so defer without forcing a new expansion."
+      },
+      {
+        "review_id": "item-3a7a3e48e2a9580265b4e88d",
+        "recommendation": "Preserve BAH accepted label and corrected full surface; manual example is outside the natural core, so provenance resolution is deferred."
+      },
+      {
+        "review_ids": [
+          "item-016a87033e83d75caca50524",
+          "item-10c8e92234135629f4d76552",
+          "item-ab8c75dc07bf0b27830e4ed9"
+        ],
+        "recommendation": "Honor recorded exclusion proposals in a later approved application; no repeated approval of their registration. Exclusion is occurrence-specific, not whole-type removal."
+      },
+      {
+        "inventory_type": "קק״ל",
+        "recommendation": "Propose two linguistic meanings: קרן קיימת לישראל and קילו קלוריה; merge קילו־קלוריה as an explicit spelling alias. Exclude fund description, road/interchange titles and numeral. CSV rows contain exact independent source references."
+      },
+      {
+        "inventory_type": "קצא״א",
+        "recommendation": "Retain the supported Eilat-Ashkelon expansion proposal, reject event/port titles and numeral, and distinguish the Europe-Asia hypothesis pending bounded independent confirmation. Do not merge company names automatically."
+      },
+      {
+        "inventory_type": "אג״ם / השב״ס",
+        "recommendation": "Preserve accepted labels and full surfaces; do not infer an אגף מבצעים alias or strip ה. Reject unexpanded business titles/numerals; examine independently exported alternative linguistic meanings."
+      },
+      {
+        "review_ids": [
+          "item-83fdc45de383c7a175c037bf",
+          "item-84436bbf594c63164838e20f",
+          "item-888e42ce68d56f3b1450cc17",
+          "item-e102c808caa0170a0459f053"
+        ],
+        "recommendation": "Targeted inspection of these four non-test sentences found numeric/body-parts uses of רמ״ח. Propose holding these occurrences under the linguistic-expansion rule; preserve old labels and all human fields. This applies the pilot rationale as a recommendation, not a newly recorded human exclusion."
+      },
+      {
+        "review_id": "item-5598572ce99609bfae70de2a",
+        "recommendation": "The inspected departmental medical context conflicts with the stored מספר האיברים בגוף האדם label. Hold the occurrence; ראש מחלקה is a correction hypothesis requiring independent support and approval. Do not classify usage from an old label alone. No whole-type deletion or data correction is performed."
+      }
+    ]
+  },
+  "experiment_and_scoring_proposal": {
+    "systems": "Exactly the four same-LLM conditions and one trained Hebrew cross-encoder; no exposure extension or additional model/baseline runs.",
+    "model_recommendation": "Use the existing local Qwen backend with its documented qwen2.5:7b candidate and DictaBERT cross-encoder, if Shaked approves and a later authorized preflight verifies local availability. Pin immutable model/tokenizer revisions or weight digests; the tag alone is insufficient. No availability, Hebrew quality, runtime or memory claim is made here. Do not silently switch to Gemini or another model.",
+    "llm_settings": "Propose zero-shot stateless calls, temperature 0, top_p 1, seed 42 where supported, maximum 64 new tokens; log supported settings and backend version. Use the identical pinned model in all four conditions. Fixed prompt templates are finalized on development before test; no few-shot pilot examples.",
+    "conditions": [
+      {
+        "name": "generation_sentence",
+        "input": "Exact raw target substring, including prefix; original sentence with only that span marked. No inventory, label, source title or examples.",
+        "output": "One linguistic expansion only."
+      },
+      {
+        "name": "selection_sentence",
+        "input": "Same raw target and marked original sentence, plus fixed numbered inventory.",
+        "output": "One decimal candidate position only."
+      },
+      {
+        "name": "generation_no_sentence",
+        "input": "Same exact raw target substring, including prefix; task instruction only. No sentence, marked context, source, type-normalized form or label.",
+        "output": "One linguistic expansion only."
+      },
+      {
+        "name": "selection_no_sentence",
+        "input": "Same raw target plus exactly the same fixed numbered inventory/order as selection_sentence.",
+        "output": "One decimal candidate position only."
+      }
+    ],
+    "raw_input_rule": "Read the approved zero-based, end-exclusive span, validate it, and slice the unchanged sentence. Never rediscover the target by first substring match or normalize/strip its prefix using context. Family/type keys are internal leakage metadata and are not handed to no-sentence arms.",
+    "inventory_order": "One frozen inventory per normalized type. Assign canonical IDs after human approval; order by SHA256(seed|candidate|type_key|canonical_id), tie canonical_id. Use the same order for every occurrence and both selection arms. Number 1..N; no 26-letter limit and no per-item shuffle. Candidate order depends on no gold value.",
+    "generation_normalization": "NFC, map typographic Hebrew/curly quote marks to the matching ASCII quote, trim/collapse whitespace, and remove at most one final full stop used as sentence punctuation. No stemming, prefix stripping, global word deletion, global hyphen removal or substring matching. Nontrivial spelling equivalences require an explicit approved alias or blinded rubric judgment.",
+    "generation_judgment": "First exact whole-string match against the frozen canonical/approved aliases. Human-review unmatched outputs in one batch with system/condition concealed as far as format allows. A single unequivocal expression of the same gold linguistic meaning scores 1 even if absent from aliases; wrong sense, entity description only, negation, competing answers, refusal and non-answer score 0. Record raw output, verdict, evidence and reason. Never add a new meaning/candidate or change the gold to improve a model score.",
+    "selection_parser": "Accept only a full stripped string matching [1-9][0-9]* whose integer is <=N. Explanation, multiple positions, negative/out-of-range number, embedded digit or letter is invalid and scores 0. No first-letter scan.",
+    "missing_and_uncertain": "All approved occurrences remain in every denominator. Empty, exhausted-request and invalid outputs score 0 with separate status rates. Allow one identical retry for transport errors only, not poor answers, logging both attempts. Stop on systematic service/configuration failure and resume the missing calls under unchanged settings rather than present an outage as model quality. Any genuinely unresolved generation judgment remains flagged; use strict 0 in the primary score and provide its all-correct upper bound as a sensitivity bound, not as proof the output is wrong.",
+    "cache": "A no-sentence response may be reused only for an identical full prompt/model/settings digest, logged as one unique call linked to all occurrences. Gold correctness can differ by occurrence; caching must not use sentence/gold. Report unique calls separately from item counts.",
+    "encoder": "Same approved inventory and gold IDs and marked occurrence as the LLM. Propose current backbone/pooling cls, max_len 256, batch16, evaluation batch32, learning_rate2e-5, one epoch, seed42; no tuning grid or extension. Seed before model/head construction. Use every approved candidate as positive/negative pair with exactly one positive; train only >=2-candidate types. Development BCE is a training diagnostic, not reported item accuracy. One fixed epoch avoids a new search; save/reload the completed checkpoint, and report task-training uncertainty is not measured by one seed.",
+    "primary_metric": "Macro Top-1 accuracy: average occurrence correctness within each normalized type, then average equally across types. Primary paired contrast is selection_sentence minus generation_sentence. Report micro accuracy and per-type counts descriptively; compare all conditions and encoder on the identical frozen occurrence IDs.",
+    "secondary_contrasts": "Within each formulation, sentence minus no-sentence macro accuracy. Encoder score is a complementary comparison, not an isolated architecture effect. No extra factorial experiment or score-driven subset search.",
+    "uncertainty": "Propose 10,000 paired bootstrap draws of conservative type-family clusters with replacement (seed20260929), retaining all occurrences and all conditions together; recompute the macro statistic with cluster multiplicities. Report percentile 95% intervals for the primary contrast and descriptive context contrasts, plus per-type results. At most one occurrence/document in final evaluation removes repeated-document clusters if document identities are correct. At least20 represented families is a readiness rule, not validated interval coverage or power. No significance threshold, causal claim, equivalence claim from a null result or population-representativeness claim. Bootstrap implementation and coverage remain unverified; do not replace the existing manuscript wording until this proposal is approved.",
+    "natural_ai": "Core training/dev/test above are natural. Keep any future approved AI-authored challenge separate, outside the100 denominator and without pooling. This proposal selects no AI sample and adds no AI experiment."
+  },
+  "implementation_needed_not_performed": [
+    {
+      "area": "Explicit release and selection gate",
+      "existing_reference": "src/hebrew_acronyms/data_processing/prepare_study_review.py",
+      "change": "Add an explicitly authorized release/qualification path separate from P1 generator; use stable IDs, approved spans, type/family/doc checks, fixed queues, counted exclusions and input/output manifests. Test payload access and final selection require their own gate; never regenerate decisions from proposals.",
+      "proof": [
+        "Invented role/ID fixtures reject test IDs in pilot and dev/train outputs",
+        "Fixed queue deterministic under input row reordering",
+        "20-type/family coverage gate, cap8, document uniqueness,160 examined cap and no alternate-seed fallback",
+        "Missing/aliased documents and prefix-family collision fixtures",
+        "Every release row points to a decision and independent approved inventory",
+        "Recorded uncertain/exclude_proposed decisions veto eligibility before ranking even when automatic flags are clear; proposed holds cannot mutate human decisions or research rows"
+      ]
+    },
+    {
+      "area": "Four prompt conditions and strict scorer",
+      "existing_reference": "src/hebrew_acronyms/models/common/eval.py",
+      "change": "Replace sentence-only builders, per-item RNG shuffle, first-letter parser and gold substring matching with the proposed explicit contracts; remove silent singleton skips and keep common item IDs/statuses.",
+      "proof": [
+        "Raw prefixed surface identical in four invented arms; no context/source leakage in no-sentence prompts",
+        "Candidate order stable across rows and arms, including >26 candidates",
+        "Negated gold, embedded correct text, multiple choices and invalid IDs score as specified",
+        "Singleton/empty/timeout fixture keeps common denominator; manual unknown statuses and sensitivity bounds explicit"
+      ]
+    },
+    {
+      "area": "Span-aware encoder pairs and length checks",
+      "existing_reference": "src/hebrew_acronyms/models/common/pairs.py; src/hebrew_acronyms/models/dictabert_cross_encoder/encoding.py; src/hebrew_acronyms/models/dictabert_cross_encoder/eval.py",
+      "change": "Consume approved full spans, validate exactly one positive candidate and aliases, handle singleton evaluation, and reject impossible token budgets instead of exceeding max_len or losing the target. No first-occurrence heuristic or silent per-system sample changes.",
+      "proof": [
+        "Repeated target and attached-prefix invented fixtures preserve exact chosen span",
+        "Fake-tokenizer boundary cases retain both markers or fail explicitly",
+        "Zero-positive/multiple-positive pairs fail",
+        "Encoder and four LLM arms enumerate identical approved evaluation IDs"
+      ]
+    },
+    {
+      "area": "Reproducible model invocation and training",
+      "existing_reference": "src/hebrew_acronyms/models/qwen/eval.py; src/hebrew_acronyms/models/dictabert_cross_encoder/workflow.py; src/hebrew_acronyms/models/dictabert_cross_encoder/training.py",
+      "change": "Pin weights/settings, enforce stateless finite-timeout calls and transport-only retry, log caches/statuses; apply seed before model/head initialization and require nonempty qualified train/dev. Use an explicit orchestrator requiring an evaluation gate instead of the auto-test pipeline.",
+      "proof": [
+        "Mock backend only: identical request settings and bounded retry, no network/model calls in unit tests",
+        "Synthetic repeated initialization/checkpoint roundtrip later in a separately authorized engineering check",
+        "Import/no-network fixture and explicit test-authorization failure",
+        "No call to existing run_pipeline.sh/run_all as smoke"
+      ]
+    },
+    {
+      "area": "Paired aggregation and uncertainty",
+      "existing_reference": "paper/manuscript.md section3.5 (reference only)",
+      "change": "Implement stable-ID joins, macro/micro calculations and paired family bootstrap; report finite-sample and single-seed limits and unmatched output judgments.",
+      "proof": [
+        "Hand-calculated unequal-type fixture distinguishes macro from micro",
+        "Paired bootstrap resamples shared cluster weights across conditions",
+        "Identical outputs yield zero contrast and degenerate interval; reordered rows give identical output",
+        "Incomplete condition logs fail rather than intersect away missing observations"
       ]
     }
-  },
-  "work_by_dependency_and_risk": [
+  ],
+  "decisions_for_shaked": [
     {
-      "stage": "A_pilot_followup",
-      "occurrence_records": 16,
-      "inventory_hypotheses": 95,
-      "proposed_new_occurrence_followups": 5,
-      "dependency": "Shaked approves this bounded review scope before additional human work; inventory decisions remain independent. Later stages depend on capacity and first-stage findings, not automatic expansion."
+      "id": "D1_scope",
+      "recommendation": "Target100 natural occurrences with >=20 types and >=20 conservative families, one occurrence/document, cap8/type and160 examined candidates; fixed hash queues, no automatic enlargement.",
+      "consequence": "Leaves margin within the chosen route; if qualification fails, report the shortfall instead of padding or changing seed."
     },
     {
-      "stage": "B_established_natural_dev",
-      "occurrence_records": 58,
-      "inventory_hypotheses": 24,
-      "proposed_new_occurrence_followups": 58,
-      "dependency": "Shaked approves this bounded review scope before additional human work; inventory decisions remain independent. Later stages depend on capacity and first-stage findings, not automatic expansion."
+      "id": "D2_separation",
+      "recommendation": "Adopt the conservative quotation/prefix family screen and reserved-document policy while retaining raw inputs and historical type allocation.",
+      "consequence": "Current metadata leaves227 prospective test candidates/37 types/132 documents; the guard may discard unrelated types but avoids unqualified unseen-type claims."
     },
     {
-      "stage": "C_train_natural_wikipedia",
-      "occurrence_records": 50,
-      "inventory_hypotheses": 148,
-      "proposed_new_occurrence_followups": 50,
-      "dependency": "Shaked approves this bounded review scope before additional human work; inventory decisions remain independent. Later stages depend on capacity and first-stage findings, not automatic expansion."
+      "id": "D3_training_dev",
+      "recommendation": "Qualify the proposed 153-row/30-type reviewed natural training priority envelope, with 24 rows/8 ordered reserve types; natural dev target 24 from 59 candidates. Apply minimum readiness gates, current human-decision vetoes and the five additional occurrence holds; reuse existing human decisions.",
+      "consequence": "Avoids validating thousands of substituted records; learning adequacy and actual qualified sizes remain unknown. All used training labels/targets/inventories still need qualification."
+    },
+    {
+      "id": "D4_eligibility_inventory",
+      "recommendation": "Exclude unresolved/missing-provenance/explicit-definition occurrences from core; use independent linguistic inventories and explicit aliases; retain singleton evaluation but no singleton training; adopt or correct the focused inventory recommendations.",
+      "consequence": "No all-95 gate, no forced adjudication of Rambam/SAP/MaharY, no invented distractors. Some types may be lost and replaced only through fixed reserves."
+    },
+    {
+      "id": "D5_system_and_score",
+      "recommendation": "Approve the existing Qwen candidate plus DictaBERT with pinned revisions/settings, four zero-shot prompt contracts, strict whole-answer scoring, blinded unmatched-generation rubric and identical denominators.",
+      "consequence": "Requires scoped implementation fixes and later availability verification; no services or experiment is authorized by accepting this document."
+    },
+    {
+      "id": "D6_uncertainty",
+      "recommendation": "Use macro accuracy and the paired primary contrast, descriptive micro/context results and paired family bootstrap with explicit finite-sample limits; unresolved-judgment sensitivity bounds remain visible.",
+      "consequence": "Proposed uncertainty routine needs fixture validation; one encoder seed cannot measure training variation."
+    },
+    {
+      "id": "D7_next_authorization",
+      "recommendation": "Authorize a separate bounded implementation/qualification package after these decisions, and provide available human review time. Keep test-content qualification, data application/freeze and model runs as separately recorded gates.",
+      "consequence": "This proposal is ready for decisions; current agent work ends here and imposes no estimated hours on Shaked."
     }
   ],
-  "risk_counts_overlapping": {
-    "target": 105,
-    "definition": 2,
-    "label": 7,
-    "document": 1,
-    "provenance": 1,
-    "contextual_label": 18,
-    "scope_exclusion_proposed": 2,
-    "inventory_membership": 267,
-    "linguistic_expansion_vs_entity_or_numeral": 267,
-    "missing_independent_export_evidence": 1
-  },
   "recorded_human_status": {
     "initial_answers": 16,
     "occurrence_decisions": 16,
@@ -292,172 +616,52 @@
     "complete_registration_rows": 0,
     "measured_active_review_seconds": null,
     "empirical_workload_estimate": null,
-    "reason": "No active-review duration was recorded. Timestamps and chat waiting time are not durations. No entire-queue multiplication or retrospective imputation. Future workload estimates require prospectively measured review/adjudication/inventory times and coverage of the chosen strata."
-  },
-  "deferred_outside_csv": {
-    "remaining_eligible_train_dev_occurrences": 3342,
-    "remaining_critical_flag_union": 555,
-    "remaining_wikipedia_review_not_proven": 2485,
-    "overlap_between_previous_two_groups": 147,
-    "interpretation": "Overlapping counts are remaining review-planning obligations, not authorized selections or benchmark approvals. A later train/dev inventory and critical-occurrence scope is still needed before freeze; this tranche cannot certify all train/dev data.",
-    "low_risk_knesset": "No new sample selected. Shaked must approve fixed sampling scope/rule; existing clean verdicts do not prove present-task eligibility.",
-    "critical_flag_set": [
-      "adverse_review",
-      "definition_or_expansion_in_sentence",
-      "document_overlap",
-      "historical_adverse_review",
-      "label_missing_independent_inventory",
-      "legacy_id_collision",
-      "missing_provenance",
-      "scope_exclusion_proposed",
-      "target_multiple",
-      "target_prefix_or_embedded",
-      "uncertain_review"
-    ],
-    "test": "No test occurrence selected or semantically reviewed; no test sentence, label or candidate disclosed. Test effects below are copied aggregate diagnostics only."
-  },
-  "unresolved_scientific_choices": [
-    {
-      "choice": "Approve the bounded human review tranche and subsequent capacity",
-      "needs_shaked": true,
-      "note": "No empirical time budget exists. Accepting this preparation package did not approve a new human pilot or sample."
-    },
-    {
-      "choice": "Adjudicate the three uncertain occurrences using sources",
-      "needs_shaked": true,
-      "review_ids": [
-        "item-1f91791f28b3dd09aede113b",
-        "item-40282f0d0e535efd7b8d61f9",
-        "item-82b09eac472d8c63ed2aec90"
-      ],
-      "note": "Apply the already approved linguistic-expansion rule; do not reopen it or silently exclude Rambam."
-    },
-    {
-      "choice": "Approve independent inventory membership, canonical forms and any aliases/merges/exclusions",
-      "needs_shaked": true,
-      "note": "Per-item acceptance and export presence are insufficient. Proper names are not globally excluded."
-    },
-    {
-      "choice": "Resolve BAH sentence provenance and handling of explicit in-sentence definitions",
-      "needs_shaked": true,
-      "review_ids": [
-        "item-3a7a3e48e2a9580265b4e88d",
-        "item-c5f94c4458d409441c440fcd"
-      ]
-    },
-    {
-      "choice": "Authorize later P2 application/versioning and structural split policy",
-      "needs_shaked": true,
-      "note": "Three existing exclusion proposals and the recorded correction are preserved; no repeat approval of their registration is requested. Whole-type numeral/name exclusions, missing-provenance handling, document blocking, quote normalization and type-family definitions remain distinct policy choices."
-    },
-    {
-      "choice": "Decide conditional encoder extension before test",
-      "needs_shaked": true,
-      "note": "No extension training membership or budget is approved by this package."
+    "reason": "No active-review duration was recorded. Timestamps and chat waiting time are not durations. No entire-queue multiplication or retrospective imputation. Future workload estimates require prospectively measured review/adjudication/inventory times and coverage of the chosen strata.",
+    "agent_budget": {
+      "ceiling_cumulative_hours": 4,
+      "started_utc": "2026-09-29T11:37:48Z",
+      "includes": "Author, one read-only reviewer and focused correction; end early when ready. This is not Shaked review time."
     }
-  ],
-  "aggregate_structural_implications": {
-    "source": "Existing diagnostic_summary.json; copied historical diagnostics, not recomputed post-decision inputs.",
-    "historical_split_rows": {
-      "train": 3115,
-      "dev": 289,
-      "test": 395
-    },
-    "established_natural_dev_rows": 62,
-    "natural_dev_old_inventory_label_coverage": 32,
-    "natural_dev_if_also_blocking_train_documents": {
-      "rows": 26,
-      "types": 6,
-      "documents": 18,
-      "missing_document_rows": 0,
-      "categories": {
-        "knesset": 26
-      },
-      "observed_type_label_pairs": 7,
-      "stored_candidate_pairs": 120,
-      "historical_pair_builder_pairs": 120
-    },
-    "proposed_train_document_removal_components": {
-      "overlap_test": 114,
-      "additional_overlap_old_dev": 32,
-      "additional_overlap_natural_dev": 28
-    },
-    "historical_train_after_document_proposals": {
-      "rows": 2941,
-      "types": 435,
-      "documents": 1893,
-      "missing_document_rows": 142,
-      "categories": {
-        "knesset": 313,
-        "manual": 142,
-        "wiki_deglossed": 8,
-        "wiki_natural": 54,
-        "wiki_substituted": 2424
-      },
-      "observed_type_label_pairs": 1007,
-      "stored_candidate_pairs": 13164,
-      "historical_pair_builder_pairs": 13164
-    },
-    "conditional_extension_available": {
-      "rows": 273,
-      "types": 40,
-      "documents": 190,
-      "missing_document_rows": 2,
-      "categories": {
-        "manual": 2,
-        "wiki_deglossed": 2,
-        "wiki_substituted": 269
-      },
-      "observed_type_label_pairs": 106,
-      "stored_candidate_pairs": 1413,
-      "historical_pair_builder_pairs": 1413
-    },
-    "capped_extension_diagnostic": {
-      "rows": 155,
-      "types": 35,
-      "documents": 131,
-      "stored_candidate_pairs": 556,
-      "unmatched_rows": 0,
-      "control_rows": 155,
-      "control_pairs": 556,
-      "retained_full_training_usable_pairs": 13164,
-      "replacement_condition_full_usable_pairs": 13164
-    },
-    "non_additivity": "The three pilot exclusion proposals are not subtracted from split or document counts: TQ already has document/scope flags, the two numerical cases have different automated-flag coverage, and policies remain pending. Inventory edits can change candidate pairs for multiple occurrences.",
-    "type_family_risk": "Retaining raw prefixed forms does not prove base-family disjointness. A future context-independent type-family rule may reveal related forms across splits; do not merge types or move items now. Task-unseen does not imply unseen in pretraining.",
-    "recompute_after_future_approval": [
-      "Eligible occurrence and type counts after deduplicated exclusions and provenance resolution",
-      "Independent inventory and alias coverage, candidate totals and full usable pair totals",
-      "Document and type-family leakage/overlap after approved identity policy",
-      "Natural, AI-authored, human-authored, substituted and deglossed reporting strata",
-      "Conditional extension feasibility and control matching; equal batch, epochs, accumulation, drop-last, seed/checkpoint policies and full update totals before any extension"
-    ]
   },
-  "author_validation": {
-    "selected_source_content_key_matches": 186,
-    "selected_external_csv_references_resolved": 937,
-    "unique_review_ids": 391,
-    "stable_item_and_inventory_hash_ids_recomputed": true,
-    "source_record_snapshots_in_review_links_equal_saved_records": true,
-    "inventory_export_pairs_match_exact_acronym_and_expansion": true,
-    "decision_field_copy_and_16_span_bounds_checked": true,
-    "all_existing_non_README_inputs_equal_baseline_git_bytes": true,
-    "READMEnote": "Read and hash baseline README; its narrow authorized edit belongs to the parallel writing package.",
-    "review_file_hashes_include_full_bytes_ordering_and_pilot_membership": true,
-    "limitations": [
-      "Structural pointer/content checks do not validate semantic correctness or upstream source independence.",
-      "External web evidence cited by human decisions was not re-fetched in this data package.",
-      "No model, pipeline, generator, package import, installation or test suite was run; no fresh environment validation is claimed.",
-      "No complete train/dev audit, inter-annotator agreement, model result, empirical error rate or timing estimate is claimed.",
-      "Independent reviewer findings are reported separately by the coordinator, not asserted by the author."
+  "scope_definition": {
+    "csv_records": 692,
+    "occurrence_records": 303,
+    "inventory_records": 389,
+    "preserved_old_row_ids": 391,
+    "test_occurrence_rows": 0,
+    "current_stages": {
+      "dev_qualification": 59,
+      "deferred_no_route1_gate": 181,
+      "train_priority": 153,
+      "inventory_if_type_used": 275,
+      "train_reserve": 24
+    },
+    "meaning": "CSV is a conditional non-test qualification/reference map. Deferred rows remain for traceability and are not tasks. It is not the 100-item test set or a list of approved research items. Test inventory rows are not added or read now."
+  },
+  "validation": {
+    "performed_now": [
+      "Projected structural funnels and count-only capacities",
+      "Current pilot decision status read without mutation",
+      "Targeted source/code inspection for recommendations; no full P1/literature re-audit",
+      "692 unique CSV identities and all decision fields checked; 391 prior identities and their order preserved",
+      "544 occurrence/source content joins,970 inventory/export pairs and588 prior-review pointers checked; all hashed source paths present",
+      "37 pre-edit source hashes and sizes checked against baseline or external read-only cutoff",
+      "Fixture checks (invented data only): type normalization keeps prefix and folds quote/whitespace variants; invented repeated-target approved slice preserves the entire attached prefix in all four inputs; strict numbered selection supports >26 and rejects embedded/multiple/out-of-range answers; whole-answer normalization does not accept negation or invent hyphen aliases; hand-computed paired macro/micro differ under unequal type sizes; fixed hash ordering is invariant to input row order; count-only flow handles shared documents, type caps and augmenting paths on invented graphs",
+      "git diff --check passed after LF CSV serialization",
+      "Corrected a routing omission: current uncertain/exclude_proposed decisions veto eligibility before all split rankings; inspected six non-test רמ״ח occurrences, preserved one recorded exclusion and proposed five additional holds; recomputed the training funnel/ranks without applying research changes.",
+      "Final preservation check: all 135 other tracked files and external PROJECT_PLAN.md match the initial snapshot; only the two authorized proposal files changed. Priority/reserve/dev raw type counts equal normalized type counts (30/8/11), with no quotation-key collisions."
     ],
-    "selected_inventory_hypotheses_offered_by_test_items": 0,
-    "test_evidence_policy": "Occurrence rows are gated on roles before payload access. Selected inventory hypotheses use independent candidate/source exports and selected non-test occurrence/type-review pointers; offered_by test payloads are not inspected or copied.",
-    "whitespace_note": "Initial standard CSV CRLF terminators triggered the repository whitespace check; the new proposal CSV was changed to LF and checked again. Existing files were not reformatted."
+    "not_performed": [
+      "No active test selection, test payload reading, semantic qualification of test, training or scoring",
+      "No model availability or environment validation",
+      "No new release, implementation or approved inventory",
+      "No bootstrap coverage or learning-power validation"
+    ],
+    "independent_review": "Completed by one read-only reviewer on 2026-09-29: independently checked all 692 identities, 391 retained old IDs/order/human fields, source pointers, 37 baseline/external hashes, structural capacities, corrected training funnel and exact ranks, six occurrence holds, authority limits and actionable experiment/scoring contracts. No material unresolved finding for delivery as a proposal. No research data or protocol approval is inferred.",
+    "fixture_boundary": "These are hand-checkable contract/arithmetic fixtures in temporary process memory, not a delivered research implementation or fresh environment validation. The future sampler, model adapter and bootstrap still need implementation tests."
   },
   "scope_artifact": {
     "path": "data/study_v1/review/p2_review_scope_proposed.csv",
-    "sha256": "6b5f0bf82e26a5262b34affa488e20e2dc8f9804f482a7fff585fbc0504d5ded"
-  },
-  "risk_counts_interpretation": "Overlapping proposed inspection categories, not confirmed errors or unresolved judgments. A target category may describe a preserved accepted span; the linguistic-expansion category on every inventory row denotes the mandatory check, not evidence that every hypothesis is invalid. Existing source flags and scope proposals are retained separately in the CSV."
+    "sha256": "c16c6a9798632f3c7dfbc1ec004494c830aeca8a186d1158fe2a6941ea47eb1f"
+  }
 }
