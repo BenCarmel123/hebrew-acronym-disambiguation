@@ -1,5 +1,5 @@
 review_id,review_kind,risk_score,flags,historical_roles,natural_dev_proposed,lookup_file,human_decision,queue_rank
-item-10c8e92234135629f4d76552,item,42,adverse_review|historical_adverse_review|inventory_conflict|label_missing_independent_inventory|review_not_proven,dev,false,item_audit.csv,,1
+item-10c8e92234135629f4d76552,item,42,adverse_review|historical_adverse_review|inventory_conflict|label_missing_independent_inventory|review_not_proven,dev,false,item_audit.csv,exclude_proposed,1
 item-235ac950a8d07ef66294146f,item,42,adverse_review|historical_adverse_review|inventory_conflict|label_missing_independent_inventory|review_not_proven,dev,false,item_audit.csv,,2
 item-2bd0eb5db395a8edb3345c34,item,42,adverse_review|historical_adverse_review|inventory_conflict|label_missing_independent_inventory|review_not_proven,dev,false,item_audit.csv,,3
 item-382a44c42143d88d5ed7d7f7,item,42,adverse_review|historical_adverse_review|inventory_conflict|label_missing_independent_inventory|review_not_proven,dev,false,item_audit.csv,,4
@@ -10,9 +10,9 @@ item-76860c29e6ffacf180b1912c,item,42,adverse_review|historical_adverse_review|i
 item-ccc0ac35ebbcf5f2d36ea8ce,item,42,adverse_review|historical_adverse_review|inventory_conflict|label_missing_independent_inventory|review_not_proven,dev,false,item_audit.csv,,9
 item-e71a3a54feb9c33665b95be1,item,42,adverse_review|historical_adverse_review|inventory_conflict|label_missing_independent_inventory|review_not_proven,dev,false,item_audit.csv,,10
 item-f1dca8a86338c2a2a923debd,item,42,adverse_review|historical_adverse_review|inventory_conflict|label_missing_independent_inventory|review_not_proven,dev,false,item_audit.csv,,11
-item-ab8c75dc07bf0b27830e4ed9,item,36,document_overlap|inventory_conflict|quote_variant|scope_exclusion_proposed|target_multiple,train,false,item_audit.csv,,12
+item-ab8c75dc07bf0b27830e4ed9,item,36,document_overlap|inventory_conflict|quote_variant|scope_exclusion_proposed|target_multiple,train,false,item_audit.csv,exclude_proposed,12
 item-f3a09c80810e01fd297ba4f2,item,36,document_overlap|inventory_conflict|quote_variant|scope_exclusion_proposed|target_multiple,train,false,item_audit.csv,,13
-item-3a7a3e48e2a9580265b4e88d,item,33,inventory_conflict|legacy_id_collision|missing_provenance|review_not_proven|target_prefix_or_embedded,dev,false,item_audit.csv,,14
+item-3a7a3e48e2a9580265b4e88d,item,33,inventory_conflict|legacy_id_collision|missing_provenance|review_not_proven|target_prefix_or_embedded,dev,false,item_audit.csv,correct,14
 item-03ddc027887ce9b05aebf884,item,32,adverse_review|historical_adverse_review|inventory_conflict|review_not_proven,dev,false,item_audit.csv,,15
 item-2aef883e19b23f0905071e20,item,32,adverse_review|historical_adverse_review|inventory_conflict|review_not_proven,dev,false,item_audit.csv,,16
 item-60d7049f5669a64bf5b60b30,item,32,adverse_review|historical_adverse_review|inventory_conflict|review_not_proven,dev,false,item_audit.csv,,17
@@ -21,7 +21,7 @@ item-5900b1c79439b391f2a6c1a7,item,30,document_overlap|inventory_conflict|review
 item-67e59b6e3ead8637aea2effd,item,30,document_overlap|inventory_conflict|review_not_proven|target_multiple,train,false,item_audit.csv,,20
 item-7d792f9060c9b93a279b9ec4,item,30,inventory_conflict|quote_variant|review_not_proven|target_multiple|target_prefix_or_embedded,train,false,item_audit.csv,,21
 item-ad0a11713b58e19598d551f4,item,30,document_overlap|inventory_conflict|review_not_proven|target_multiple,train,false,item_audit.csv,,22
-item-cc8efbd38b16289288662416,item,30,inventory_conflict|quote_variant|review_not_proven|target_multiple|target_prefix_or_embedded,train,false,item_audit.csv,,23
+item-cc8efbd38b16289288662416,item,30,inventory_conflict|quote_variant|review_not_proven|target_multiple|target_prefix_or_embedded,train,false,item_audit.csv,accept,23
 item-e32d38bd2d4e3bbfb50fc827,item,30,inventory_conflict|quote_variant|review_not_proven|target_multiple|target_prefix_or_embedded,train,false,item_audit.csv,,24
 item-89b78fcbf6817bb1ca45adf0,item,29,definition_or_expansion_in_sentence|document_overlap|inventory_conflict|review_not_proven,train,false,item_audit.csv,,25
 item-075ec19c975055e2dd4b4bec,item,28,document_overlap|inventory_conflict|quote_variant|scope_exclusion_proposed,train,false,item_audit.csv,,26
@@ -70,12 +70,12 @@ item-d68cf57fa1223dbd5d188510,item,27,inventory_conflict|quote_variant|scope_exc
 item-dfbc7775807f7e3631d9861b,item,27,inventory_conflict|legacy_id_collision|review_not_proven|target_multiple,train,false,item_audit.csv,,69
 item-f4d35de1273f2701a45e5e88,item,27,inventory_conflict|quote_variant|scope_exclusion_proposed|target_multiple,train,false,item_audit.csv,,70
 item-0909b864171a192541fb5475,item,26,document_overlap|inventory_conflict|quote_variant|target_prefix_or_embedded,train,false,item_audit.csv,,71
-item-40282f0d0e535efd7b8d61f9,item,26,inventory_conflict|target_multiple|uncertain_review,dev,false,item_audit.csv,,72
+item-40282f0d0e535efd7b8d61f9,item,26,inventory_conflict|target_multiple|uncertain_review,dev,false,item_audit.csv,uncertain,72
 item-404c7a338ada0bedaa8d5d66,item,26,inventory_conflict|target_multiple|uncertain_review,dev,false,item_audit.csv,,73
 item-92ccdf3dc23753cdb2906418,item,26,document_overlap|inventory_conflict|quote_variant|target_prefix_or_embedded,train,false,item_audit.csv,,74
 item-c76c0dcf808f7606d537ec4e,item,26,definition_or_expansion_in_sentence|inventory_conflict|quote_variant|target_multiple,train,false,item_audit.csv,,75
 item-b41ebfbce4854fff750a9d16,item,25,inventory_conflict|quote_variant|target_multiple|target_prefix_or_embedded,train,false,item_audit.csv,,76
-item-071438a276299da64e85ba03,item,24,inventory_conflict|quote_variant|review_not_proven|target_multiple,train,false,item_audit.csv,,77
+item-071438a276299da64e85ba03,item,24,inventory_conflict|quote_variant|review_not_proven|target_multiple,train,false,item_audit.csv,accept,77
 item-24fb90899c439b7e93fc2293,item,24,inventory_conflict|quote_variant|review_not_proven|target_multiple,train,false,item_audit.csv,,78
 item-2ad788b07d89dd7e5421b20f,item,24,inventory_conflict|quote_variant|review_not_proven|target_multiple,aggregate_only,false,item_audit.csv,,79
 item-46fb1b90b75a2871698d5fa2,item,24,inventory_conflict|quote_variant|review_not_proven|target_multiple,aggregate_only,false,item_audit.csv,,80
@@ -392,7 +392,7 @@ item-174db7e1e6ac7bf240318886,item,19,inventory_conflict|quote_variant|scope_exc
 item-1bdecfda5022144ae37869b1,item,19,inventory_conflict|quote_variant|scope_exclusion_proposed,train,false,item_audit.csv,,391
 item-1e84177a32d748fd53a7601a,item,19,inventory_conflict|quote_variant|scope_exclusion_proposed,test,false,item_audit.csv,,392
 item-1e93d333eef57c371fa54189,item,19,inventory_conflict|quote_variant|scope_exclusion_proposed,aggregate_only,false,item_audit.csv,,393
-item-1f91791f28b3dd09aede113b,item,19,inventory_conflict|review_not_proven|target_prefix_or_embedded,train,false,item_audit.csv,,394
+item-1f91791f28b3dd09aede113b,item,19,inventory_conflict|review_not_proven|target_prefix_or_embedded,train,false,item_audit.csv,uncertain,394
 item-2529080c236d38c49c07febe,item,19,inventory_conflict|quote_variant|target_multiple,train,false,item_audit.csv,,395
 item-273fda6f01deb155ea1d6d97,item,19,inventory_conflict|quote_variant|scope_exclusion_proposed,test,false,item_audit.csv,,396
 item-2898f0e1b561dd5b0c16dd8c,item,19,inventory_conflict|quote_variant|scope_exclusion_proposed,test,false,item_audit.csv,,397
@@ -590,7 +590,7 @@ item-fd4f7ceb78a8874b88e7a4cd,item,18,inventory_conflict|uncertain_review,dev,fa
 item-076408da0e5d0ec1351eb824,item,17,inventory_conflict|quote_variant|target_prefix_or_embedded,aggregate_only,false,item_audit.csv,,589
 item-bb0ed3dcab0c4c75264608e2,item,17,inventory_conflict|quote_variant|target_prefix_or_embedded,aggregate_only,false,item_audit.csv,,590
 item-01074af7bb09553752142f50,item,16,inventory_conflict|missing_provenance,train,false,item_audit.csv,,591
-item-01ca657bf65d16409a6f0604,item,16,inventory_conflict|quote_variant|review_not_proven,train,false,item_audit.csv,,592
+item-01ca657bf65d16409a6f0604,item,16,inventory_conflict|quote_variant|review_not_proven,train,false,item_audit.csv,accept,592
 item-0393d3a810430ab327a000f0,item,16,inventory_conflict|missing_provenance,test,false,item_audit.csv,,593
 item-046a3c47dc0c7c9442c8fc1d,item,16,inventory_conflict|missing_provenance,train,false,item_audit.csv,,594
 item-04ea81a4e75bccdc7a2d1438,item,16,inventory_conflict|natural_dev_proposal|quote_variant,aggregate_only,true,item_audit.csv,correct,595
@@ -3760,8 +3760,8 @@ item-ff99243be97c3f21c91bedd8,item,13,inventory_conflict|review_not_proven,aggre
 item-ffa6a2bbc2b0e45698f6fb44,item,13,inventory_conflict|review_not_proven,train,false,item_audit.csv,,3759
 item-ffa9846f2ea3f6ecb36a3d27,item,13,inventory_conflict|review_not_proven,train,false,item_audit.csv,,3760
 item-ffc50cd19a2c093e8c6d7382,item,13,inventory_conflict|review_not_proven,train,false,item_audit.csv,,3761
-item-012ab1616381e1f9ffe1909b,item,11,inventory_conflict|quote_variant,train,false,item_audit.csv,,3762
-item-016a87033e83d75caca50524,item,11,inventory_conflict|quote_variant,train,false,item_audit.csv,,3763
+item-012ab1616381e1f9ffe1909b,item,11,inventory_conflict|quote_variant,train,false,item_audit.csv,accept,3762
+item-016a87033e83d75caca50524,item,11,inventory_conflict|quote_variant,train,false,item_audit.csv,exclude_proposed,3763
 item-0199388154af769f1ea76c5a,item,11,inventory_conflict|quote_variant,train,false,item_audit.csv,,3764
 item-0254acae8d9a0307662e2857,item,11,inventory_conflict|quote_variant,test,false,item_audit.csv,,3765
 item-029e37a4db3e8578447a440a,item,11,inventory_conflict|quote_variant,aggregate_only,false,item_audit.csv,,3766
@@ -3769,8 +3769,8 @@ item-031ce24afb1d7717b309f8e7,item,11,quote_variant|scope_exclusion_proposed,tes
 item-044cb7933c7973e146713caa,item,11,inventory_conflict|quote_variant,aggregate_only,false,item_audit.csv,,3768
 item-05026ce63ed908e5e86d8c06,item,11,quote_variant|scope_exclusion_proposed,test,false,item_audit.csv,,3769
 item-052e061fb482ecb350dbf125,item,11,inventory_conflict|quote_variant,aggregate_only,false,item_audit.csv,,3770
-item-056552bb62ebfbd15f750a14,item,11,inventory_conflict|quote_variant,train,false,item_audit.csv,,3771
-item-0595053de96b8d154977c0cf,item,11,inventory_conflict|quote_variant,train,false,item_audit.csv,,3772
+item-056552bb62ebfbd15f750a14,item,11,inventory_conflict|quote_variant,train,false,item_audit.csv,accept,3771
+item-0595053de96b8d154977c0cf,item,11,inventory_conflict|quote_variant,train,false,item_audit.csv,accept,3772
 item-060b31f11b1b354e40f2d62b,item,11,inventory_conflict|quote_variant,aggregate_only,false,item_audit.csv,,3773
 item-061fa4fe8407ddc0bcbc9c3e,item,11,inventory_conflict|quote_variant,train,false,item_audit.csv,,3774
 item-0651d7457dacc6dbfc648a1a,item,11,inventory_conflict|quote_variant,aggregate_only,false,item_audit.csv,,3775
