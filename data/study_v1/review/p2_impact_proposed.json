@@ -1,0 +1,463 @@
+{
+  "schema_version": "p2-readiness-proposal-v1",
+  "status": "proposal_only_not_a_frozen_protocol_or_model_input",
+  "baseline": {
+    "branch": "review-handoff",
+    "repository_commit": "63ffa68224e6350446e9913bec2f8de5ae39d8c0",
+    "snapshot_cutoff_utc": "2026-09-29T10:04:07.134100+00:00",
+    "source_manifest_generation_commit": "64e68af00e5c9dee7942954d51c655f633a51502",
+    "generation_commit_note": "The existing P1 manifest names an earlier generation base; it is not the current decision snapshot or authorization."
+  },
+  "source_hashes": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "ac0416a5fd411e3381c19f37bfeec1351a5e308712930e2cb8e14d94a50866f0",
+      "bytes": 4415,
+      "snapshot": "git:63ffa68224e6350446e9913bec2f8de5ae39d8c0"
+    },
+    {
+      "path": "README.md",
+      "sha256": "1c52c6512c1f964e624a6a3a6a80a341a2bd1dea68da13ac82806bce8faaf2f1",
+      "bytes": 6594,
+      "snapshot": "git:63ffa68224e6350446e9913bec2f8de5ae39d8c0"
+    },
+    {
+      "path": "data/README.md",
+      "sha256": "a708d814578e3f488f6156f15caf25797d8d6da8746b3eb7dc6da77cfe28116e",
+      "bytes": 6368,
+      "snapshot": "git:63ffa68224e6350446e9913bec2f8de5ae39d8c0"
+    },
+    {
+      "path": "data/mined/DATASET_CARD.md",
+      "sha256": "c1a3bcfbfab79d3bdc6205d739dee4687c5a99f493f9473c1b12a51eaf081f8d",
+      "bytes": 12499,
+      "snapshot": "git:63ffa68224e6350446e9913bec2f8de5ae39d8c0"
+    },
+    {
+      "path": "data/mined/candidate_table.csv",
+      "sha256": "f50fbcb3a8461bc83c9af63e6903e948372a4e0c8fcbccf3beb227afb5dd7e40",
+      "bytes": 164985,
+      "snapshot": "git:63ffa68224e6350446e9913bec2f8de5ae39d8c0"
+    },
+    {
+      "path": "data/mined/dev_review.csv",
+      "sha256": "c035e2a7bb8c93f9edea09da52751189250c423d1c0ab188f80c617fed86b6e7",
+      "bytes": 16373,
+      "snapshot": "git:63ffa68224e6350446e9913bec2f8de5ae39d8c0"
+    },
+    {
+      "path": "data/mined/duplicate_review.csv",
+      "sha256": "2cda93579d68b5d7f527d5676fa1c8df0b9e1207f0fca09140bc9a9b5b44802c",
+      "bytes": 17900,
+      "snapshot": "git:63ffa68224e6350446e9913bec2f8de5ae39d8c0"
+    },
+    {
+      "path": "data/mined/knesset/knesset_reviewed.csv",
+      "sha256": "38c50f78ce44847b0a86c95837359487571786a836d93796a9a9fb0bc558e978",
+      "bytes": 449437,
+      "snapshot": "git:63ffa68224e6350446e9913bec2f8de5ae39d8c0"
+    },
+    {
+      "path": "data/mined/merged_counts.csv",
+      "sha256": "53bcb0fc3194f053eaac3f236d7082024b4356ad6b47457047d4d3292b580d49",
+      "bytes": 355500,
+      "snapshot": "git:63ffa68224e6350446e9913bec2f8de5ae39d8c0"
+    },
+    {
+      "path": "data/mined/wikipedia/bullet_counts.csv",
+      "sha256": "ab548f2d8c9192bc646c44375e6c9d1cf938fc70789739b77d1e8d0cad3c05f4",
+      "bytes": 93814,
+      "snapshot": "git:63ffa68224e6350446e9913bec2f8de5ae39d8c0"
+    },
+    {
+      "path": "data/mined/wiktionary/wiktionary_counts.csv",
+      "sha256": "61975200bf04207bb3a7ef0c8a137658c589d5702055c03e7fc6d22470fffc12",
+      "bytes": 282993,
+      "snapshot": "git:63ffa68224e6350446e9913bec2f8de5ae39d8c0"
+    },
+    {
+      "path": "data/splits/all_items.csv",
+      "sha256": "2b9c976e72ee3947f3bb65e7d2da789c56fcf105a040819583ff05011d830960",
+      "bytes": 2200710,
+      "snapshot": "git:63ffa68224e6350446e9913bec2f8de5ae39d8c0"
+    },
+    {
+      "path": "data/splits/dev_items.csv",
+      "sha256": "5da0e0640bc8e841f6d4008243261d074f075feb7316414a579c1f30324665ff",
+      "bytes": 130402,
+      "snapshot": "git:63ffa68224e6350446e9913bec2f8de5ae39d8c0"
+    },
+    {
+      "path": "data/splits/train_items.csv",
+      "sha256": "5014991efe5ba76608c633928644fdfd1ee223e799ebba686a53b7bb246158d8",
+      "bytes": 1451205,
+      "snapshot": "git:63ffa68224e6350446e9913bec2f8de5ae39d8c0"
+    },
+    {
+      "path": "data/study_v1/review/diagnostic_summary.json",
+      "sha256": "04cdc7b95133faced90386fa4233642227ef55ee834b873076e84983f64ffc92",
+      "bytes": 18553,
+      "snapshot": "git:63ffa68224e6350446e9913bec2f8de5ae39d8c0"
+    },
+    {
+      "path": "data/study_v1/review/inventory_proposed.csv",
+      "sha256": "81820c4a6aa7e75a4dafd7fb1d9acef35d4f3ec7457feebca9923d2a0bb281b4",
+      "bytes": 2109934,
+      "snapshot": "git:63ffa68224e6350446e9913bec2f8de5ae39d8c0"
+    },
+    {
+      "path": "data/study_v1/review/item_audit.csv",
+      "sha256": "4b05de5654992113bec2501d6005c58d3ac0cf45f6d3794185a901c7c239399b",
+      "bytes": 5432613,
+      "snapshot": "git:63ffa68224e6350446e9913bec2f8de5ae39d8c0"
+    },
+    {
+      "path": "data/study_v1/review/pilot_coverage.csv",
+      "sha256": "e5273db9016ff47470b158af461d8725e65e0bc6e7b5d7524fdc0136877c3176",
+      "bytes": 1055,
+      "snapshot": "git:63ffa68224e6350446e9913bec2f8de5ae39d8c0"
+    },
+    {
+      "path": "data/study_v1/review/pilot_items.csv",
+      "sha256": "7bf4ac1bbe83a0d0c8a85b3e1e129c0c4291c2ba9a6ceade3ea729c97d9a7f90",
+      "bytes": 10467,
+      "snapshot": "git:63ffa68224e6350446e9913bec2f8de5ae39d8c0"
+    },
+    {
+      "path": "data/study_v1/review/pilot_rubric.md",
+      "sha256": "cca2a9bdb5c0d2aefcb6b0fc7808208b5f3d5b3f974b9e6ac21fd44ac5ffccce",
+      "bytes": 11782,
+      "snapshot": "git:63ffa68224e6350446e9913bec2f8de5ae39d8c0"
+    },
+    {
+      "path": "data/study_v1/review/review_decisions.csv",
+      "sha256": "c5c6314aacdb5cdf1d41692fabe1c5c259586079f456732200824a0b445cf0bb",
+      "bytes": 384029,
+      "snapshot": "git:63ffa68224e6350446e9913bec2f8de5ae39d8c0"
+    },
+    {
+      "path": "data/study_v1/review/review_queue.csv",
+      "sha256": "42fc223b33a7db4cfa1beb30380bea2408ec4c98f7da2dd2f986cebab292df71",
+      "bytes": 882849,
+      "snapshot": "git:63ffa68224e6350446e9913bec2f8de5ae39d8c0"
+    },
+    {
+      "path": "data/study_v1/review/source_manifest.json",
+      "sha256": "590dd95f79488641547ff22cdcdf0ac71381dd068b575f5561aac44b013e990c",
+      "bytes": 8330,
+      "snapshot": "git:63ffa68224e6350446e9913bec2f8de5ae39d8c0"
+    },
+    {
+      "path": "docs/data_processing.md",
+      "sha256": "a4d7cc2577522fb026d08fc29a98fa17f193ae27d73c4c286d442c3d49366d43",
+      "bytes": 4866,
+      "snapshot": "git:63ffa68224e6350446e9913bec2f8de5ae39d8c0"
+    },
+    {
+      "path": "src/hebrew_acronyms/data_processing/prepare_study_review.py",
+      "sha256": "117da785766289b9683d28b49e57a6e4298791398783984abf6a2879736b0a4e",
+      "bytes": 56342,
+      "snapshot": "git:63ffa68224e6350446e9913bec2f8de5ae39d8c0"
+    },
+    {
+      "path": "../PROJECT_PLAN.md",
+      "sha256": "b0784cde1892d5e44a09c8ab7eaa05092df83a447c1279cb0c5c232498d0c30a",
+      "bytes": 266058,
+      "snapshot": "external_read_only_at_agreed_cutoff"
+    }
+  ],
+  "authority": {
+    "authorized_now": "Prepare these two proposal artifacts and independent review only; no research data changes.",
+    "approved_task_rules": [
+      "Use a linguistic expansion valid in sentence usage; entity identification or name etymology alone is insufficient.",
+      "Retain the raw acronym surface including attached prefixes in every condition. Do not use context-dependent prefix stripping for the no-sentence arm."
+    ],
+    "approved_experiment_direction": "Same LLM: generation/selection crossed with sentence/no sentence; smaller Hebrew encoder on task-unseen types; separate natural/AI reporting. Encoder extension requires a future pre-test decision.",
+    "not_authorized": [
+      "P2 data application",
+      "inventory acceptance",
+      "data freeze",
+      "new pilot selection",
+      "low-risk sample selection",
+      "training or evaluation",
+      "encoder extension"
+    ]
+  },
+  "scope_definition": {
+    "recommended_first_step": "Approve stage A as the smallest next review tranche: retain all 16 pilot occurrence decisions, follow up five remaining occurrence/policy issues, and review 95 existing inventory hypotheses independently across those 16 types. Do not repeat accepted label judgments or blind answers.",
+    "staged_envelope": "The CSV also makes subsequent established natural-dev and train natural-Wikipedia work concrete, conditional on scope/capacity approval. It is not a request to review the full queue.",
+    "occurrence_rule": "Union of the unchanged 16 pilot IDs, all 62 established natural-dev proposals, and all 54 historical train wiki_natural occurrences; exclude historical test roles. Deduplicate by stable item ID.",
+    "inventory_rule": "All existing inventory_proposed hypotheses for the 46 selected types, once per inventory ID; select by type association, never by accepting a sentence label. No new candidate is added.",
+    "occurrences": 124,
+    "types": 46,
+    "inventory_hypotheses": 267,
+    "csv_records": 391,
+    "unchanged_pilot_size": 16,
+    "new_pilot_items": 0,
+    "selected_occurrence_categories": {
+      "knesset": 67,
+      "wiki_natural": 54,
+      "wiki_substituted": 2,
+      "manual": 1
+    },
+    "selected_occurrence_roles": {
+      "train": 59,
+      "aggregate_only": 62,
+      "dev": 3
+    },
+    "stage_assignment": "Occurrence: existing pilot, else established natural-dev, else train natural Wikipedia. Inventory: earliest stage containing its type; references in later stages do not add work units.",
+    "counting_rule": "Occurrence IDs and inventory IDs are distinct units with different tasks. Count each ID once across all flags/stages; occurrence records exclude inventory adjudication. Eleven pilot carry-forward records require no new occurrence adjudication in this proposal. Related-ID references and per-risk overlaps are not additional units. Counts are not measured effort or approved benchmark sizes.",
+    "train_natural_wikipedia_scope_note": {
+      "historical_rows_in_envelope": 54,
+      "historical_pilot_eligible_stratum_count": 52,
+      "difference": "The pilot stratum excluded two rows with existing scope proposals. This proposal envelope retains them for scope inspection, not benchmark inclusion; it does not add them to the 16-item pilot or override their existing flags.",
+      "existing_scope_flagged_rows": [
+        {
+          "review_id": "item-1bac54a99f447b764d3d85c6",
+          "historical_roles": "train",
+          "scope_proposal": "gematria_string_rule_proposed"
+        },
+        {
+          "review_id": "item-3e8ce1b70f53b6e322fb573a",
+          "historical_roles": "train",
+          "scope_proposal": "gematria_string_rule_proposed"
+        }
+      ]
+    }
+  },
+  "work_by_dependency_and_risk": [
+    {
+      "stage": "A_pilot_followup",
+      "occurrence_records": 16,
+      "inventory_hypotheses": 95,
+      "proposed_new_occurrence_followups": 5,
+      "dependency": "Shaked approves this bounded review scope before additional human work; inventory decisions remain independent. Later stages depend on capacity and first-stage findings, not automatic expansion."
+    },
+    {
+      "stage": "B_established_natural_dev",
+      "occurrence_records": 58,
+      "inventory_hypotheses": 24,
+      "proposed_new_occurrence_followups": 58,
+      "dependency": "Shaked approves this bounded review scope before additional human work; inventory decisions remain independent. Later stages depend on capacity and first-stage findings, not automatic expansion."
+    },
+    {
+      "stage": "C_train_natural_wikipedia",
+      "occurrence_records": 50,
+      "inventory_hypotheses": 148,
+      "proposed_new_occurrence_followups": 50,
+      "dependency": "Shaked approves this bounded review scope before additional human work; inventory decisions remain independent. Later stages depend on capacity and first-stage findings, not automatic expansion."
+    }
+  ],
+  "risk_counts_overlapping": {
+    "target": 105,
+    "definition": 2,
+    "label": 7,
+    "document": 1,
+    "provenance": 1,
+    "contextual_label": 18,
+    "scope_exclusion_proposed": 2,
+    "inventory_membership": 267,
+    "linguistic_expansion_vs_entity_or_numeral": 267,
+    "missing_independent_export_evidence": 1
+  },
+  "recorded_human_status": {
+    "initial_answers": 16,
+    "occurrence_decisions": 16,
+    "label_decisions": {
+      "accept": 9,
+      "correct": 1,
+      "uncertain": 3,
+      "exclude_proposed": 3
+    },
+    "inventory_decisions": 0,
+    "unchanged_uncertain_review_ids": [
+      "item-1f91791f28b3dd09aede113b",
+      "item-40282f0d0e535efd7b8d61f9",
+      "item-82b09eac472d8c63ed2aec90"
+    ],
+    "unchanged_exclusion_proposal_review_ids": [
+      "item-016a87033e83d75caca50524",
+      "item-10c8e92234135629f4d76552",
+      "item-ab8c75dc07bf0b27830e4ed9"
+    ],
+    "research_decisions_applied": false,
+    "special_preservation": "The first four decisions and all 16 initial answers remain unchanged. BAH label is accepted with target corrected; its initial answer is not changed to the stored label. Rambam remains uncertain. Existing exclusion proposals are not removals or type-wide policies."
+  },
+  "timing": {
+    "source": "data/study_v1/review/review_decisions.csv and diagnostic_summary.json",
+    "decision_rows": 7936,
+    "pilot_rows": 16,
+    "valid_measured_timing_rows": 0,
+    "invalid_timing_rows": 0,
+    "complete_registration_rows": 0,
+    "measured_active_review_seconds": null,
+    "empirical_workload_estimate": null,
+    "reason": "No active-review duration was recorded. Timestamps and chat waiting time are not durations. No entire-queue multiplication or retrospective imputation. Future workload estimates require prospectively measured review/adjudication/inventory times and coverage of the chosen strata."
+  },
+  "deferred_outside_csv": {
+    "remaining_eligible_train_dev_occurrences": 3342,
+    "remaining_critical_flag_union": 555,
+    "remaining_wikipedia_review_not_proven": 2485,
+    "overlap_between_previous_two_groups": 147,
+    "interpretation": "Overlapping counts are remaining review-planning obligations, not authorized selections or benchmark approvals. A later train/dev inventory and critical-occurrence scope is still needed before freeze; this tranche cannot certify all train/dev data.",
+    "low_risk_knesset": "No new sample selected. Shaked must approve fixed sampling scope/rule; existing clean verdicts do not prove present-task eligibility.",
+    "critical_flag_set": [
+      "adverse_review",
+      "definition_or_expansion_in_sentence",
+      "document_overlap",
+      "historical_adverse_review",
+      "label_missing_independent_inventory",
+      "legacy_id_collision",
+      "missing_provenance",
+      "scope_exclusion_proposed",
+      "target_multiple",
+      "target_prefix_or_embedded",
+      "uncertain_review"
+    ],
+    "test": "No test occurrence selected or semantically reviewed; no test sentence, label or candidate disclosed. Test effects below are copied aggregate diagnostics only."
+  },
+  "unresolved_scientific_choices": [
+    {
+      "choice": "Approve the bounded human review tranche and subsequent capacity",
+      "needs_shaked": true,
+      "note": "No empirical time budget exists. Accepting this preparation package did not approve a new human pilot or sample."
+    },
+    {
+      "choice": "Adjudicate the three uncertain occurrences using sources",
+      "needs_shaked": true,
+      "review_ids": [
+        "item-1f91791f28b3dd09aede113b",
+        "item-40282f0d0e535efd7b8d61f9",
+        "item-82b09eac472d8c63ed2aec90"
+      ],
+      "note": "Apply the already approved linguistic-expansion rule; do not reopen it or silently exclude Rambam."
+    },
+    {
+      "choice": "Approve independent inventory membership, canonical forms and any aliases/merges/exclusions",
+      "needs_shaked": true,
+      "note": "Per-item acceptance and export presence are insufficient. Proper names are not globally excluded."
+    },
+    {
+      "choice": "Resolve BAH sentence provenance and handling of explicit in-sentence definitions",
+      "needs_shaked": true,
+      "review_ids": [
+        "item-3a7a3e48e2a9580265b4e88d",
+        "item-c5f94c4458d409441c440fcd"
+      ]
+    },
+    {
+      "choice": "Authorize later P2 application/versioning and structural split policy",
+      "needs_shaked": true,
+      "note": "Three existing exclusion proposals and the recorded correction are preserved; no repeat approval of their registration is requested. Whole-type numeral/name exclusions, missing-provenance handling, document blocking, quote normalization and type-family definitions remain distinct policy choices."
+    },
+    {
+      "choice": "Decide conditional encoder extension before test",
+      "needs_shaked": true,
+      "note": "No extension training membership or budget is approved by this package."
+    }
+  ],
+  "aggregate_structural_implications": {
+    "source": "Existing diagnostic_summary.json; copied historical diagnostics, not recomputed post-decision inputs.",
+    "historical_split_rows": {
+      "train": 3115,
+      "dev": 289,
+      "test": 395
+    },
+    "established_natural_dev_rows": 62,
+    "natural_dev_old_inventory_label_coverage": 32,
+    "natural_dev_if_also_blocking_train_documents": {
+      "rows": 26,
+      "types": 6,
+      "documents": 18,
+      "missing_document_rows": 0,
+      "categories": {
+        "knesset": 26
+      },
+      "observed_type_label_pairs": 7,
+      "stored_candidate_pairs": 120,
+      "historical_pair_builder_pairs": 120
+    },
+    "proposed_train_document_removal_components": {
+      "overlap_test": 114,
+      "additional_overlap_old_dev": 32,
+      "additional_overlap_natural_dev": 28
+    },
+    "historical_train_after_document_proposals": {
+      "rows": 2941,
+      "types": 435,
+      "documents": 1893,
+      "missing_document_rows": 142,
+      "categories": {
+        "knesset": 313,
+        "manual": 142,
+        "wiki_deglossed": 8,
+        "wiki_natural": 54,
+        "wiki_substituted": 2424
+      },
+      "observed_type_label_pairs": 1007,
+      "stored_candidate_pairs": 13164,
+      "historical_pair_builder_pairs": 13164
+    },
+    "conditional_extension_available": {
+      "rows": 273,
+      "types": 40,
+      "documents": 190,
+      "missing_document_rows": 2,
+      "categories": {
+        "manual": 2,
+        "wiki_deglossed": 2,
+        "wiki_substituted": 269
+      },
+      "observed_type_label_pairs": 106,
+      "stored_candidate_pairs": 1413,
+      "historical_pair_builder_pairs": 1413
+    },
+    "capped_extension_diagnostic": {
+      "rows": 155,
+      "types": 35,
+      "documents": 131,
+      "stored_candidate_pairs": 556,
+      "unmatched_rows": 0,
+      "control_rows": 155,
+      "control_pairs": 556,
+      "retained_full_training_usable_pairs": 13164,
+      "replacement_condition_full_usable_pairs": 13164
+    },
+    "non_additivity": "The three pilot exclusion proposals are not subtracted from split or document counts: TQ already has document/scope flags, the two numerical cases have different automated-flag coverage, and policies remain pending. Inventory edits can change candidate pairs for multiple occurrences.",
+    "type_family_risk": "Retaining raw prefixed forms does not prove base-family disjointness. A future context-independent type-family rule may reveal related forms across splits; do not merge types or move items now. Task-unseen does not imply unseen in pretraining.",
+    "recompute_after_future_approval": [
+      "Eligible occurrence and type counts after deduplicated exclusions and provenance resolution",
+      "Independent inventory and alias coverage, candidate totals and full usable pair totals",
+      "Document and type-family leakage/overlap after approved identity policy",
+      "Natural, AI-authored, human-authored, substituted and deglossed reporting strata",
+      "Conditional extension feasibility and control matching; equal batch, epochs, accumulation, drop-last, seed/checkpoint policies and full update totals before any extension"
+    ]
+  },
+  "author_validation": {
+    "selected_source_content_key_matches": 186,
+    "selected_external_csv_references_resolved": 937,
+    "unique_review_ids": 391,
+    "stable_item_and_inventory_hash_ids_recomputed": true,
+    "source_record_snapshots_in_review_links_equal_saved_records": true,
+    "inventory_export_pairs_match_exact_acronym_and_expansion": true,
+    "decision_field_copy_and_16_span_bounds_checked": true,
+    "all_existing_non_README_inputs_equal_baseline_git_bytes": true,
+    "READMEnote": "Read and hash baseline README; its narrow authorized edit belongs to the parallel writing package.",
+    "review_file_hashes_include_full_bytes_ordering_and_pilot_membership": true,
+    "limitations": [
+      "Structural pointer/content checks do not validate semantic correctness or upstream source independence.",
+      "External web evidence cited by human decisions was not re-fetched in this data package.",
+      "No model, pipeline, generator, package import, installation or test suite was run; no fresh environment validation is claimed.",
+      "No complete train/dev audit, inter-annotator agreement, model result, empirical error rate or timing estimate is claimed.",
+      "Independent reviewer findings are reported separately by the coordinator, not asserted by the author."
+    ],
+    "selected_inventory_hypotheses_offered_by_test_items": 0,
+    "test_evidence_policy": "Occurrence rows are gated on roles before payload access. Selected inventory hypotheses use independent candidate/source exports and selected non-test occurrence/type-review pointers; offered_by test payloads are not inspected or copied.",
+    "whitespace_note": "Initial standard CSV CRLF terminators triggered the repository whitespace check; the new proposal CSV was changed to LF and checked again. Existing files were not reformatted."
+  },
+  "scope_artifact": {
+    "path": "data/study_v1/review/p2_review_scope_proposed.csv",
+    "sha256": "6b5f0bf82e26a5262b34affa488e20e2dc8f9804f482a7fff585fbc0504d5ded"
+  },
+  "risk_counts_interpretation": "Overlapping proposed inspection categories, not confirmed errors or unresolved judgments. A target category may describe a preserved accepted span; the linguistic-expansion category on every inventory row denotes the mandatory check, not evidence that every hypothesis is invalid. Existing source flags and scope proposals are retained separately in the CSV."
+}
