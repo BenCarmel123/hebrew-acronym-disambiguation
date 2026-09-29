@@ -26,8 +26,10 @@ AI-authored examples remain disclosed in the [data documentation](data/README.md
 | [docs/](docs/) | [Course sources](docs/course/README.md), command references and [checkpoint notes](docs/checkpoints.md). |
 | [tests/](tests/) | Baseline-equivalence tests and invented fixtures, separate from research data. |
 
-The manuscript and its figures will live in `paper/` when writing begins; no empty
-paper scaffold is maintained. Checkpoint files remain local and ignored by Git.
+The working [manuscript](paper/manuscript.md) and [bibliography](paper/references.bib)
+live in `paper/`. The draft describes the approved research direction and pending
+method settings; it contains no current experimental results. Checkpoint files
+remain local and ignored by Git.
 
 [AGENTS.md](AGENTS.md) is the single source of operating instructions for agents.
 The coordinator maintains the existing project plan at `../PROJECT_PLAN.md`, alongside
