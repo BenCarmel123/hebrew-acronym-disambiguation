@@ -1,4 +1,4 @@
-"""E1 contracts on invented inputs and a tiny encoder only; no research claims."""
+"""Encoder contracts on invented inputs and a tiny encoder only; no research claims."""
 from contextlib import redirect_stdout
 from copy import deepcopy
 import io
