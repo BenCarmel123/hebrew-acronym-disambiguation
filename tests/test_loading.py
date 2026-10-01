@@ -248,13 +248,35 @@ class LoadingEquivalenceTests(unittest.TestCase):
         old, new = [definition(PIPELINE, "run", baseline) for baseline in (True, False)]
         _, old.body = loading_block(old)
         _, new.body = loading_block(new)
+        # E1-I adds only a leading checkpoint rejection. Its timing and side-effect
+        # contract are tested in test_pipeline_contract; compare every remaining
+        # statement against the historical baseline, including the no-checkpoint path.
+        guard = new.body.pop(0)
+        self.assertIsInstance(guard, ast.If)
+        self.assertEqual(ast.unparse(guard.test), "checkpoint is not None")
+        self.assertEqual(len(guard.body), 1)
+        self.assertIsInstance(guard.body[0], ast.Raise)
+        self.assertEqual(guard.orelse, [])
         self.assertEqual(ast.dump(new), ast.dump(migrated_imports(old)))
         for path, names in ((PIPELINE, ("main", "to_markdown")),
                             (EVAL, ("embed", "evaluate")),
                             ("model/baselines.py", ("load_signals", "evaluate", "main"))):
             for name in names:
-                self.assertEqual(ast.dump(definition(path, name)),
-                                 ast.dump(migrated_imports(definition(path, name, True))))
+                current, previous = definition(path, name), definition(path, name, True)
+                if path == PIPELINE and name == "main":
+                    # E1-I also corrects checkpoint help; every other CLI statement
+                    # and default must remain identical to the baseline.
+                    help_values = []
+                    for function in (current, previous):
+                        argument = next(node for node in ast.walk(function)
+                                        if isinstance(node, ast.Call) and node.args
+                                        and isinstance(node.args[0], ast.Constant)
+                                        and node.args[0].value == "--checkpoint")
+                        help_values.append(next(k for k in argument.keywords if k.arg == "help"))
+                    self.assertEqual(ast.literal_eval(help_values[0].value),
+                                     "currently rejected before input reads; use the E1 item-record evaluator")
+                    help_values[0].value = help_values[1].value
+                self.assertEqual(ast.dump(current), ast.dump(migrated_imports(previous)))
 
     def test_cross_encoder_selects_highest_score_and_first_tie(self):
         from hebrew_acronyms.models.dictabert_cross_encoder import eval as cross_eval

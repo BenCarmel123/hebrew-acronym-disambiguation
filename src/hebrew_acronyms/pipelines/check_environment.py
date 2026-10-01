@@ -11,13 +11,15 @@ from hebrew_acronyms.models.dictabert_cross_encoder.workflow import enable_offli
 
 
 def check_pairs() -> list[tuple[str, str, int]]:
-    """Check two invented sentences, including Hebrew/ASCII quote equivalence."""
+    """Check two invented sentences with explicit IDs and exact raw target spans."""
     from hebrew_acronyms.models.common.pairs import build_pairs
 
     rows = [
-        {"sentence": 'היום נערך מפגש של ב״ד בכיתה.', "acronym": 'ב״ד',
+        {"item_id": "environment-1", "sentence": 'היום נערך מפגש של ב״ד בכיתה.',
+         "acronym": 'ב״ד', "target_raw": 'ב״ד', "span_start": 18, "span_end": 21,
          "candidates": 'בדיקת דוגמה | בניית דגם', "gold_expansion": 'בדיקת דוגמה'},
-        {"sentence": 'מחר נציג ב"ד קטן.', "acronym": 'ב״ד',
+        {"item_id": "environment-2", "sentence": 'מחר נציג ב"ד קטן.',
+         "acronym": 'ב״ד', "target_raw": 'ב"ד', "span_start": 9, "span_end": 12,
          "candidates": 'בדיקת דוגמה | בניית דגם', "gold_expansion": 'בניית דגם'},
     ]
     expected = [
