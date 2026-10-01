@@ -1,4 +1,4 @@
-"""Offline P1 proposals; never build model inputs or alter source/decision values.
+"""Offline data-review proposals; never build model inputs or alter source/decision values.
 
 Run the installed package from the repository root::
     python -m hebrew_acronyms.data_processing.prepare_study_review --repo .
@@ -656,7 +656,7 @@ def prepare(repo):
     return metrics
 
 
-RUBRIC = '''# P1 human data-review pilot
+RUBRIC = '''# Human data-review pilot
 
 These are proposals, not approved model inputs. Current registration counts and
 recorded timings are derived from decision rows in `diagnostic_summary.json`;
@@ -773,7 +773,7 @@ Only `data/study_v1/review` is written; existing decision values are preserved t
 bytes are preserved on repeat runs with the same expanded schema and source hashes. Changed sources or orphan decision IDs stop the
 run for explicit reconciliation. CSV source references count records, not lines.
 
-Local environment caveat observed during P1: the existing editable installation's
+Local environment caveat observed during data review: the existing editable installation's
 `.venv/lib/python3.12/site-packages/__editable__.hebrew_acronym_disambiguation-0.1.0.pth`
 intermittently acquires the macOS `hidden` flag, causing `ModuleNotFoundError`.
 If this recurs, inspect that exact file with `ls -lO`; when `hidden` is present,

@@ -1,11 +1,7 @@
 # Hebrew Acronym Disambiguation: Candidate Access and Sentence Context
 
-**Working manuscript — protocol pending (status clarified 1 October 2026).** This draft develops
-the approved research direction and task rules. Remaining method settings are
-proposals, not a frozen benchmark or completed experiments. P1 was an earlier
-structural preparation package; it does not authorize further execution. Scientific
-decisions remain with Shaked under the [central project plan](../../PROJECT_PLAN.md).
-No abstract, results, or empirical conclusions are asserted at this stage.
+**Working manuscript.** Method settings remain provisional and experiments are
+pending. No abstract, results, or empirical conclusions are asserted at this stage.
 Citation keys resolve in [references.bib](references.bib).
 
 ## 1 Introduction
@@ -185,7 +181,7 @@ eligibility. Natural development candidates are being audited separately from th
 largely substituted historical development set. Their scores, if later obtained,
 would not be pooled without an explicit scientific decision.
 
-P1 produced a [source manifest](../data/study_v1/review/source_manifest.json),
+Preliminary data review produced a [source manifest](../data/study_v1/review/source_manifest.json),
 [item audit](../data/study_v1/review/item_audit.csv),
 [proposed inventory](../data/study_v1/review/inventory_proposed.csv), and
 [review queue](../data/study_v1/review/review_queue.csv). These are review artifacts,
@@ -266,7 +262,7 @@ matching source, example count, candidate-pair count, and optimizer-update budge
 Adding examples without replacement would confound exposure with training volume.
 Matching item counts alone is insufficient when inventory sizes differ.
 
-P1 assessed only structural feasibility in
+The preliminary audit assessed only structural feasibility in
 [extension_feasibility.csv](../data/study_v1/review/extension_feasibility.csv).
 Eligibility must be based on provenance, separation, and matching constraints,
 without system scores or choosing examples to match a test answer. Label coverage
@@ -274,8 +270,7 @@ is a descriptive diagnostic after structural selection, not an eligibility filte
 Even a feasible replacement can leave unequal sense coverage, input lengths, or
 examples per type. Inventories must therefore be reconciled before matching is
 accepted. The extension remains conditional and requires an explicit decision before test
-evaluation, independent of test scores. P1 constructed no active replacement
-training set.
+evaluation, independent of test scores. No replacement training set was constructed.
 
 ### 3.5 Proposed evaluation and uncertainty
 

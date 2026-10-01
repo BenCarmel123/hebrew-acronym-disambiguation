@@ -43,6 +43,9 @@
   companion and `notebooks/train_dictabert.ipynb` as the training appendix. Extend
   the main notebook as approved research components are completed. Its current
   outline is not a finalized protocol or evidence of completed experiments.
+- Use descriptive scientific or technical names in committed files, notebooks and
+  commit messages. Internal work-package labels belong only in the external
+  coordination plan. Preserve historical research artifacts and their provenance.
 - Write concise formal English technical documentation. README serves readers; this
   file serves agents. Explain NLP terms for readers with basic ML knowledge. Record AI
   assistance truthfully when preparing submission material; do not claim human work.

@@ -1,4 +1,4 @@
-"""P1 diagnostic tests on invented files only; no models, research or network."""
+"""Data-review diagnostic tests on invented files only; no models, research or network."""
 import csv
 import hashlib
 import importlib

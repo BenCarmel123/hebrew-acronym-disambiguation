@@ -147,6 +147,6 @@ def build_pairs(rows: list[dict]) -> PreparedPairs:
 
 
 def describe_skips(rows: list[dict]) -> dict:
-    """Validate the full input. E1 no longer silently drops training rows."""
+    """Validate the full input without silently dropping training rows."""
     build_pairs(rows)
     return {"total": len(rows), "usable": len(rows), "skipped": 0}
