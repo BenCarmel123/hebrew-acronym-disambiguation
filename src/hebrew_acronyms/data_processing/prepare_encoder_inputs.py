@@ -328,6 +328,30 @@ def csv_bytes(rows, fields):
     return stream.getvalue().encode('utf-8')
 
 
+def apply_dr_bdr_separation(rows, decisions):
+    """Apply the approved exact pair only; never infer or strip Hebrew prefixes."""
+    applied = {}
+    for decision in decisions:
+        if ((decision.get('train_type'), decision.get('dev_type'), decision.get('action'))
+                != ('ד״ר', 'בד״ר', 'hold') or decision['decision_id'] in applied):
+            raise ValueError('Only the explicit dr/bdr separation decision is supported')
+        human = decision.get('human_decision', {})
+        if (human.get('status') != 'approved' or human.get('reviewer') != 'Shaked'
+                or not human.get('response')):
+            raise ValueError('Split separation requires saved human approval')
+        held_ids = []
+        if any(r['split'] == 'dev' and r['acronym'] == 'בד״ר' for r in rows):
+            for row in rows:
+                if row['split'] == 'train' and row['acronym'] == 'ד״ר' and not row['reasons']:
+                    row['reasons'].append('approved_dr_bdr_split_overlap')
+                    evidence = json.loads(row['applied_decision_json'])
+                    evidence['split_separation'] = decision
+                    row['applied_decision_json'] = canonical(evidence)
+                    held_ids.append(row['item_id'])
+        applied[decision['decision_id']] = sorted(held_ids)
+    return applied
+
+
 def prepare_inputs(*, train_path, historical_dev_path, audit_path, decisions_path,
                    policy_path, output_dir):
     """Explicit saved inputs -> deterministic derivatives. No upstream file traversal."""
@@ -442,6 +466,7 @@ def prepare_inputs(*, train_path, historical_dev_path, audit_path, decisions_pat
             for row in rows:
                 row['duplicate_group'] = 'dup-' + digest(key)[:24]
                 row['reasons'].append('duplicate_text_group_held')
+    split_holds = apply_dr_bdr_separation(traces, policy.get('split_decisions', []))
     train, dev, singleton = [], [], []
     for row in traces:
         reasons = sorted(set(row['reasons']))
@@ -485,6 +510,10 @@ def prepare_inputs(*, train_path, historical_dev_path, audit_path, decisions_pat
             'nonexclusive_reasons': dict(sorted(Counter(reason for r in rows for reason in r['reasons'].split('|') if reason).items())),
             'source_construction_status': [dict(zip(('source', 'construction', 'status', 'rows'), (*key, count)))
                 for key, count in sorted(Counter((r['source'], r['construction'], r['status']) for r in rows).items())]}
+    dev_items_by_type = Counter(r['acronym'] for r in dev)
+    dev_labels_by_type = defaultdict(set)
+    for row in dev:
+        dev_labels_by_type[row['acronym']].add(row['gold_expansion'])
     pending_local = sum(any(a.get('status') != 'approved'
         for a in [d['human_decision'], *d.get('additional_human_approvals', [])])
         for d in policy.get('item_decisions', []))
@@ -499,6 +528,12 @@ def prepare_inputs(*, train_path, historical_dev_path, audit_path, decisions_pat
                               'type_ids_sha256': digest(canonical(sorted(reserved_types))),
                               'document_ids_sha256': digest(canonical(sorted(reserved_docs)))},
         'qualification_flow': qualification_flow,
+        'split_separation': {'decisions': policy.get('split_decisions', []), 'held_item_ids': split_holds},
+        'dev_distribution': {
+            'items_by_type': dict(sorted(dev_items_by_type.items())),
+            'observed_gold_counts_by_type': {k: len(v) for k, v in sorted(dev_labels_by_type.items())},
+            'types_with_one_item': sum(n == 1 for n in dev_items_by_type.values()),
+            'types_with_one_observed_gold': sum(len(v) == 1 for v in dev_labels_by_type.values())},
         'counts': {'train': counts(train), 'dev': counts(dev), 'dev_singletons': counts(singleton),
                    'all_scoped_rows': len(traces), 'pair_counts': pair_counts,
                    'status_by_split': {s: dict(sorted(Counter(r['status'] for r in traces if r['split'] == s).items())) for s in ('train', 'dev')},

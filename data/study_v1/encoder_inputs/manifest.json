@@ -67,7 +67,7 @@
   "code": {
     "contract_sha256": "3ef8dd7ee316ff40c09b73fad637954d312476a03885cdde8a2b950567172c18",
     "module": "src/hebrew_acronyms/data_processing/prepare_encoder_inputs.py",
-    "sha256": "dd8f2078046607f58d5f9154306d41ad46fe886f5246360c23c9a81c2261a933"
+    "sha256": "8963f835d4431204d50e42fd3d25e8279b7ee0e9c237a67ef00a9e70459634a5"
   },
   "counts": {
     "all_scoped_rows": 3466,
@@ -100,7 +100,7 @@
     },
     "pair_counts": {
       "dev": 331,
-      "train": 12065
+      "train": 12020
     },
     "reasons_by_split": {
       "dev": {
@@ -113,6 +113,7 @@
         "target_multiple": 7
       },
       "train": {
+        "approved_dr_bdr_split_overlap": 11,
         "dev_document_overlap": 60,
         "dev_text_overlap": 1,
         "duplicate_text_group_held": 2,
@@ -131,41 +132,71 @@
       },
       "train": {
         "excluded": 2,
-        "held": 437,
-        "included_pair_loss": 2676
+        "held": 448,
+        "included_pair_loss": 2665
       }
     },
     "train": {
       "construction": {
         "deglossed": 8,
-        "natural": 344,
-        "substituted": 2324
+        "natural": 341,
+        "substituted": 2316
       },
-      "documents": 1852,
+      "documents": 1847,
       "label_evidence": {
         "Shaked_review_with_AI_assistance": 6,
-        "historical_human_review_attributed_to_Ben": 292,
-        "stored_training_label_not_independently_verified": 2378
+        "historical_human_review_attributed_to_Ben": 291,
+        "stored_training_label_not_independently_verified": 2368
       },
       "label_origin": {
         "deglossed": 8,
-        "human_review": 295,
-        "substitution": 2324,
-        "wikipedia_natural": 49
+        "human_review": 294,
+        "substitution": 2316,
+        "wikipedia_natural": 47
       },
-      "rows": 2676,
+      "rows": 2665,
       "source": {
-        "knesset": 295,
-        "wikipedia": 2381
+        "knesset": 294,
+        "wikipedia": 2371
       },
-      "types": 433
+      "types": 432
     }
+  },
+  "dev_distribution": {
+    "items_by_type": {
+      "א״ח": 8,
+      "בד״ר": 7,
+      "חמ״ס": 9,
+      "ח״כ": 1,
+      "מט״ח": 7,
+      "ממ״ק": 1,
+      "מר״מ": 1,
+      "נ״ר": 15,
+      "רמב״ם": 11,
+      "שב״ח": 1,
+      "ת״ז": 1
+    },
+    "observed_gold_counts_by_type": {
+      "א״ח": 1,
+      "בד״ר": 1,
+      "חמ״ס": 1,
+      "ח״כ": 1,
+      "מט״ח": 1,
+      "ממ״ק": 1,
+      "מר״מ": 1,
+      "נ״ר": 1,
+      "רמב״ם": 1,
+      "שב״ח": 1,
+      "ת״ז": 1
+    },
+    "types_with_one_item": 5,
+    "types_with_one_observed_gold": 11
   },
   "limits": [
     "Reproduction begins with retained exports and decisions; it does not reconstruct original Internet mining or original API responses.",
     "Technical qualification does not independently establish every training label or negative candidate as correct. Historical declared AI model names are preserved, not verified.",
     "Development is a small curated Knesset sample; historical human review is reused where content matches. No new blind annotation, inter-annotator agreement or model performance was measured.",
-    "Overlap guarantees concern exact stored type/document IDs and authorized train/dev duplicate text only. No test text was inspected for duplicates; document aliases, prefix families and pretraining exposure are not resolved.",
+    "Overlap guarantees concern exact stored type/document IDs, the explicitly approved dr/bdr separation pair, and authorized train/dev duplicate text only. No test text was inspected for duplicates; other document aliases, prefix families and pretraining exposure are not resolved.",
     "Unknown-role audit rows remain inaccessible; missing source-to-audit membership stops export. Missing document provenance is held.",
     "Preparation readiness is subject to project-manager review. Model tokenization/length limits and Colab training belong to the next package.",
     "The approved Rambam interpretation accepts a linguistic expansion of the proper name even when the sentence refers to the hospital or street. This bounded clarification is not a general entity/etymology policy and is disclosed separately from historical referent labeling."
@@ -282,12 +313,12 @@
       "sha256": "17627f8933a706dd2b3e60858197312f47bad0fa487b5d96b2b517d3903c3cd9"
     },
     "trace.csv": {
-      "bytes": 7335048,
-      "sha256": "7b43694a3d4306041c8c2e4f308fde4aaf620fdc1ced3ebe7b85fa91254871ba"
+      "bytes": 7348358,
+      "sha256": "93bb156a0a8dce98a0d398697ac1d9a2509f021e8549145b99464aea9685bbbe"
     },
     "train.csv": {
-      "bytes": 2040052,
-      "sha256": "3251ee62a7f97397ecf4a7439d58058ef8db94d10de3ec6f64669c9dd4a8c191"
+      "bytes": 2032295,
+      "sha256": "97315483ce630bfb5e4a7e8afce013a827efa0956e7d29e6faf60ec85ed2d0ac"
     }
   },
   "qualification_flow": {
@@ -344,6 +375,7 @@
     "train_export": {
       "input_rows": 3115,
       "nonexclusive_reasons": {
+        "approved_dr_bdr_split_overlap": 11,
         "dev_document_overlap": 60,
         "dev_text_overlap": 1,
         "duplicate_text_group_held": 2,
@@ -369,13 +401,13 @@
         },
         {
           "construction": "natural",
-          "rows": 158,
+          "rows": 159,
           "source": "knesset",
           "status": "held"
         },
         {
           "construction": "natural",
-          "rows": 295,
+          "rows": 294,
           "source": "knesset",
           "status": "included_pair_loss"
         },
@@ -387,33 +419,33 @@
         },
         {
           "construction": "natural",
-          "rows": 5,
+          "rows": 7,
           "source": "wikipedia",
           "status": "held"
         },
         {
           "construction": "natural",
-          "rows": 49,
+          "rows": 47,
           "source": "wikipedia",
           "status": "included_pair_loss"
         },
         {
           "construction": "substituted",
-          "rows": 132,
+          "rows": 140,
           "source": "wikipedia",
           "status": "held"
         },
         {
           "construction": "substituted",
-          "rows": 2324,
+          "rows": 2316,
           "source": "wikipedia",
           "status": "included_pair_loss"
         }
       ],
       "status": {
         "excluded": 2,
-        "held": 437,
-        "included_pair_loss": 2676
+        "held": 448,
+        "included_pair_loss": 2665
       }
     }
   },
@@ -443,7 +475,8 @@
     "Block exact reserved type/document matches in train and dev, and block training against all historical/proposed dev types, documents and text. No automatic document aliases or linguistic type-family normalization.",
     "Pair-loss inputs require at least two distinct candidates and exactly one trimmed positive under the unchanged encoder contract. Otherwise-qualified singleton dev is prediction/descriptive only.",
     "Write stable sorted CSVs and a manifest with source/code/output hashes, counts and applied decisions. No clock-dependent fields or repeated LLM calls.",
-    "Local AI semantic/target proposals bind exact saved input hashes and remain held until a recorded explicit Shaked approval; approved candidate replacements replace an existing entry, never add gold to pass a check."
+    "Local AI semantic/target proposals bind exact saved input hashes and remain held until a recorded explicit Shaked approval; approved candidate replacements replace an existing entry, never add gold to pass a check.",
+    "Apply only the explicitly approved exact dr/bdr split separation: otherwise eligible train ד״ר is held when בד״ר is reserved for dev. Do not strip prefixes, merge types or change labels/candidates/targets; existing holds remain unchanged."
   ],
   "schema_version": "encoder-inputs-v1",
   "sources": {
@@ -457,7 +490,7 @@
     },
     "local_policy": {
       "path": "data/study_v1/encoder_inputs/local_decisions.json",
-      "sha256": "66ef64e877f0c28dd1a0b982e4b8eaebc2f8cf4f4776c4c93c448acf36eed5c9"
+      "sha256": "1580dfcdd5365dca2158af771e3e70e88111a3d289859e7f349d41260cd868a0"
     },
     "scoped_audit_source": {
       "path": "data/study_v1/review/item_audit.csv",
@@ -466,6 +499,53 @@
     "train_export": {
       "path": "data/splits/train_items.csv",
       "sha256": "5014991efe5ba76608c633928644fdfd1ee223e799ebba686a53b7bb246158d8"
+    }
+  },
+  "split_separation": {
+    "decisions": [
+      {
+        "action": "hold",
+        "baseline_train_item_ids": [
+          "enc-1f51a3b4fde44cec8f6255ec06b2fb08",
+          "enc-3d837b241d370e5a84f63741d2394628",
+          "enc-492fe4b8ca1d118336e0c2686029707c",
+          "enc-680f019ea49f2c8d7026a62858f00112",
+          "enc-7047e0363fa04fda28ef8fd1668972c6",
+          "enc-7e8a3c1d9d8a552036530b6641e4caf1",
+          "enc-88dfc1ca3aae451f4ed3fa4f7334a9a5",
+          "enc-acde09a47b12ae7ec4fdc7fbfb3d359e",
+          "enc-ae5b2c150e15741112c24c073aa0d8a7",
+          "enc-b255940452020ad90ca83662b75ce95d",
+          "enc-ec87492f73f0286c44166070c85aecc0"
+        ],
+        "decision_id": "split-dr-bdr-train-hold",
+        "dev_type": "בד״ר",
+        "human_decision": {
+          "date": "2026-10-01",
+          "response": "מאשר להוציא את 11 פריטי ד״ר מהאימון",
+          "reviewer": "Shaked",
+          "source": "Explicit approval quoted in the user correction request; split separation only, not label adjudication.",
+          "status": "approved"
+        },
+        "reason": "Prevent task-training exposure through the explicitly identified dr/bdr pair. Hold all otherwise eligible training dr items, regardless of their label; preserve all item fields and other acronym types.",
+        "reference_commit": "5d472c6fcf252670be9fa30b0ab468f029168886",
+        "train_type": "ד״ר"
+      }
+    ],
+    "held_item_ids": {
+      "split-dr-bdr-train-hold": [
+        "enc-1f51a3b4fde44cec8f6255ec06b2fb08",
+        "enc-3d837b241d370e5a84f63741d2394628",
+        "enc-492fe4b8ca1d118336e0c2686029707c",
+        "enc-680f019ea49f2c8d7026a62858f00112",
+        "enc-7047e0363fa04fda28ef8fd1668972c6",
+        "enc-7e8a3c1d9d8a552036530b6641e4caf1",
+        "enc-88dfc1ca3aae451f4ed3fa4f7334a9a5",
+        "enc-acde09a47b12ae7ec4fdc7fbfb3d359e",
+        "enc-ae5b2c150e15741112c24c073aa0d8a7",
+        "enc-b255940452020ad90ca83662b75ce95d",
+        "enc-ec87492f73f0286c44166070c85aecc0"
+      ]
     }
   }
 }

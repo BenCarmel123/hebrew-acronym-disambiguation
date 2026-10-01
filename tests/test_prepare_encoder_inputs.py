@@ -316,6 +316,48 @@ class EndToEndFixtures(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'reserved blockers may be incomplete'):self.run_preparation()
         self.assertFalse((self.root/'outputs').exists())
 
+    def test_dr_bdr_split_hold_is_explicit_and_label_independent(self):
+        self.train = [
+            source(acronym='ד״ר', sentence='היום ד״ר הופיע.', label='דוקטור', page_title='doc one'),
+            source(acronym='ד״ר', sentence='נבדק ד״ר בספר.', label='דפוס ראשון', page_title='doc two'),
+            source(acronym='מח״כ', sentence='היום מח״כ נבדק.', label='מחוסר כיפורים', page_title='doc three')]
+        self.audits = [audit(r, record=i) for i,r in enumerate(self.train,1)]
+        for i, acronym in enumerate(('בד״ר', 'ח״כ'),1):
+            row = source(acronym=acronym, sentence=f'נבדק {acronym} היום.',
+                source='knesset', category='knesset', label_origin='human_review',
+                review_verdict='clean', page_title=f'dev document {i}')
+            a = audit(row, 'aggregate_only', record=i, natural=True)
+            a['review_evidence_json'] = p.canonical([evidence(row)])
+            self.audits.append(a)
+        self.run_preparation()
+        before_train = self.outputs('train.csv')
+        before_trace = {r['item_id']: r for r in self.outputs('trace.csv')}
+        before_dev = (self.root/'outputs'/'dev.csv').read_bytes()
+        self.policy['split_decisions'] = [{
+            'decision_id':'split-dr-bdr-fixture', 'train_type':'ד״ר', 'dev_type':'בד״ר', 'action':'hold',
+            'human_decision':{'status':'approved','reviewer':'Shaked','response':'Invented explicit fixture approval'}}]
+        m = self.run_preparation()
+        self.assertEqual(self.outputs('train.csv'),[r for r in before_train if r['acronym']=='מח״כ'])
+        self.assertEqual((self.root/'outputs'/'dev.csv').read_bytes(),before_dev)
+        held = []
+        for row in self.outputs('trace.csv'):
+            previous = before_trace[row['item_id']]
+            if row['split']=='train' and row['acronym']=='ד״ר':
+                held.append(row['item_id'])
+                self.assertEqual(row['status'],'held')
+                self.assertEqual(row['reasons'],'approved_dr_bdr_split_overlap')
+                for field in p.INPUT_FIELDS:
+                    self.assertEqual(row[field],previous[field])
+                self.assertIn('split_separation',json.loads(row['applied_decision_json']))
+            else:
+                self.assertEqual(row,previous)
+        self.assertEqual(len(held),2)
+        self.assertEqual(m['split_separation']['held_item_ids']['split-dr-bdr-fixture'],sorted(held))
+        self.policy['split_decisions'][0]['train_type']='מח״כ'
+        self.policy['split_decisions'][0]['dev_type']='ח״כ'
+        with self.assertRaisesRegex(ValueError,'Only the explicit dr/bdr'):
+            self.run_preparation()
+
     def test_explicit_forbidden_input_fails_before_any_read(self):
         with patch.object(p,'file_hash',side_effect=AssertionError('No file may be read')):
             with self.assertRaisesRegex(ValueError,'Direct test/aggregate'):
