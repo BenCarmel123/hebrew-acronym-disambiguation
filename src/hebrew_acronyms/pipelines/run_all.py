@@ -5,7 +5,9 @@ script just calls each arm's evaluate() directly and collects the numbers, so th
 report has one table instead of seven separate command outputs to copy by hand.
 
     python -m hebrew_acronyms.pipelines.run_all
-    python -m hebrew_acronyms.pipelines.run_all --checkpoint weights/dictabert-crossenc-<ts>.pt
+
+Checkpoint runs are rejected before input reads or model/service calls while
+benchmark metric aggregation for E1 item records remains pending.
 """
 from __future__ import annotations
 
@@ -23,6 +25,13 @@ from hebrew_acronyms.models.dictabert_similarity.eval import evaluate as evaluat
 
 def run(items_path: str, candidates_path: str, checkpoint: str | None,
         skip_llm: bool) -> list[dict]:
+    if checkpoint is not None:
+        raise ValueError(
+            "run_all with a checkpoint is unavailable: benchmark metric aggregation "
+            "for E1 item records is pending. Use the item-record path in "
+            "hebrew_acronyms.models.dictabert_cross_encoder.eval with explicit "
+            "authorized inputs; no input files, models or services have been accessed."
+        )
     rows = load_rows(items_path)
     results = []
 
@@ -85,7 +94,7 @@ def main() -> None:
     ap.add_argument("--items", default="data/splits/dev_items.csv")
     ap.add_argument("--candidates", default="data/mined/candidate_table.csv")
     ap.add_argument("--checkpoint", default=None,
-                    help="dictabertX checkpoint; that arm is skipped if not given")
+                    help="currently rejected before input reads; use the E1 item-record evaluator")
     ap.add_argument("--skip-llm", action="store_true",
                     help="skip qwen/gemini arms (slow — local-model/API calls)")
     ap.add_argument("--out", default="results/all_arms_summary.md")

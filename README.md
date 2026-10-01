@@ -85,6 +85,18 @@ dependency list. It pins selected packages, not the complete transitive environm
 reference commits required by the equivalence tests; missing history is a failure,
 not a skipped pass. The old `nlp-hw-team` repository remains a separate historical source.
 
+Verify the installed package in a fresh interpreter first:
+
+```bash
+.venv/bin/python -I -B -c "import hebrew_acronyms.pipelines.run_all"
+```
+
+If the local editable installation cannot import, use a separate virtual environment
+outside the repository, reuse the existing local dependencies and install the project
+there with `pip install --no-index --no-deps --no-build-isolation -e .`. Verify the
+fresh-process import again and use that environment's Python for checks. Do not rely
+on `sys.path`/`PYTHONPATH` overrides; this does not repair the original `.venv`.
+
 Run from the repository root, each command in a fresh process:
 
 ```bash
@@ -157,14 +169,14 @@ use absolute tolerance `1e-7` with zero relative tolerance. GPU training, real D
 learning and research quality remain unverified. Both notebook modes and sanity block
 network access for the lifetime of the process; restart before unrelated network work.
 
-**Known E1 integration limitation:** the separate `pipelines.check_environment`
-command above still constructs legacy fixture rows without IDs/spans. Its pair check
-will fail under the new contract. Shaked explicitly requested leaving that file
-unchanged; use the tested notebook runners for E1 checks pending a separately scoped
-fixture update. The checkpoint branch of `pipelines.run_all` also expects the old
-aggregate evaluation dictionary and cannot consume E1 item records. It remains
-unchanged pending an authorized aggregation policy and integration update. Research
-input files likewise have not been migrated.
+**E1-I integration:** `pipelines.check_environment` now uses explicit IDs, raw
+targets and spans in its invented pair examples. `pipelines.run_all` rejects any
+supplied checkpoint at the start of `run`, before input reads or model/service calls.
+For separately authorized item predictions, use
+[`dictabert_cross_encoder.eval`](src/hebrew_acronyms/models/dictabert_cross_encoder/eval.py).
+Benchmark metric aggregation remains pending; no accuracy or denominator policy is
+inferred. The no-checkpoint runner behavior is unchanged. Research input files have
+not been migrated.
 
 Research training, evaluation, mining and service calls require a separately authorized
 task. **`src/hebrew_acronyms/pipelines/run_pipeline.sh` evaluates test automatically when present; `--skip-llm`
