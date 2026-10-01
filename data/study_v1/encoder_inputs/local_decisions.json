@@ -39,13 +39,14 @@
     "Block exact reserved type/document matches in train and dev, and block training against all historical/proposed dev types, documents and text. No automatic document aliases or linguistic type-family normalization.",
     "Pair-loss inputs require at least two distinct candidates and exactly one trimmed positive under the unchanged encoder contract. Otherwise-qualified singleton dev is prediction/descriptive only.",
     "Write stable sorted CSVs and a manifest with source/code/output hashes, counts and applied decisions. No clock-dependent fields or repeated LLM calls.",
-    "Local AI semantic/target proposals bind exact saved input hashes and remain held until a recorded explicit Shaked approval; approved candidate replacements replace an existing entry, never add gold to pass a check."
+    "Local AI semantic/target proposals bind exact saved input hashes and remain held until a recorded explicit Shaked approval; approved candidate replacements replace an existing entry, never add gold to pass a check.",
+    "Apply only the explicitly approved exact dr/bdr split separation: otherwise eligible train ד״ר is held when בד״ר is reserved for dev. Do not strip prefixes, merge types or change labels/candidates/targets; existing holds remain unchanged."
   ],
   "limits": [
     "Reproduction begins with retained exports and decisions; it does not reconstruct original Internet mining or original API responses.",
     "Technical qualification does not independently establish every training label or negative candidate as correct. Historical declared AI model names are preserved, not verified.",
     "Development is a small curated Knesset sample; historical human review is reused where content matches. No new blind annotation, inter-annotator agreement or model performance was measured.",
-    "Overlap guarantees concern exact stored type/document IDs and authorized train/dev duplicate text only. No test text was inspected for duplicates; document aliases, prefix families and pretraining exposure are not resolved.",
+    "Overlap guarantees concern exact stored type/document IDs, the explicitly approved dr/bdr separation pair, and authorized train/dev duplicate text only. No test text was inspected for duplicates; other document aliases, prefix families and pretraining exposure are not resolved.",
     "Unknown-role audit rows remain inaccessible; missing source-to-audit membership stops export. Missing document provenance is held.",
     "Preparation readiness is subject to project-manager review. Model tokenization/length limits and Colab training belong to the next package.",
     "The approved Rambam interpretation accepts a linguistic expansion of the proper name even when the sentence refers to the hospital or street. This bounded clarification is not a general entity/etymology policy and is disclosed separately from historical referent labeling."
@@ -1158,6 +1159,36 @@
         "elapsed_seconds": null
       },
       "human_question": "כדי לסגור את שני הסוגים באופן מפורש: האם לאשר שבכל 7 פריטי בד״ר נחליף את התווית והמועמד ״ד״ר (ב־ קליטי)״ ב״דוקטור״; ובכל 11 פריטי רמב״ם, גם כשהמשפט מתייחס לבית החולים או לרחוב, תשובת הזהב תהיה ״רבי משה בן מימון״? ברמב״ם נחליף את המועמד הקיים ״ר׳ משה בן מימון״ בנוסח המלא, בלי להוסיף מועמד חדש. זו הכרעה נקודתית על פריטים אלה, בסיוע AI; המטרות הגולמיות וסוגי הפיצול יישמרו. נדרשת ההכרעה הזו בגלל הכלל המקורי שלך שאין ליצור זהב ל־dev בהחלטת AI בלבד."
+    }
+  ],
+  "split_decisions": [
+    {
+      "decision_id": "split-dr-bdr-train-hold",
+      "train_type": "ד״ר",
+      "dev_type": "בד״ר",
+      "action": "hold",
+      "reason": "Prevent task-training exposure through the explicitly identified dr/bdr pair. Hold all otherwise eligible training dr items, regardless of their label; preserve all item fields and other acronym types.",
+      "reference_commit": "5d472c6fcf252670be9fa30b0ab468f029168886",
+      "baseline_train_item_ids": [
+        "enc-1f51a3b4fde44cec8f6255ec06b2fb08",
+        "enc-3d837b241d370e5a84f63741d2394628",
+        "enc-492fe4b8ca1d118336e0c2686029707c",
+        "enc-680f019ea49f2c8d7026a62858f00112",
+        "enc-7047e0363fa04fda28ef8fd1668972c6",
+        "enc-7e8a3c1d9d8a552036530b6641e4caf1",
+        "enc-88dfc1ca3aae451f4ed3fa4f7334a9a5",
+        "enc-acde09a47b12ae7ec4fdc7fbfb3d359e",
+        "enc-ae5b2c150e15741112c24c073aa0d8a7",
+        "enc-b255940452020ad90ca83662b75ce95d",
+        "enc-ec87492f73f0286c44166070c85aecc0"
+      ],
+      "human_decision": {
+        "status": "approved",
+        "reviewer": "Shaked",
+        "date": "2026-10-01",
+        "response": "מאשר להוציא את 11 פריטי ד״ר מהאימון",
+        "source": "Explicit approval quoted in the user correction request; split separation only, not label adjudication."
+      }
     }
   ]
 }

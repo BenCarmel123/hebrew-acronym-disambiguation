@@ -95,20 +95,31 @@ for training are separate next steps.
 
 | Derivative | Items | Types | Documents | Candidate pairs |
 |---|---:|---:|---:|---:|
-| [train.csv](study_v1/encoder_inputs/train.csv) | 2,676 | 433 | 1,852 | 12,065 |
+| [train.csv](study_v1/encoder_inputs/train.csv) | 2,665 | 432 | 1,847 | 12,020 |
 | [dev.csv](study_v1/encoder_inputs/dev.csv) | 62 | 11 | 35 | 331 |
 | [dev_singletons.csv](study_v1/encoder_inputs/dev_singletons.csv) | 0 | 0 | 0 | Not a pair-loss input |
 
-Training contains 2,324 substituted, 344 natural (295 Knesset, 49 Wikipedia) and
-8 deglossed items. Of 3,115 training source rows, 437 are held and 2 have recorded
+Training contains 2,316 substituted, 341 natural (294 Knesset, 47 Wikipedia) and
+8 deglossed items. Of 3,115 training source rows, 448 are held and 2 have recorded
 human exclusions. Nonexclusive reasons include 142 missing document keys (the
 historically declared AI-authored rows), 121 repeated targets, 30 ambiguous target
 boundaries, 114 reserved-document overlaps, 60 development-document overlaps,
-2 duplicate-text records, 1 development-text overlap and 1 unresolved human label.
+2 duplicate-text records, 1 development-text overlap, 1 unresolved human label
+and 11 holds under the approved `ד״ר`/`בד״ר` separation rule.
 Reasons overlap; do not add them to obtain an exclusion total. All 62 proposed
 natural development rows are retained. The 289 historical dev rows are reference
 only and are not substituted for this development set. No quotas from earlier
 proposals were adopted.
+
+The explicitly approved `ד״ר`/`בד״ר` separation holds all 11 otherwise eligible
+training `ד״ר` rows, regardless of their label. This split-only decision is stored
+separately from label decisions and changes no item content or target span.
+No general prefix removal or additional type-family merging is applied.
+
+The 62 dev items cover 11 types and 35 documents, with one observed gold answer
+per type; five types have just one item. This supports limited development but
+does not alone establish context-dependent discrimination between different
+senses of the same acronym.
 
 The preparation uses each row's **stored candidate inventory**, with only the
 explicit corrections below; it does not adopt the proposed global inventory or
@@ -184,7 +195,8 @@ which retains the original aggregate reference. A record number is not a physica
 line number. Repeated runs with the same sources, decisions and code produce the
 same bytes. Reproduction starts at retained exports, not original Internet mining.
 
-Separation is limited to exact historical types and source/title document keys.
+Separation uses exact historical types and source/title document keys, plus the
+explicitly approved `ד״ר`/`בד״ר` pair.
 Document aliases, linguistic type families, test-text duplicate comparisons and
 pretraining exposure are not resolved. The pair contract passed without model
 loading; tokenizer length checks and Colab training belong to the next package.

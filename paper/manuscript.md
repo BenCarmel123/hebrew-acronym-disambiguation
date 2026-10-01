@@ -250,14 +250,22 @@ workload estimate and no independent second annotation or agreement measurement.
 
 Shaked authorized reuse of the existing training labels, including weak labels,
 without a new comprehensive annotation pass. The saved-export preparation produced
-2,676 training items across 433 historical types and 1,852 document keys: 2,324
-substituted, 344 natural (295 Knesset and 49 Wikipedia), and 8 deglossed. Of 3,115
-source rows, 437 remain held and 2 have recorded human exclusions. These outcomes
+2,665 training items across 432 historical types and 1,847 document keys: 2,316
+substituted, 341 natural (294 Knesset and 47 Wikipedia), and 8 deglossed. Of 3,115
+source rows, 448 remain held and 2 have recorded human exclusions. These outcomes
 reflect provenance, target, duplicate and split-separation checks, not model scores.
 The natural development set contains all 62 previously proposed Knesset items,
 covering 11 types and 35 document keys. The 289 historical development rows remain
-reference only. Training and development contain 12,065 and 331 candidate pairs,
+reference only. Training and development contain 12,020 and 331 candidate pairs,
 respectively, under the unchanged encoder contract; no singleton dev occurs.
+
+The approved `ד״ר`/`בד״ר` separation additionally holds all eleven otherwise
+eligible training `ד״ר` items across their labels, without changing their content
+or applying general prefix normalization. The decision is recorded separately
+from label adjudication. Each of the eleven dev types has one observed gold
+answer, and five types have only one item. This set supports limited development;
+it does not alone establish context-dependent discrimination between different
+senses of the same acronym.
 
 Preparation preserves sentences and exact raw targets, including approved attached
 prefixes. It computes a target only from a unique bounded quote-folded match or
