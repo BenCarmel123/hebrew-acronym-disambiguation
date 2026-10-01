@@ -36,10 +36,39 @@ The coordinator maintains the existing project plan at `../PROJECT_PLAN.md`, alo
 this repository. The next phase is research clarification with Shaked; existing
 experiment proposals are not approved execution settings.
 
+## Research history and current authority
+
+Start with the [submitted proposal and its status](docs/course/README.md), then the
+active section of the [central plan](../PROJECT_PLAN.md). Shaked confirmed the
+ID-named proposal on 1 October 2026; his Downloads copy is byte-identical to the
+preserved PDF. The other proposal PDF is an earlier draft of the same project.
+
+Two repositories contributed work. `ShakedSchnarch/nlp-hw-team`, under `project/`,
+contains earlier modelling, planning and research evidence and is now read-only.
+`BenCarmel123/hebrew-acronym-disambiguation`, this repository, is the selected
+submission base, developed from Ben's work. The two implementations and their old
+plans are not interchangeable. The old 600-type HeAcro concept is not an active
+delivery requirement.
+
+| Work | What it establishes | Current use |
+|---|---|---|
+| Shaked's 30 August Colab DictaBERT run | Recorded completion of three training epochs on 2,552 provisionally labelled examples; no dev/test accuracy | Training feasibility history; see [distinct run records](docs/checkpoints.md) |
+| Ben's encoder experiments and historical LLM predictions | Development exploration on earlier data; some scores and input versions conflict | Preserve [historical results](results/all_arms_summary.md); do not report them as current findings |
+| Code organization, fixtures and notebook preparation | Structural and execution checks within their recorded scope | Reusable implementation, not scientific validation |
+| P1/P1-R, 16-item review and later preparation packages | Completed preparation and recorded occurrence judgments; inventories remain unapproved | [Working manuscript](paper/manuscript.md) and proposed review artifacts |
+| Focused 100–120 natural-occurrence direction | Approved research scope, including four LLM conditions and task-unseen encoder types | Detailed protocol, qualified inputs and final results remain pending |
+
+As of 1 October 2026, Shaked requests documentation reconciliation before another
+planning conversation. No next research package has been authorized by that request.
+The central plan distinguishes approved direction, completed work, pending choices
+and historical prompts. Prior results exist; final results for the current study do not.
+
 ## Install and check
 
-Use the reviewed `review-handoff` branch with its **full Git history**. It is currently
-local; remote `main` does not contain the organization work. To check a separate copy:
+Use the reviewed `review-handoff` branch with its **full Git history**. The 19 September
+handoff records a push of an earlier revision of this branch; later work is local.
+Do not assume a remote checkout contains the latest handoff or use remote `main`
+as its substitute. Check the actual local HEAD and upstream before copying. To check a separate copy:
 
 ```bash
 git clone --no-hardlinks --branch review-handoff /path/to/reviewed/local/repository hebrew-acronym-check
