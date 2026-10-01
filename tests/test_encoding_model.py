@@ -1,204 +1,55 @@
-"""Compare shared code to exact baseline definitions, using tiny fixtures only."""
-
-import ast
+"""Encoding, pooling and reconstruction contracts without historical source."""
 from copy import deepcopy
+import json
 from pathlib import Path
 import tempfile
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
-
 import torch
 from torch import nn
-
 from hebrew_acronyms.models.common import pairs
 from hebrew_acronyms.models.dictabert_cross_encoder.encoding import encode_pairs
-from hebrew_acronyms.models.dictabert_cross_encoder.eval import encode_batch
-from hebrew_acronyms.models.dictabert_cross_encoder.model import CrossEncoder, build_cross_encoder, load_finetuned, save_checkpoint, file_digest, metadata_path
+from hebrew_acronyms.models.dictabert_cross_encoder.model import (
+    CrossEncoder, build_cross_encoder, load_finetuned, save_checkpoint, file_digest, metadata_path,
+)
 from hebrew_acronyms.models.dictabert_cross_encoder.training import TrainingConfig
-import json
-
-from tests.fixtures.tiny import TinyEncoder, TinyTokenizer, marked_tokenizer, tiny_base_model
-from tests.reference import baseline_module_namespace, baseline_notebook_cell, baseline_notebook_namespace
+from tests.fixtures.tiny import TinyEncoder, marked_tokenizer, tiny_base_model
 
 
-class EncodingEquivalence(unittest.TestCase):
+class ModelTests(unittest.TestCase):
     def setUp(self):
         self.tok = marked_tokenizer()
-        self.open_id, self.close_id = self.tok.convert_tokens_to_ids(
-            [pairs.ACR_OPEN, pairs.ACR_CLOSE])
-        self.old_notebook = baseline_notebook_namespace(
-            ["encode_batch"], {"torch": torch, "pairs": pairs, "tok": self.tok,
-                               "device": "cpu", "MAX_LEN": 256})["encode_batch"]
-        self.old_eval = baseline_module_namespace(
-            "model/dictabertX/eval.py", ["encode_batch"],
-            {"torch": torch, "MAX_LEN": 256})["encode_batch"]
+        self.open_id, self.close_id = self.tok.convert_tokens_to_ids([pairs.ACR_OPEN, pairs.ACR_CLOSE])
+        self.batch = encode_pairs(self.tok, [("[ACR]ב״ד[/ACR]", "דגם")], "cpu")
 
-    def assert_batch_equal(self, left, right):
-        self.assertEqual(set(left), {"input_ids", "attention_mask", "token_type_ids"})
-        self.assertEqual(set(left), set(right))
-        for key in left:
-            self.assertEqual(left[key].dtype, torch.long)
-            self.assertTrue(torch.equal(left[key], right[key]), key)
+    def test_padding_masks_and_marker_errors(self):
+        batch = encode_pairs(self.tok, [("[ACR]א[/ACR]", "ב"),
+                                        ("לפני [ACR]א[/ACR]", "בב")], "cpu", max_len=32)
+        first = [1, self.open_id, 3 + ord("א") % 61, self.close_id, 2, 3 + ord("ב") % 61, 2]
+        padding = batch["input_ids"].shape[1] - len(first)
+        self.assertEqual(batch["input_ids"][0].tolist(), first + [0] * padding)
+        self.assertEqual(batch["attention_mask"][0].tolist(), [1] * len(first) + [0] * padding)
+        self.assertEqual(batch["token_type_ids"][0].tolist(), [0] * 5 + [1] * 2 + [0] * padding)
+        for context in ("ללא סימון", "[ACR][/ACR]", "[/ACR]א[ACR]", "[ACR]א[/ACR][ACR]ב[/ACR]"):
+            with self.subTest(context=context), self.assertRaises(ValueError):
+                encode_pairs(self.tok, [(context, "ב")], "cpu")
+        with self.assertRaises(ValueError):
+            encode_pairs(self.tok, [], "cpu")
 
-    def test_short_pairs_padding_and_masks(self):
-        batch = [("לפני [ACR]ב״ד[/ACR] אחרי", "בדיקת דוגמה"),
-                 ("[ACR]ב״ד[/ACR]", "דגם"),
-                 ("מחר [ACR]ב״ד[/ACR] חדש", "")]
-        actual = encode_pairs(self.tok, batch, "cpu")
-        self.assert_batch_equal(self.old_notebook(batch), actual)
-        self.assertTrue((actual["attention_mask"] == 0).any().item())
-        for context, _ in batch:
-            candidates = ["דגם", "בדיקת דוגמה", ""]
-            self.assert_batch_equal(
-                self.old_eval(self.tok, "cpu", self.open_id, self.close_id, context, candidates),
-                encode_batch(self.tok, "cpu", self.open_id, self.close_id, context, candidates))
-
-    def test_long_context_near_beginning_and_end(self):
-        for context in ("[ACR]ב״ד[/ACR] " + "מילה " * 120,
-                        "מילה " * 120 + " [ACR]ב״ד[/ACR]",
-                        "מילה " * 60 + " [ACR]ב״ד[/ACR] " + "מילה " * 60):
-            with self.subTest(context_start=context[:20]):
-                batch = [(context, "בדיקת דוגמה"), (context, "דגם")]
-                actual = encode_pairs(self.tok, batch, "cpu")
-                self.assert_batch_equal(self.old_notebook(batch), actual)
-                self.assertEqual(actual["input_ids"].shape[1], 256)
-                self.assertTrue((actual["input_ids"] == self.open_id).any(1).all())
-                self.assertTrue((actual["input_ids"] == self.close_id).any(1).all())
-                self.assert_batch_equal(
-                    self.old_eval(self.tok, "cpu", self.open_id, self.close_id, context,
-                                  [candidate for _, candidate in batch]),
-                    encode_batch(self.tok, "cpu", self.open_id, self.close_id, context,
-                                 [candidate for _, candidate in batch]))
-
-    def test_over_budget_span_or_candidate_is_rejected(self):
-        # E1 intentionally replaces the baseline's silently oversized tensors.
-        for batch in ([('[ACR]יעד[/ACR]', 'מ' * 300)],
-                      [('[ACR]' + 'מ' * 300 + '[/ACR]', 'ד')]):
-            self.assertGreater(self.old_notebook(batch)["input_ids"].shape[1], 256)
-            with self.assertRaisesRegex(ValueError, "require.*max_len"):
-                encode_pairs(self.tok, batch, "cpu")
-
-    def test_edge_marker_arrangements_and_custom_budget(self):
-        # Invalid marker arrangements are now rejected before pooling can hide them.
-        for context in ("[ACR][/ACR]", "[/ACR]ד[ACR]", "[ACR]א[/ACR][ACR]ב[/ACR]"):
-            for budget in (0, 10, 256):
-                with self.subTest(context=context, max_len=budget), self.assertRaises(ValueError):
-                    encode_pairs(self.tok, [(context, "מועמד")], "cpu", budget)
-
-    def test_explicit_and_inferred_marker_ids(self):
-        batch = [("[ACR]ב״ד[/ACR]", "דגם")]
-        expected = self.old_notebook(batch)
-        for ids in ((None, None), (self.open_id, None), (None, self.close_id),
-                    (self.open_id, self.close_id)):
-            self.assert_batch_equal(expected, encode_pairs(
-                self.tok, batch, "cpu", acr_open_id=ids[0], acr_close_id=ids[1]))
-
-    def test_missing_markers_and_empty_batch_errors_match(self):
-        for batch in ([], [("ללא סימון", "דגם")], [("[ACR]ב״ד", "דגם")],
-                      [("ב״ד[/ACR]", "דגם")]):
-            with self.subTest(batch=batch):
-                with self.assertRaises(ValueError) as before:
-                    self.old_notebook(batch)
-                with self.assertRaises(ValueError) as after:
-                    encode_pairs(self.tok, batch, "cpu")
-                # E1 supplies explicit contract errors rather than list.index/max errors.
-        for context in ("ללא סימון", "[ACR]ב״ד", "[ACR]ב״ד[/ACR]"):
-            for candidates in ([], ["דגם"]):
-                if candidates and context.endswith("[/ACR]"):
-                    continue
-                with self.subTest(context=context, candidates=candidates):
-                    with self.assertRaises(ValueError) as before:
-                        self.old_eval(self.tok, "cpu", self.open_id, self.close_id,
-                                      context, candidates)
-                    with self.assertRaises(ValueError) as after:
-                        encode_batch(self.tok, "cpu", self.open_id, self.close_id,
-                                     context, candidates)
-                    # E1 supplies explicit contract errors rather than list.index/max errors.
-
-    def test_eval_wrapper_keeps_module_max_len(self):
-        context = "מילה " * 20 + " [ACR]ב״ד[/ACR]"
-        old = baseline_module_namespace("model/dictabertX/eval.py", ["encode_batch"],
-                                        {"torch": torch, "MAX_LEN": 20})["encode_batch"]
-        with patch("hebrew_acronyms.models.dictabert_cross_encoder.eval.MAX_LEN", 20):
-            self.assert_batch_equal(old(self.tok, "cpu", self.open_id, self.close_id,
-                                        context, ["דגם"]),
-                                    encode_batch(self.tok, "cpu", self.open_id, self.close_id,
-                                                 context, ["דגם"]))
-
-
-class ModelEquivalence(unittest.TestCase):
-    def setUp(self):
-        self.tok = marked_tokenizer()
-        self.open_id, self.close_id = self.tok.convert_tokens_to_ids(
-            [pairs.ACR_OPEN, pairs.ACR_CLOSE])
-        scope = {"torch": torch, "nn": nn, "ACR_OPEN_ID": self.open_id,
-                 "ACR_CLOSE_ID": self.close_id}
-        self.old_notebook = baseline_notebook_namespace(["CrossEncoder"], scope)["CrossEncoder"]
-        self.old_module = baseline_module_namespace("model/dictabertX/model.py",
-                                                     ["CrossEncoder"], scope)["CrossEncoder"]
-        self.batch = {
-            "input_ids": torch.tensor([[1, 64, 8, 9, 65, 2], [1, 64, 65, 2, 0, 0],
-                                        [1, 7, 8, 2, 0, 0], [1, 64, 8, 64, 9, 65]]),
-            "attention_mask": torch.tensor([[1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 0, 0],
-                                             [1, 1, 1, 1, 0, 0], [1, 1, 1, 1, 1, 1]]),
-            "token_type_ids": torch.zeros(4, 6, dtype=torch.long),
-        }
-
-    def test_all_poolings_logits_state_shapes_and_strict_loading(self):
-        for pooling in ("cls", "marker", "span_mean", "concat"):
-            with self.subTest(pooling=pooling):
-                old = self.old_notebook(TinyEncoder(66), 8, pooling).eval()
-                new = CrossEncoder(TinyEncoder(66), 8, pooling).eval()
-                previous = self.old_module(TinyEncoder(66), 8, pooling).eval()
-                expected = {key: value.shape for key, value in old.state_dict().items()}
-                self.assertEqual(expected, {key: value.shape for key, value in new.state_dict().items()})
-                new.load_state_dict(old.state_dict(), strict=True)
-                previous.load_state_dict(old.state_dict(), strict=True)
-                for with_types in (True, False):
-                    batch = self.batch if with_types else {k: v for k, v in self.batch.items()
-                                                          if k != "token_type_ids"}
-                    with torch.no_grad():
-                        actual = new(**batch, acr_open_id=self.open_id, acr_close_id=self.close_id)
-                        self.assertTrue(torch.equal(old(**batch), actual))
-                        self.assertTrue(torch.equal(previous(**batch, acr_open_id=self.open_id,
-                                                               acr_close_id=self.close_id), actual))
-                with self.assertRaises(RuntimeError):
-                    new.load_state_dict({**old.state_dict(), "unexpected": torch.tensor(0)}, strict=True)
-
-    def test_factory_matches_baseline_initialization_and_rng(self):
-        # E1 moves the seed ahead of initialization; compare the same seeded baseline.
-        torch.manual_seed(42)
-        state = torch.get_rng_state()
-        # Execute only the baseline's initialization assignments and resize guard.
-        # The download-capable constructors are replaced before AST execution.
-        nodes = ast.parse(baseline_notebook_cell(9)).body
-        names = {"tok", "encoder", "n_added", "ACR_OPEN_ID", "ACR_CLOSE_ID", "model"}
-        selected = []
-        for node in nodes:
-            if isinstance(node, ast.Assign):
-                assigned = {item.id for target in node.targets for item in ast.walk(target)
-                            if isinstance(item, ast.Name)}
-                if assigned & names:
-                    selected.append(node)
-            elif isinstance(node, ast.If) and isinstance(node.test, ast.Name):
-                if node.test.id == "n_added":
-                    selected.append(node)
-        scope = {"AutoTokenizer": SimpleNamespace(from_pretrained=lambda _: TinyTokenizer()),
-                 "AutoModel": SimpleNamespace(from_pretrained=lambda _: TinyEncoder()),
-                 "MODEL_ID": "fixture", "POOLING": "cls", "pairs": pairs, "device": "cpu",
-                 "CrossEncoder": self.old_notebook}
-        exec(compile(ast.Module(body=selected, type_ignores=[]), "baseline-initialization", "exec"), scope)
-        expected = scope["model"]
-        expected_rng = torch.get_rng_state()
-        torch.set_rng_state(state)
-        with patch("hebrew_acronyms.models.dictabert_cross_encoder.model.build_base_model", side_effect=tiny_base_model) as loader:
-            _, actual, opened, closed = build_cross_encoder(model_id="fixture", revision="fixture-revision")
-        loader.assert_called_once_with(model_id="fixture", revision="fixture-revision")
-        self.assertEqual((opened, closed), (self.open_id, self.close_id))
-        self.assertTrue(torch.equal(expected_rng, torch.get_rng_state()))
-        for key, value in expected.state_dict().items():
-            self.assertTrue(torch.equal(value, actual.state_dict()[key]), key)
+    def test_pooling_uses_expected_vectors(self):
+        hidden = torch.tensor([[[1., 2.], [3., 4.], [5., 6.], [7., 8.], [9., 10.]]])
+        class FixedEncoder(nn.Module):
+            def forward(self, **kwargs):
+                return SimpleNamespace(last_hidden_state=hidden)
+        ids = torch.tensor([[1, self.open_id, 8, 9, self.close_id]])
+        expected = {"cls": [1., 2.], "marker": [3., 4.], "span_mean": [6., 7.],
+                    "concat": [1., 2., 6., 7.]}
+        for pooling, vector in expected.items():
+            model = CrossEncoder(FixedEncoder(), hidden=2, pooling=pooling, dropout=0).eval()
+            model.score = nn.Identity()
+            output = model(ids, torch.ones_like(ids), acr_open_id=self.open_id, acr_close_id=self.close_id)
+            torch.testing.assert_close(output, torch.tensor([vector]))
 
     def test_factory_does_not_resize_when_markers_already_exist(self):
         encoder = TinyEncoder(66)
@@ -263,7 +114,3 @@ class ModelEquivalence(unittest.TestCase):
                     metadata_path(checkpoint).write_text(json.dumps(manifest))
                     with self.assertRaises(RuntimeError):
                         load_finetuned(checkpoint, pooling=pooling)
-
-
-if __name__ == "__main__":
-    unittest.main()

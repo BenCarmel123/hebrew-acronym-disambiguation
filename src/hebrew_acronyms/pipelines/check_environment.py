@@ -6,6 +6,7 @@ import importlib
 import importlib.metadata
 from pathlib import Path
 import platform
+import sys
 
 from hebrew_acronyms.models.dictabert_cross_encoder.workflow import enable_offline, find_snapshot
 
@@ -68,6 +69,11 @@ def main() -> int:
     parser.add_argument("--snapshot", type=Path, help="Existing local DictaBERT snapshot directory")
     args = parser.parse_args()
     enable_offline()
+    # This isolated CLI check deliberately blocks sockets for its process lifetime.
+    def block_network(event, args):
+        if event in {"socket.connect", "socket.getaddrinfo", "socket.sendto"}:
+            raise RuntimeError(f"Network access is disabled during this check: {event}")
+    sys.addaudithook(block_network)
     print(f"Python: {platform.python_version()}")
     print(f"OS: {platform.platform()} ({platform.machine()})")
     print("Network: Hugging Face offline; Python socket network operations blocked")

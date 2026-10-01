@@ -1,7 +1,7 @@
 # Checkpoints
 
 Weight files are local and ignored by Git. The [training appendix](../notebooks/train_dictabert.ipynb)
-defaults to smoke and writes no checkpoint. Authorized training requires explicit inputs,
+defaults to invented-input inference and writes no checkpoint. Training requires explicit inputs,
 a cached DictaBERT snapshot and a new output path; see [setup](../README.md#training-appendix).
 Historical weights, full training and GPU execution have not been reproduced.
 
@@ -9,7 +9,7 @@ The shared [checkpoint loader](../src/hebrew_acronyms/models/dictabert_cross_enc
 and resizes embeddings before loading the saved state. Pooling is selected through
 `TrainingConfig.pooling`: `cls` uses the pair summary, `marker` the opening marker,
 `span_mean` the target subwords, and `concat` combines summary and span vectors.
-E1 seeds Python and PyTorch before encoder, marker embeddings and scoring-head
+Initialization seeds Python and PyTorch before encoder, marker embeddings and scoring-head
 initialization. Controlled CPU initialization and tiny-model inference roundtrips are
 tested; this is not a claim of GPU determinism or research-run reproducibility.
 
@@ -33,8 +33,8 @@ pair loss; no checkpoint or metric policy is approved for research by these test
 
 The explicit tiny sanity check reuses invented rows as train and dev to test learning.
 Its 180-epoch setting is engineering-only; the ordinary default remains one epoch.
-No research weights were produced in E1. The separate environment-check fixture
-migration was declined and remains a documented integration limitation in the README.
+This engineering check produces only temporary weights. Environment-check examples
+include the required IDs and exact target spans. Benchmark aggregation is not implemented.
 
 ## Shaked's earlier Colab run — separate implementation
 
@@ -58,7 +58,7 @@ later proposed annotation pack cannot retrospectively become held-out data for t
 checkpoint. The training machinery and implementation experience remain useful.
 Its checkpoint is not interchangeable with Ben's checkpoints or approved for the
 current study. Current Drive availability, GPU repeatability and this historical
-run's reproduction have not been checked in the documentation reconciliation.
+run's reproduction have not been verified here.
 
 ## Ben's historical checkpoint records
 

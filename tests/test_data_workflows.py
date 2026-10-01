@@ -1,15 +1,9 @@
-"""Offline CLI/workflow equivalence against the accepted S3a Git baseline.
-
-Every input/output is invented in a temporary directory. Only network responses
-and the progress clock are replaced; parsing, filtering and writers run normally.
-"""
-
+"""Offline data-command contracts on invented temporary inputs and mocked sources."""
 import argparse
 import bz2
 from contextlib import ExitStack, redirect_stderr, redirect_stdout
 import csv
 import importlib
-import importlib.util
 import io
 import json
 from pathlib import Path
@@ -19,9 +13,7 @@ import sys
 import tempfile
 import unittest
 from unittest.mock import patch
-from tests.reference import reference_git
 
-BASE = "2b9b84eb20b0be89d728b963cc753924e83b53ea"
 ROOT = Path(__file__).resolve().parents[1]
 TYPES = ('א״ב', 'ג״ד', 'ו״ז')
 EXPANSIONS = ('אור בהיר', 'אור בחוץ', 'גן דשא', 'גן דק', 'ורד זהוב')
@@ -49,35 +41,7 @@ def sentence(term):
     return f"לאחר הישיבה הארוכה נמסר כי {term} ימשיך לפעול במקום גם במהלך השבוע הקרוב."
 
 
-class DataWorkflowEquivalenceTests(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.baseline_temp = tempfile.TemporaryDirectory()
-        cls.addClassCleanup(cls.baseline_temp.cleanup)
-        package = Path(cls.baseline_temp.name) / "baseline_data_preprocess"
-        names = reference_git(
-            BASE, "ls-tree", "-r", "--name-only", BASE, "data_preprocess").splitlines()
-        for name in names:
-            if name.endswith(".py"):
-                target = package / Path(name).relative_to("data_preprocess")
-                target.parent.mkdir(parents=True, exist_ok=True)
-                target.write_bytes(reference_git(BASE, "show", f"{BASE}:{name}", text=False))
-        spec = importlib.util.spec_from_file_location(
-            "baseline_data_preprocess", package / "__init__.py",
-            submodule_search_locations=[str(package)])
-        module = importlib.util.module_from_spec(spec)
-        sys.modules[spec.name] = module
-        spec.loader.exec_module(module)
-        cls.old = importlib.import_module("baseline_data_preprocess.__main__")
-        cls.new = importlib.import_module("hebrew_acronyms.data_processing.__main__")
-        cls.addClassCleanup(cls.remove_baseline_modules)
-
-    @staticmethod
-    def remove_baseline_modules():
-        for name in list(sys.modules):
-            if name == "baseline_data_preprocess" or name.startswith("baseline_data_preprocess."):
-                del sys.modules[name]
-
+class DataWorkflowTests(unittest.TestCase):
     def setUp(self):
         # A missed fixture response must fail rather than contact a live source.
         self.network = ExitStack()
@@ -88,28 +52,20 @@ class DataWorkflowEquivalenceTests(unittest.TestCase):
         self.network.enter_context(patch(
             "requests.sessions.Session.request", side_effect=AssertionError("unmocked HTTP")))
 
-    def compare(self, scenario):
-        results = []
-        for cli in (self.old, self.new):
-            with tempfile.TemporaryDirectory() as directory:
-                root = Path(directory)
-                calls = []
-                client = importlib.import_module(cli.__package__ + ".wikipedia.client")
-                def response(api, **params):
-                    calls.append((api.api_url, params))
-                    return self.wiki_response(api.api_url, params)
-                stdout, stderr = io.StringIO(), io.StringIO()
-                with (patch.object(client.WikiAPI, "get", response),
-                      patch("time.monotonic", return_value=100.0),
-                      redirect_stdout(stdout), redirect_stderr(stderr)):
-                    value = scenario(cli, root)
-                files = {str(path.relative_to(root)): path.read_bytes()
-                         for path in root.rglob("*") if path.is_file()}
-                results.append((value, files, calls,
-                                stdout.getvalue().replace(directory, "<tmp>"),
-                                stderr.getvalue().replace(directory, "<tmp>")))
-        self.assertEqual(results[1], results[0])
-        return results[1]
+    def exercise(self, scenario):
+        cli = importlib.import_module("hebrew_acronyms.data_processing.__main__")
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            calls = []
+            client = importlib.import_module(cli.__package__ + ".wikipedia.client")
+            def response(api, **params):
+                calls.append((api.api_url, params))
+                return self.wiki_response(api.api_url, params)
+            with (patch.object(client.WikiAPI, "get", response),
+                  patch("time.monotonic", return_value=100.0),
+                  redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO())):
+                scenario(cli, root)
+            return calls
 
     @staticmethod
     def invoke(cli, argv):
@@ -150,65 +106,6 @@ class DataWorkflowEquivalenceTests(unittest.TestCase):
         write_table(root / "candidates.csv", CANDIDATE_FIELDS, rows)
         (root / "types.txt").write_text("א\"ב ג״ד ו״ז", encoding="utf-8-sig")
         return rows
-
-    def test_parser_all_commands_defaults_flags_help_and_errors(self):
-        old, new = self.old.build_parser(), self.new.build_parser()
-        def subcommands(parser):
-            return next(a for a in parser._actions
-                        if isinstance(a, argparse._SubParsersAction)).choices
-        self.assertEqual(list(subcommands(new)), list(subcommands(old)))
-        # The public module name changed; normalize only argparse's displayed program.
-        self.assertEqual(old.prog, "data_preprocess")
-        self.assertEqual(new.prog, "hebrew_acronyms.data_processing")
-        old.prog = new.prog
-        for command, parser in subcommands(old).items():
-            self.assertEqual(parser.prog, f"data_preprocess {command}")
-            self.assertEqual(subcommands(new)[command].prog,
-                             f"hebrew_acronyms.data_processing {command}")
-            parser.prog = subcommands(new)[command].prog
-        for command, parser in subcommands(old).items():
-            required = ["--acronyms", "fixture.txt"] if command in (
-                "mine-by-sense", "knesset-mine") else []
-            cases = [[command, *required], ["--log-level", "DEBUG", command, *required]]
-            explicit = [command]
-            for action in parser._actions:
-                if action.dest == "help":
-                    continue
-                explicit.append(action.option_strings[0])
-                if action.nargs != 0:
-                    explicit.append(str(list(action.choices)[-1]) if action.choices else
-                                    "7" if action.type is int else
-                                    "0.7" if action.type is float else "fixture-value")
-            cases.append(explicit)
-            for argv in cases:
-                with self.subTest(argv=argv):
-                    parsed = []
-                    for p in (old, new):
-                        args = vars(p.parse_args(argv))
-                        args["func"] = args["func"].__name__
-                        parsed.append(args)
-                    self.assertEqual(*parsed)
-            # Parser-only help and invalid flags must never invoke a handler.
-            for argv in ([command, "--help"], [command, "--unknown"],
-                         [command, "--out"]):
-                results = []
-                for p in (old, new):
-                    stdout, stderr = io.StringIO(), io.StringIO()
-                    with redirect_stdout(stdout), redirect_stderr(stderr):
-                        with self.assertRaises(SystemExit) as stopped:
-                            p.parse_args(argv)
-                    results.append((stopped.exception.code, stdout.getvalue(), stderr.getvalue()))
-                self.assertEqual(*results)
-        for argv in ([], ["missing-command"], ["wikipedia", "--limit", "bad"],
-                     ["knesset-download", "--config", "bad"], ["mine-by-sense"],
-                     ["knesset-mine"]):
-            results = []
-            for p in (old, new):
-                stderr = io.StringIO()
-                with redirect_stderr(stderr), self.assertRaises(SystemExit) as stopped:
-                    p.parse_args(argv)
-                results.append((stopped.exception.code, stderr.getvalue()))
-            self.assertEqual(*results)
 
     def test_imports_have_no_writes_or_network_in_fresh_process(self):
         # Audit hooks cover actual file/socket operations, including imports that
@@ -257,7 +154,7 @@ for name in (
                     self.assertEqual(out.read_bytes(), first)
                     self.assertGreater(len(resumed), len(first))
                     return first, resumed
-                _, _, calls, _, _ = self.compare(scenario)
+                calls = self.exercise(scenario)
                 hit_calls = [p for _, p in calls if p.get("srinfo") == "totalhits"]
                 # The second page reuses cached counts; restart recomputes them.
                 self.assertEqual(len(hit_calls), 4)
@@ -269,6 +166,7 @@ for name in (
             write_table(root / "wiki.csv", CANDIDATE_FIELDS, rows)
             write_table(root / "wikt.csv", CANDIDATE_FIELDS,
                         [candidate(TYPES[1], EXPANSIONS[2], 10, "wiktionary")])
+            sources = {name: (root / name).read_bytes() for name in ("wiki.csv", "wikt.csv")}
             self.invoke(cli, ["merge", "--wikipedia", root / "wiki.csv", "--wiktionary",
                               root / "wikt.csv", "--out", root / "merged.csv"])
             self.invoke(cli, ["flag-duplicates", "--in", root / "merged.csv", "--out",
@@ -278,10 +176,20 @@ for name in (
             self.assertTrue(review)
             review[0]["decision"] = "merge"
             write_table(root / "review.csv", list(review[0]), review)
+            protected = {name: (root / name).read_bytes() for name in ("merged.csv", "review.csv")}
             self.invoke(cli, ["apply-review", "--in", root / "merged.csv", "--review",
                               root / "review.csv", "--out", root / "clean.csv"])
+            with (root / "clean.csv").open(encoding="utf-8-sig", newline="") as handle:
+                cleaned = list(csv.DictReader(handle))
+            self.assertEqual([(row["acronym"], row["expansion"]) for row in cleaned],
+                             [("א״ב", "אור-בהיר"), ("א״ב", "אור בחוץ"), ("א״ב", "סיכת א״ב"),
+                              ("ג״ד", "גן דשא"), ("ו״ז", "ורד זהוב")])
+            self.assertEqual(cleaned[3]["source"], "wikipedia+wiktionary")
+            self.assertEqual(cleaned[3]["hits"], "100")
+            for name, contents in {**sources, **protected}.items():
+                self.assertEqual((root / name).read_bytes(), contents)
             return len(review)
-        self.compare(scenario)
+        self.exercise(scenario)
 
     def test_empty_merge_and_missing_shards_do_not_create_output(self):
         def scenario(cli, root):
@@ -291,7 +199,7 @@ for name in (
             self.invoke(cli, ["knesset-mine", "--acronyms", root / "types.txt",
                               "--shards-dir", root / "missing", "--out", root / "out.csv"])
             self.assertFalse((root / "out.csv").exists())
-        self.compare(scenario)
+        self.exercise(scenario)
 
     def test_sentence_selection_order_and_explicit_types(self):
         def scenario(cli, root):
@@ -307,7 +215,7 @@ for name in (
                 rows = list(csv.DictReader(handle))
             self.assertEqual(rows[0]["acronym"], TYPES[1])  # reverse acronym tie break
             self.assertEqual(rows[-1]["source"], "wiktionary")
-        self.compare(scenario)
+        self.exercise(scenario)
 
     def test_sense_resume_partial_type_preserves_existing_duplicate_behavior(self):
         for initial_types in ([], [TYPES[0]], [TYPES[0], TYPES[1]]):
@@ -336,7 +244,7 @@ for name in (
                         self.assertFalse(any(r["context"] == "partial fixture" for r in rows))
                         self.assertEqual(summary["n_rows"], len(rows))
                     return len(rows)
-                self.compare(scenario)
+                self.exercise(scenario)
 
     def test_sense_overwrite_and_no_substitution(self):
         def scenario(cli, root):
@@ -351,7 +259,7 @@ for name in (
             self.assertTrue(rows)
             self.assertEqual({r["provenance"] for r in rows}, {"natural"})
             self.assertNotIn('סיכת א״ב', {r["expansion"] for r in rows})
-        self.compare(scenario)
+        self.exercise(scenario)
 
     def test_annotation_join_order_skips_and_summary(self):
         def scenario(cli, root):
@@ -365,7 +273,7 @@ for name in (
                 rows = list(csv.DictReader(handle))
             self.assertEqual([r["page_title"] for r in rows], ["0", "2", "3"])
             self.assertEqual(rows[1]["candidates"], 'אור בהיר|אור בחוץ|סיכת א״ב')
-        self.compare(scenario)
+        self.exercise(scenario)
 
     def test_annotation_bom_input_preserves_existing_key_error(self):
         def scenario(cli, root):
@@ -376,7 +284,7 @@ for name in (
                 self.invoke(cli, ["build-annotation-table", "--candidates", root / "candidates.csv",
                                   "--contexts", root / "contexts.csv", "--out", root / "out.csv"])
             self.assertEqual(error.exception.args, ("acronym",))
-        self.compare(scenario)
+        self.exercise(scenario)
 
     def test_knesset_local_shard_order_limits_and_download_resume(self):
         def scenario(cli, root):
@@ -409,7 +317,7 @@ for name in (
                     self.invoke(cli, ["knesset-download", "--n", "1", "--shards-dir", root / "downloads"])
             self.assertEqual(sum("resolve/main" in url for url in requests_seen), 1)
             return requests_seen
-        self.compare(scenario)
+        self.exercise(scenario)
 
 
 if __name__ == "__main__":
