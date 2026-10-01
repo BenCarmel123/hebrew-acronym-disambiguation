@@ -25,7 +25,10 @@ def execute_notebook(root, snapshot):
     predictions = namespace["predictions"]
     assert len(predictions) == 2
     assert [p["item_id"] for p in predictions] == [r["item_id"] for r in namespace["train_rows"]]
-    assert all(p["status"] == "ok" and len(p["candidate_scores"]) == 2 for p in predictions)
+    assert all(p["status"] == "ok" for p in predictions)
+    assert [len(p["candidate_scores"]) for p in predictions] == [1, 2]
+    assert all("gold_expansion" not in row for row in namespace["train_rows"])
+    assert namespace["train_pairs"] == namespace["dev_pairs"] == []
     assert namespace["history"] == []
     assert namespace["TRAIN"] is False
     return predictions
