@@ -9,8 +9,32 @@ The shared [checkpoint loader](../src/hebrew_acronyms/models/dictabert_cross_enc
 and resizes embeddings before loading the saved state. Pooling is selected through
 `TrainingConfig.pooling`: `cls` uses the pair summary, `marker` the opening marker,
 `span_mean` the target subwords, and `concat` combines summary and span vectors.
-The existing seed is applied after model initialization; a fixed seed alone does not
-establish reproducible initialization.
+E1 seeds Python and PyTorch before encoder, marker embeddings and scoring-head
+initialization. Controlled CPU initialization and tiny-model inference roundtrips are
+tested; this is not a claim of GPU determinism or research-run reproducibility.
+
+Each new checkpoint has a required `<checkpoint>.json` sidecar containing:
+
+- Training configuration, initialization seed, pooling/dropout and library versions.
+- Model identifier/revision or local snapshot file hashes; tokenizer vocabulary,
+  tokenization backend and marker/special-token identities.
+- Ordered train/dev item IDs and hashes of complete supplied rows, preserving order.
+- The selected epoch and development pair loss, selection rule, and weight SHA-256.
+
+Keep weights, sidecar, exact local snapshot and original inputs together. The loader
+reconstructs from saved settings and verifies weight, source, tokenizer and library
+identities. Optional expected input identities/configuration detect caller mismatches.
+The item predictor uses the restored length limit and rejects conflicting overrides.
+Missing sidecars, changed dependencies and legacy weight-only checkpoints fail
+explicitly. Relocating a snapshot requires separately handled path metadata; no broad
+legacy migration is included. Checkpoints restore inference weights, not optimizer
+state for interrupted-run continuation. Selection still requires strictly lower dev
+pair loss; no checkpoint or metric policy is approved for research by these tests.
+
+The explicit tiny sanity check reuses invented rows as train and dev to test learning.
+Its 180-epoch setting is engineering-only; the ordinary default remains one epoch.
+No research weights were produced in E1. The separate environment-check fixture
+migration was declined and remains a documented integration limitation in the README.
 
 ## Shaked's earlier Colab run — separate implementation
 

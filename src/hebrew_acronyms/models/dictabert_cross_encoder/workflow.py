@@ -1,7 +1,7 @@
 """Local input and execution steps used by the training notebook.
 
 Imports are inert. Smoke uses invented fixtures and a cached real model; the explicit
-training mode uses caller-supplied files and preserves the extracted training loop.
+training mode uses explicit item inputs. Sanity is a tiny-model engineering check.
 """
 from __future__ import annotations
 
@@ -57,14 +57,14 @@ def configure_run(root: Path, mode: str = "smoke", snapshot: Path | None = None,
                   train_path: Path | None = None, dev_path: Path | None = None,
                   checkpoint_path: Path | None = None) -> dict:
     """Resolve explicit local inputs; no files are read from research data in smoke."""
-    if mode not in {"smoke", "train"}:
-        raise ValueError("mode must be 'smoke' or 'train'")
+    if mode not in {"smoke", "train", "sanity"}:
+        raise ValueError("mode must be smoke, train or sanity")
     enable_offline()
     root = Path(root).resolve()
     if not (root / "src" / "hebrew_acronyms" / "models" / "dictabert_cross_encoder").is_dir():
         raise ValueError(f"Not a repository root: {root}")
-    local = find_snapshot(Path(snapshot) if snapshot is not None else None)
-    if local is None:
+    local = None if mode == "sanity" else find_snapshot(Path(snapshot) if snapshot is not None else None)
+    if local is None and mode != "sanity":
         raise FileNotFoundError(
             "Model NOT RUN: no local DictaBERT snapshot; set DICTABERT_SNAPSHOT "
             "for the notebook or pass snapshot= to configure_run")
@@ -78,23 +78,30 @@ def configure_run(root: Path, mode: str = "smoke", snapshot: Path | None = None,
             raise FileExistsError(f"Choose a new checkpoint path: {checkpoint_path}")
         if not Path(checkpoint_path).parent.is_dir():
             raise FileNotFoundError(f"Create the output directory first: {Path(checkpoint_path).parent}")
+    if mode == "sanity":
+        if train_path is not None or dev_path is not None or snapshot is not None:
+            raise ValueError("Sanity uses invented fixtures and a tiny local model only")
+        if checkpoint_path is None or Path(checkpoint_path).exists() or Path(str(checkpoint_path) + ".json").exists():
+            raise ValueError("Sanity requires a new checkpoint path")
+    if checkpoint_path is not None and Path(str(checkpoint_path) + ".json").exists():
+        raise FileExistsError("Checkpoint metadata already exists; choose a new path")
     import torch
     device = "cuda" if mode == "train" and torch.cuda.is_available() else "cpu"
-    return {"root": root, "mode": mode, "model_id": str(local), "device": device,
+    return {"root": root, "mode": mode, "model_id": "tiny-fixture" if mode == "sanity" else str(local), "device": device,
             "train_path": train_path, "dev_path": dev_path, "checkpoint_path": checkpoint_path}
 
 
 def load_inputs(run: dict) -> tuple[list[dict], list[dict]]:
     """Read invented smoke rows or the explicitly selected training/development CSVs."""
     from hebrew_acronyms.models.common.pairs import load_rows
-    if run["mode"] == "smoke":
+    if run["mode"] in {"smoke", "sanity"}:
         path = run["root"] / "tests" / "fixtures" / "training_rows.json"
         return json.loads(path.read_text(encoding="utf-8")), []
     return load_rows(run["train_path"]), load_rows(run["dev_path"])
 
 
 def prepare_pairs(train_rows: list[dict], dev_rows: list[dict]) -> tuple[list, list]:
-    """Build existing target-marked pairs and report their engineering counts."""
+    """Validate explicit item inputs and report engineering pair counts."""
     from hebrew_acronyms.models.common.pairs import build_pairs, describe_skips
     print("Input rows:", describe_skips(train_rows))
     print("Development rows:", describe_skips(dev_rows))
@@ -107,18 +114,29 @@ def prepare_pairs(train_rows: list[dict], dev_rows: list[dict]) -> tuple[list, l
 
 
 def load_model(run: dict, config):
-    """Add markers and initialize the shared model before the training seed is applied."""
+    """Seed before encoder, marker and head initialization."""
     from hebrew_acronyms.models.dictabert_cross_encoder.model import build_cross_encoder
+    if run["mode"] == "sanity":
+        # This explicit test mode depends on source-checkout fixtures, never research inputs.
+        from unittest.mock import patch
+        from tests.fixtures.tiny import tiny_base_model
+        with patch("hebrew_acronyms.models.dictabert_cross_encoder.model.build_base_model", tiny_base_model):
+            return build_cross_encoder(model_id="tiny-fixture", revision="fixture-v1",
+                                       pooling=config.pooling, device="cpu", seed=config.seed)
     return build_cross_encoder(model_id=run["model_id"], pooling=config.pooling,
-                               device=run["device"])
+                               device=run["device"], seed=config.seed)
 
 
 def run_action(run: dict, model, tok, train_pairs, dev_pairs, config) -> dict:
-    """Run a short inference-only smoke or the explicit historical training path."""
+    """Run the selected explicit smoke, tiny sanity or training action."""
     import torch
     from hebrew_acronyms.models.common.pairs import ACR_CLOSE, ACR_OPEN
     from hebrew_acronyms.models.dictabert_cross_encoder.encoding import encode_pairs
-    from hebrew_acronyms.models.dictabert_cross_encoder.training import train
+    from hebrew_acronyms.models.dictabert_cross_encoder.training import train, sanity_overfit
+    from hebrew_acronyms.models.dictabert_cross_encoder.eval import evaluate
+    if run["mode"] == "sanity":
+        return sanity_overfit(model, tok, train_pairs.rows, run["checkpoint_path"],
+                              config=config, device="cpu")
     if run["mode"] == "train":
         if not dev_pairs:
             raise ValueError("Training requires usable development pairs")
@@ -146,7 +164,9 @@ def run_action(run: dict, model, tok, train_pairs, dev_pairs, config) -> dict:
     return {"mode": "smoke", "status": "PASS", "pairs": len(contexts),
             "input_shape": tuple(batch["input_ids"].shape), "logits_shape": tuple(logits.shape),
             "snapshot": Path(run["model_id"]).name, "device": "cpu", "all_finite": True,
-            "training_performed": False, "checkpoint_written": False}
+            "training_performed": False, "checkpoint_written": False,
+            "predictions": evaluate(train_pairs.rows, tok, model, open_id, close_id, "cpu",
+                                    max_len=config.max_len)}
 
 
 def summarize_run(result: dict) -> None:

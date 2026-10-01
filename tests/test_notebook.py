@@ -33,6 +33,27 @@ import hebrew_acronyms.pipelines.check_environment
                                 capture_output=True, text=True, timeout=30)
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_all_cells_run_on_tiny_fixtures_without_cache(self):
+        result = subprocess.run([sys.executable, "-B", "-m", "tests.run_notebook", "--tiny-sanity"],
+                                cwd=ROOT, capture_output=True, text=True, timeout=60)
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout[-2000:])
+        self.assertIn("Notebook: PASS (sanity, all cells, offline, invented inputs)", result.stdout)
+        notebook = json.loads((ROOT / "notebooks/train_dictabert.ipynb").read_text())
+        self.assertEqual(result.stdout.count("Running notebook cell"),
+                         sum(c["cell_type"] == "code" for c in notebook["cells"]))
+
+    def test_missing_snapshot_reports_not_run_without_download(self):
+        code = """
+from unittest.mock import patch
+from tests.run_notebook import main
+with patch('hebrew_acronyms.models.dictabert_cross_encoder.workflow.find_snapshot', return_value=None):
+    raise SystemExit(main())
+"""
+        result = subprocess.run([sys.executable, "-B", "-c", code], cwd=ROOT,
+                                capture_output=True, text=True, timeout=30)
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertIn("Notebook: NOT RUN", result.stdout)
+
     def test_thin_notebook_and_single_definitions(self):
         notebook = json.loads((ROOT / "notebooks/train_dictabert.ipynb").read_text())
         cells = [c for c in notebook["cells"] if c["cell_type"] == "code"]

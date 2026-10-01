@@ -16,7 +16,7 @@ from hebrew_acronyms.models.common import pairs
 from hebrew_acronyms.models.dictabert_cross_encoder import model as model_module
 from hebrew_acronyms.models.dictabert_cross_encoder import training
 from hebrew_acronyms.models.dictabert_cross_encoder import workflow
-from tests.fixtures.tiny import TRAINING_PAIRS, tiny_base_model
+from tests.fixtures.tiny import TRAINING_PAIRS, TRAINING_ROWS, tiny_base_model
 from tests.reference import BASE, baseline_notebook_cell, baseline_notebook_namespace
 
 
@@ -106,14 +106,14 @@ class TrainingEquivalenceTests(unittest.TestCase):
             optimizers.append(optimizer)
             return optimizer
 
-        def record_save(state, path):
+        def record_save(model, tok, path, config, inputs, epoch, dev_loss):
             self.assertEqual(path, "unused-fixture-checkpoint.pt")
-            saved.append(copy.deepcopy(state))
+            saved.append(copy.deepcopy(model.state_dict()))
 
         original_evaluate = training.evaluate_pairs
         with (patch.object(training, "encode_pairs", record_encoding),
               patch.object(torch.optim, "AdamW", record_optimizer),
-              patch.object(torch, "save", record_save),
+              patch.object(training, "save_checkpoint", record_save),
               patch.object(training, "evaluate_pairs", evaluation or original_evaluate),
               redirect_stdout(io.StringIO())):
             history = training.train(
@@ -161,17 +161,21 @@ class TrainingEquivalenceTests(unittest.TestCase):
         self.assertFalse(self.model.training)
 
     def test_one_optimizer_update_matches_baseline(self):
-        self.check_optimizer_equivalence(TRAINING_PAIRS[:2])
+        self.check_optimizer_equivalence(pairs.build_pairs(TRAINING_ROWS[:1]))
 
     def test_two_optimizer_updates_match_baseline_including_partial_batch(self):
         self.check_optimizer_equivalence(TRAINING_PAIRS)
 
     def check_optimizer_equivalence(self, fixture_pairs):
-        config = training.TrainingConfig(batch_size=2)
+        config = training.TrainingConfig(batch_size=3)
         initial = copy.deepcopy(self.model.state_dict())
         saved_old, order_old = self.run_baseline(config, fixture_pairs)
         saved_new, order_new, optimizer, history = self.run_extracted(config, fixture_pairs)
-        self.assertEqual(order_new, order_old)
+        # E1 validates both complete sets before any update; optimizer batches
+        # and the development pass retain their historical order after preflight.
+        self.assertEqual(order_new[:2], [[(c, candidate) for c, candidate, _ in values]
+                                        for values in (fixture_pairs, TRAINING_PAIRS)])
+        self.assertEqual(order_new[2:], order_old)
         self.assert_nested_equal(self.model.state_dict(), self.old_model.state_dict())
         self.assert_nested_equal(optimizer.state_dict(), self.scope["optimizer"].state_dict())
         self.assert_nested_equal(saved_new, saved_old)
@@ -196,7 +200,7 @@ class TrainingEquivalenceTests(unittest.TestCase):
         self.assertEqual(len(saved_new), 2)
         self.assert_nested_equal(saved_new, saved_old)
 
-    def test_workflow_initializes_before_applying_training_seed(self):
+    def test_workflow_seeds_before_initialization_and_training(self):
         events = []
         original_python_seed, original_torch_seed = random.seed, torch.manual_seed
 
@@ -219,12 +223,13 @@ class TrainingEquivalenceTests(unittest.TestCase):
         with (patch.object(model_module, "build_base_model", initialize),
               patch.object(random, "seed", python_seed),
               patch.object(torch, "manual_seed", torch_seed),
-              patch.object(torch, "save"), redirect_stdout(io.StringIO())):
+              patch.object(training, "save_checkpoint"), redirect_stdout(io.StringIO())):
             tok, model, _, _ = workflow.load_model(run, config)
-            self.assertEqual(events, ["initialize"])
+            self.assertEqual(events, [("python_seed", 42), ("torch_seed", 42), "initialize"])
             result = workflow.run_action(
                 run, model, tok, TRAINING_PAIRS, TRAINING_PAIRS, config)
-        self.assertEqual(events, ["initialize", ("python_seed", 42), ("torch_seed", 42)])
+        self.assertEqual(events, [("python_seed", 42), ("torch_seed", 42), "initialize",
+                                  ("python_seed", 42), ("torch_seed", 42)])
         self.assertEqual(len(result["history"]), 1)
 
 

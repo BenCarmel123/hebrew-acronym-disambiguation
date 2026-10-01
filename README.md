@@ -121,18 +121,51 @@ It does not yet execute the complete experiment or reproduce research results.
 
 ### Training appendix
 
-The notebook's first code cell holds imports, paths and mode settings. Later cells
-load inputs, prepare pairs, load the model, call the selected action and summarize it.
-`MODE="smoke"` performs inference only. Authorized `train` mode requires explicit local
-train/development inputs, a cached snapshot and a new checkpoint output path.
-Both modes block network access for the lifetime of the process; restart before
-unrelated network work. Settings live in [TrainingConfig](src/hebrew_acronyms/models/dictabert_cross_encoder/training.py).
+The first code cell holds imports and configuration; later cells call source functions.
+`MODE="smoke"` performs offline CPU inference on invented fixtures using an existing
+local snapshot. `train` requires separately authorized, explicit train/dev CSVs and
+a new checkpoint path. The default notebook does not train or call services.
 
-The existing behavior is retained: seeding occurs after model initialization and
-checkpoint selection requires strict improvement in development pair loss. Pair
-accuracy is not item-level candidate-selection accuracy. Existing length-budget edge
-cases and differing evaluator scoring/skip rules have not been changed by organization.
+E1 inputs require unique `item_id`, the original `sentence`, exact `target_raw`
+including its prefix, and half-open character offsets `span_start`/`span_end`.
+Candidates are pipe-separated; training requires `gold_expansion` to match exactly
+one candidate after surrounding whitespace is trimmed. Missing/invalid spans,
+duplicate IDs and invalid training inventories fail explicitly. Singleton training
+remains unsupported; prediction retains singleton records and per-item failure
+statuses. No aliases, research inclusion rules or metrics are inferred.
+
+Seeding precedes encoder, marker and head initialization. Encoding crops context
+only; an over-budget target plus candidate fails explicitly. Pooling, BCE, AdamW,
+default epochs and strict development-pair-loss checkpoint selection are unchanged.
+Settings live in [TrainingConfig](src/hebrew_acronyms/models/dictabert_cross_encoder/training.py).
+Weights are accompanied by a JSON reconstruction manifest with settings, model and
+tokenizer identities, input IDs/hashes and a weight hash. Reloading checks mismatches
+and applies the saved length budget; see [checkpoint details](docs/checkpoints.md).
+Legacy weight-only checkpoints require separate handling and are not guessed.
+
+For an explicit engineering learning check, run:
+
+```bash
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 .venv/bin/python -B -m tests.run_notebook --tiny-sanity
+```
+
+This executes every appendix cell with a tiny local encoder, two invented examples,
+180 repeated sanity epochs and temporary checkpoints. It needs no model cache.
+The separate sanity settings do not alter research defaults. Falling loss and learned
+choices establish tiny-set memorization only. CPU checkpoint prediction comparisons
+use absolute tolerance `1e-7` with zero relative tolerance. GPU training, real DictaBERT
+learning and research quality remain unverified. Both notebook modes and sanity block
+network access for the lifetime of the process; restart before unrelated network work.
+
+**Known E1 integration limitation:** the separate `pipelines.check_environment`
+command above still constructs legacy fixture rows without IDs/spans. Its pair check
+will fail under the new contract. Shaked explicitly requested leaving that file
+unchanged; use the tested notebook runners for E1 checks pending a separately scoped
+fixture update. The checkpoint branch of `pipelines.run_all` also expects the old
+aggregate evaluation dictionary and cannot consume E1 item records. It remains
+unchanged pending an authorized aggregation policy and integration update. Research
+input files likewise have not been migrated.
 
 Research training, evaluation, mining and service calls require a separately authorized
 task. **`src/hebrew_acronyms/pipelines/run_pipeline.sh` evaluates test automatically when present; `--skip-llm`
-does not disable test.** Use only the safe commands above for structural verification.
+does not disable test.** Do not use it as an E1 smoke check.
