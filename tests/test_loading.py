@@ -251,7 +251,6 @@ class LoadingEquivalenceTests(unittest.TestCase):
         self.assertEqual(ast.dump(new), ast.dump(migrated_imports(old)))
         for path, names in ((PIPELINE, ("main", "to_markdown")),
                             (EVAL, ("embed", "evaluate")),
-                            ("model/dictabertX/eval.py", ("evaluate", "main")),
                             ("model/baselines.py", ("load_signals", "evaluate", "main"))):
             for name in names:
                 self.assertEqual(ast.dump(definition(path, name)),
@@ -260,14 +259,20 @@ class LoadingEquivalenceTests(unittest.TestCase):
     def test_cross_encoder_selects_highest_score_and_first_tie(self):
         from hebrew_acronyms.models.dictabert_cross_encoder import eval as cross_eval
 
-        rows = [dict(sentence="דוגמה א״ב", acronym="א״ב", candidates="אלף|בית",
-                     gold_expansion=gold) for gold in ("בית", "אלף")]
+        # E1 replaces aggregate scoring/skips with identified predictions. Other
+        # evaluators retain the historical AST comparisons above.
+        rows = [dict(item_id=f"item-{i}", sentence="דוגמה א״ב", target_raw="א״ב",
+                     span_start=6, span_end=9, candidates="אלף|בית") for i in range(2)]
         scores = iter((torch.tensor([-2.0, 4.0]), torch.tensor([5.0, 5.0])))
-        with (patch.object(cross_eval, "encode_batch", return_value={}),
-              patch.object(cross_eval, "tqdm", side_effect=lambda values, **_: values)):
-            result = cross_eval.evaluate(
-                rows, None, lambda **_: next(scores), 1, 2, "cpu")
-        self.assertEqual(result, {"n_items": 2, "accuracy": 1.0})
+        model = unittest.mock.Mock(side_effect=lambda **_: next(scores))
+        model.training_config = None
+        with patch.object(cross_eval, "encode_batch", return_value={}):
+            result = cross_eval.evaluate(rows, None, model, 1, 2, "cpu")
+        self.assertEqual([r["item_id"] for r in result], ["item-0", "item-1"])
+        self.assertEqual([r["selected_candidate"] for r in result], ["בית", "אלף"])
+        self.assertTrue(all(r["status"] == "ok" for r in result))
+        self.assertEqual(result[0]["candidate_scores"],
+                         [{"candidate": "אלף", "score": -2.0}, {"candidate": "בית", "score": 4.0}])
 
     def test_fresh_imports_do_not_write_read_research_inputs_or_use_network(self):
         code = """

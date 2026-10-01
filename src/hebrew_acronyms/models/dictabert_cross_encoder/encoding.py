@@ -7,11 +7,11 @@ from hebrew_acronyms.models.common.pairs import ACR_CLOSE, ACR_OPEN
 
 def encode_pairs(tok, pairs_batch, device, max_len=256,
                  acr_open_id=None, acr_close_id=None):
-    """Encode marked context/candidate pairs with the original target-centred crop.
-
-    Empty batches and missing markers retain their original ValueError behavior.
-    A target plus candidate longer than the budget is kept, even beyond max_len.
-    """
+    """Crop context only; retain target, markers and the complete candidate."""
+    if type(max_len) is not int or max_len <= 0:
+        raise ValueError("max_len must be a positive integer")
+    if not pairs_batch:
+        raise ValueError("Cannot encode an empty pair batch")
     if acr_open_id is None or acr_close_id is None:
         open_id, close_id = tok.convert_tokens_to_ids([ACR_OPEN, ACR_CLOSE])
         acr_open_id = open_id if acr_open_id is None else acr_open_id
@@ -21,7 +21,16 @@ def encode_pairs(tok, pairs_batch, device, max_len=256,
     for marked_context, candidate in pairs_batch:
         ctx = tok.encode(marked_context, add_special_tokens=False)
         cand = tok.encode(candidate, add_special_tokens=False)
+        if ctx.count(acr_open_id) != 1 or ctx.count(acr_close_id) != 1:
+            raise ValueError("Context requires exactly one opening and closing marker")
         o, c = ctx.index(acr_open_id), ctx.index(acr_close_id)
+        if c <= o + 1:
+            raise ValueError("Markers must surround a nonempty target in order")
+        if acr_open_id in cand or acr_close_id in cand:
+            raise ValueError("Candidate contains a reserved target marker")
+        required = 3 + len(cand) + c - o + 1
+        if required > max_len:
+            raise ValueError(f"Target, markers and candidate require {required} tokens; max_len={max_len}")
         budget = max_len - 3 - len(cand)
         lo, hi = 0, len(ctx)
         while (hi - lo) > budget:

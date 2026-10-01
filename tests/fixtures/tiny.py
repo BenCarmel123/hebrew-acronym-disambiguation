@@ -22,6 +22,9 @@ class TinyTokenizer:
     def __len__(self):
         return 64 + len(self.markers)
 
+    def get_vocab(self):
+        return {**{f"char-{i}": i for i in range(64)}, **self.markers}
+
     def add_special_tokens(self, values):
         added = 0
         for token in values["additional_special_tokens"]:
@@ -76,8 +79,12 @@ def marked_tokenizer():
     return tokenizer
 
 
-TRAINING_PAIRS = [
-    ('היום [ACR]ב״ד[/ACR] בכיתה.', 'בדיקת דוגמה', 1),
-    ('מחר [ACR]ב״ד[/ACR] קטן.', 'בניית דגם', 0),
-    ('כעת [ACR]מ״ד[/ACR] מוכן.', 'משחק דוגמה', 1),
+# Explicit invented items for training-loop equivalence (not research examples).
+TRAINING_ROWS = [
+    dict(item_id="tiny-1", sentence='היום ב״ד בכיתה.', target_raw='ב״ד',
+         span_start=5, span_end=8, candidates='בדיקת דוגמה|בניית דגם', gold_expansion='בדיקת דוגמה'),
+    dict(item_id="tiny-2", sentence='כעת מ״ד מוכן.', target_raw='מ״ד',
+         span_start=4, span_end=7, candidates='משחק דוגמה|מספר דגמים', gold_expansion='משחק דוגמה'),
 ]
+from hebrew_acronyms.models.common.pairs import build_pairs
+TRAINING_PAIRS = build_pairs(TRAINING_ROWS)

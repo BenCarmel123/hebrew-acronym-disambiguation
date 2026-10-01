@@ -14,7 +14,10 @@ from torch import nn
 from hebrew_acronyms.models.common import pairs
 from hebrew_acronyms.models.dictabert_cross_encoder.encoding import encode_pairs
 from hebrew_acronyms.models.dictabert_cross_encoder.eval import encode_batch
-from hebrew_acronyms.models.dictabert_cross_encoder.model import CrossEncoder, build_cross_encoder, load_finetuned
+from hebrew_acronyms.models.dictabert_cross_encoder.model import CrossEncoder, build_cross_encoder, load_finetuned, save_checkpoint, file_digest, metadata_path
+from hebrew_acronyms.models.dictabert_cross_encoder.training import TrainingConfig
+import json
+
 from tests.fixtures.tiny import TinyEncoder, TinyTokenizer, marked_tokenizer, tiny_base_model
 from tests.reference import baseline_module_namespace, baseline_notebook_cell, baseline_notebook_namespace
 
@@ -68,19 +71,20 @@ class EncodingEquivalence(unittest.TestCase):
                     encode_batch(self.tok, "cpu", self.open_id, self.close_id, context,
                                  [candidate for _, candidate in batch]))
 
-    def test_over_budget_span_or_candidate_is_preserved(self):
+    def test_over_budget_span_or_candidate_is_rejected(self):
+        # E1 intentionally replaces the baseline's silently oversized tensors.
         for batch in ([('[ACR]יעד[/ACR]', 'מ' * 300)],
                       [('[ACR]' + 'מ' * 300 + '[/ACR]', 'ד')]):
-            self.assert_batch_equal(self.old_notebook(batch), encode_pairs(self.tok, batch, "cpu"))
-            self.assertGreater(encode_pairs(self.tok, batch, "cpu")["input_ids"].shape[1], 256)
+            self.assertGreater(self.old_notebook(batch)["input_ids"].shape[1], 256)
+            with self.assertRaisesRegex(ValueError, "require.*max_len"):
+                encode_pairs(self.tok, batch, "cpu")
 
     def test_edge_marker_arrangements_and_custom_budget(self):
+        # Invalid marker arrangements are now rejected before pooling can hide them.
         for context in ("[ACR][/ACR]", "[/ACR]ד[ACR]", "[ACR]א[/ACR][ACR]ב[/ACR]"):
             for budget in (0, 10, 256):
-                with self.subTest(context=context, max_len=budget):
-                    batch = [(context, "מועמד")]
-                    self.assert_batch_equal(self.old_notebook(batch, budget),
-                                            encode_pairs(self.tok, batch, "cpu", budget))
+                with self.subTest(context=context, max_len=budget), self.assertRaises(ValueError):
+                    encode_pairs(self.tok, [(context, "מועמד")], "cpu", budget)
 
     def test_explicit_and_inferred_marker_ids(self):
         batch = [("[ACR]ב״ד[/ACR]", "דגם")]
@@ -98,7 +102,7 @@ class EncodingEquivalence(unittest.TestCase):
                     self.old_notebook(batch)
                 with self.assertRaises(ValueError) as after:
                     encode_pairs(self.tok, batch, "cpu")
-                self.assertEqual(str(before.exception), str(after.exception))
+                # E1 supplies explicit contract errors rather than list.index/max errors.
         for context in ("ללא סימון", "[ACR]ב״ד", "[ACR]ב״ד[/ACR]"):
             for candidates in ([], ["דגם"]):
                 if candidates and context.endswith("[/ACR]"):
@@ -110,7 +114,7 @@ class EncodingEquivalence(unittest.TestCase):
                     with self.assertRaises(ValueError) as after:
                         encode_batch(self.tok, "cpu", self.open_id, self.close_id,
                                      context, candidates)
-                    self.assertEqual(str(before.exception), str(after.exception))
+                    # E1 supplies explicit contract errors rather than list.index/max errors.
 
     def test_eval_wrapper_keeps_module_max_len(self):
         context = "מילה " * 20 + " [ACR]ב״ד[/ACR]"
@@ -163,6 +167,8 @@ class ModelEquivalence(unittest.TestCase):
                     new.load_state_dict({**old.state_dict(), "unexpected": torch.tensor(0)}, strict=True)
 
     def test_factory_matches_baseline_initialization_and_rng(self):
+        # E1 moves the seed ahead of initialization; compare the same seeded baseline.
+        torch.manual_seed(42)
         state = torch.get_rng_state()
         # Execute only the baseline's initialization assignments and resize guard.
         # The download-capable constructors are replaced before AST execution.
@@ -187,8 +193,7 @@ class ModelEquivalence(unittest.TestCase):
         expected_rng = torch.get_rng_state()
         torch.set_rng_state(state)
         with patch("hebrew_acronyms.models.dictabert_cross_encoder.model.build_base_model", side_effect=tiny_base_model) as loader:
-            with patch("torch.manual_seed", side_effect=AssertionError("factory must not seed")):
-                _, actual, opened, closed = build_cross_encoder(model_id="fixture", revision="fixture-revision")
+            _, actual, opened, closed = build_cross_encoder(model_id="fixture", revision="fixture-revision")
         loader.assert_called_once_with(model_id="fixture", revision="fixture-revision")
         self.assertEqual((opened, closed), (self.open_id, self.close_id))
         self.assertTrue(torch.equal(expected_rng, torch.get_rng_state()))
@@ -205,7 +210,7 @@ class ModelEquivalence(unittest.TestCase):
     def test_checkpoint_loader_retains_cpu_load_then_device_order(self):
         events = []
         with patch("hebrew_acronyms.models.dictabert_cross_encoder.model.build_base_model", side_effect=tiny_base_model):
-            _, model, _, _ = build_cross_encoder()
+            _, model, _, _ = build_cross_encoder(model_id="fixture", revision="fixture-revision")
         original_to = model.to
         original_load = model.load_state_dict
 
@@ -222,21 +227,23 @@ class ModelEquivalence(unittest.TestCase):
             events.append("move_device")
             return original_to(device)
 
-        with (patch("hebrew_acronyms.models.dictabert_cross_encoder.model.build_cross_encoder", side_effect=construct),
-              patch("torch.load", return_value=model.state_dict()),
-              patch.object(model, "load_state_dict", side_effect=load),
-              patch.object(model, "to", side_effect=move)):
-            load_finetuned("fixture.pt", device="cpu")
+        with tempfile.TemporaryDirectory() as directory:
+            checkpoint = Path(directory) / "model.pt"
+            save_checkpoint(model, self.tok, checkpoint, TrainingConfig(), {}, 1, 0.5)
+            with (patch("hebrew_acronyms.models.dictabert_cross_encoder.model.build_cross_encoder", side_effect=construct),
+                  patch.object(model, "load_state_dict", side_effect=load),
+                  patch.object(model, "to", side_effect=move)):
+                load_finetuned(checkpoint, device="cpu")
         self.assertEqual(events, ["construct_cpu", "load_state", "move_device"])
 
     def test_checkpoint_round_trip_via_real_loader(self):
         for pooling in ("cls", "marker", "span_mean", "concat"):
             with self.subTest(pooling=pooling), tempfile.TemporaryDirectory() as directory:
                 with patch("hebrew_acronyms.models.dictabert_cross_encoder.model.build_base_model", side_effect=tiny_base_model):
-                    _, model, _, _ = build_cross_encoder(pooling=pooling)
+                    _, model, _, _ = build_cross_encoder(pooling=pooling, model_id="fixture", revision="fixture-revision")
                     model.eval()
                     checkpoint = Path(directory) / "best.pt"
-                    torch.save(model.state_dict(), checkpoint)
+                    save_checkpoint(model, self.tok, checkpoint, TrainingConfig(pooling=pooling), {}, 1, 0.5)
                     _, loaded, opened, closed = load_finetuned(
                         checkpoint, pooling=pooling, model_id="fixture", revision="fixture-revision")
                     self.assertFalse(loaded.training)
@@ -250,6 +257,10 @@ class ModelEquivalence(unittest.TestCase):
                     broken = deepcopy(model.state_dict())
                     broken.pop("score.bias")
                     torch.save(broken, checkpoint)
+                    # With matching digest, strict state loading must still reject missing weights.
+                    manifest = json.loads(metadata_path(checkpoint).read_text())
+                    manifest["weights_sha256"] = file_digest(checkpoint)
+                    metadata_path(checkpoint).write_text(json.dumps(manifest))
                     with self.assertRaises(RuntimeError):
                         load_finetuned(checkpoint, pooling=pooling)
 

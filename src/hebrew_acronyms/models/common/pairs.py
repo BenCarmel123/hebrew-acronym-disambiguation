@@ -1,6 +1,11 @@
 """Build target-marked context/candidate pairs for training and evaluation."""
 from __future__ import annotations
 
+from copy import deepcopy
+import hashlib
+import json
+import re
+
 from hebrew_acronyms.data_processing.common.csv_io import load_rows
 
 #: Marker tokens wrapping the target acronym occurrence, added to the tokenizer as real
@@ -8,8 +13,7 @@ from hebrew_acronyms.data_processing.common.csv_io import load_rows
 #: is what actually inserts them into text.
 ACR_OPEN, ACR_CLOSE = "[ACR]", "[/ACR]"
 
-#: A well-formed ranking task needs a real choice. With one candidate the argmax is
-#: correct by construction and any accuracy computed over it is inflated.
+#: Preserve the existing training minimum; inference accepts singleton inventories.
 MIN_CANDIDATES = 2
 
 #: Hebrew punctuation the sources use interchangeably with ASCII quotes.
@@ -41,40 +45,108 @@ def mark_span(sentence: str, span: tuple[int, int]) -> str:
     return f"{sentence[:s]}{ACR_OPEN}{sentence[s:e]}{ACR_CLOSE}{sentence[e:]}"
 
 
-def build_pairs(rows: list[dict]) -> list[tuple[str, str, int]]:
-    """rows -> list of (marked_context, candidate_string, label).
+def validate_ids(rows: list[dict]) -> None:
+    """Reject missing/duplicate IDs before training or prediction starts."""
+    seen = set()
+    for row in rows:
+        item_id = row.get("item_id")
+        if not isinstance(item_id, str) or not item_id.strip():
+            raise ValueError("Each item requires a nonempty string item_id")
+        if item_id in seen:
+            raise ValueError(f"Duplicate item_id: {item_id!r}")
+        seen.add(item_id)
 
-    One pair per candidate of every row. label=1 for the gold expansion, 0 for every
-    other candidate of that same acronym. Rows with fewer than MIN_CANDIDATES candidates,
-    or whose acronym cannot be located in its sentence, are silently skipped — call
-    `describe_skips` first if you want to know how many and why.
+
+def explicit_span(row: dict) -> tuple[int, int]:
+    """Half-open Python character offsets into the original, unnormalised sentence.
+
+    Decimal strings are accepted for CSV offsets. target_raw includes any attached
+    prefix. No acronym search, quote folding or alias inference occurs here.
     """
+    sentence, target = row.get("sentence"), row.get("target_raw")
+    if not isinstance(sentence, str) or not isinstance(target, str) or not target:
+        raise ValueError("sentence and nonempty target_raw are required")
+    if ACR_OPEN in sentence or ACR_CLOSE in sentence:
+        raise ValueError("The original sentence must not contain reserved target markers")
+    offsets = []
+    for field in ("span_start", "span_end"):
+        value = row.get(field)
+        if isinstance(value, str) and re.fullmatch(r"[0-9]+", value):
+            value = int(value)
+        if type(value) is not int:
+            raise ValueError(f"{field} must be an explicit integer character offset")
+        offsets.append(value)
+    start, end = offsets
+    if not 0 <= start < end <= len(sentence):
+        raise ValueError("Target span is outside the original sentence")
+    if sentence[start:end] != target:
+        raise ValueError("Target span does not match target_raw exactly (including prefix)")
+    return start, end
+
+
+def candidates_for(row: dict) -> list[str]:
+    value = row.get("candidates")
+    if not isinstance(value, str):
+        raise ValueError("candidates must be a pipe-separated string")
+    candidates = [candidate.strip() for candidate in value.split("|")]
+    if not candidates or any(not candidate for candidate in candidates):
+        raise ValueError("Candidate inventory contains an empty candidate")
+    if any(ACR_OPEN in c or ACR_CLOSE in c for c in candidates):
+        raise ValueError("Candidates must not contain reserved target markers")
+    return candidates
+
+
+def input_identity(rows: list[dict]) -> dict:
+    """Bind ordered IDs and the complete supplied rows, without saving their text."""
+    payload = json.dumps(rows, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return {"item_ids": [row["item_id"] for row in rows],
+            "sha256": hashlib.sha256(payload.encode("utf-8")).hexdigest()}
+
+
+class PreparedPairs(list):
+    """Validated pairs with the original item identities for checkpoint provenance."""
+
+    def __init__(self, values, rows):
+        super().__init__(values)
+        self.rows = deepcopy(rows)
+        self.identity = input_identity(rows)
+
+    def verify(self):
+        rebuilt = build_pairs(self.rows)
+        if rebuilt != self or rebuilt.identity != self.identity:
+            raise ValueError("Prepared pairs or input identity changed after validation")
+
+
+def build_pairs(rows: list[dict]) -> PreparedPairs:
+    """Strict training input: explicit target and exactly one positive per item.
+
+    Singleton training remains unsupported, with an explicit error instead of a
+    silent skip. Prediction has a separate record-preserving path.
+    """
+    validate_ids(rows)
     pairs = []
-    for r in rows:
-        cands = [c.strip() for c in r["candidates"].split("|") if c.strip()]
-        if len(cands) < MIN_CANDIDATES:
-            continue
-        span = find_span(r["sentence"], r["acronym"])
-        if span is None:
-            continue
-        marked = mark_span(r["sentence"], span)
-        gold = r["gold_expansion"].strip()
-        for c in cands:
-            pairs.append((marked, c, 1 if c == gold else 0))
-    return pairs
+    for row in rows:
+        try:
+            span = explicit_span(row)
+            candidates = candidates_for(row)
+            gold = row.get("gold_expansion")
+            if not isinstance(gold, str) or not gold.strip():
+                raise ValueError("A nonempty gold_expansion is required for training")
+            gold = gold.strip()
+            if sum(candidate == gold for candidate in candidates) != 1:
+                raise ValueError("Training item requires exactly one positive candidate")
+            if len(candidates) < MIN_CANDIDATES:
+                raise ValueError("Training requires at least two candidates; singleton policy is pending")
+            if len(set(candidates)) != len(candidates):
+                raise ValueError("Duplicate candidate entries are not supported")
+            marked = mark_span(row["sentence"], span)
+            pairs.extend((marked, candidate, int(candidate == gold)) for candidate in candidates)
+        except ValueError as error:
+            raise ValueError(f"Item {row['item_id']!r}: {error}") from error
+    return PreparedPairs(pairs, rows)
 
 
 def describe_skips(rows: list[dict]) -> dict:
-    """Counts of why rows were dropped by build_pairs, so a surprise shows up here and
-    not as a silently smaller training set."""
-    too_few, unlocatable, ok = 0, 0, 0
-    for r in rows:
-        cands = [c.strip() for c in r["candidates"].split("|") if c.strip()]
-        if len(cands) < MIN_CANDIDATES:
-            too_few += 1
-        elif find_span(r["sentence"], r["acronym"]) is None:
-            unlocatable += 1
-        else:
-            ok += 1
-    return {"total": len(rows), "usable": ok,
-            "skipped_too_few_candidates": too_few, "skipped_unlocatable": unlocatable}
+    """Validate the full input. E1 no longer silently drops training rows."""
+    build_pairs(rows)
+    return {"total": len(rows), "usable": len(rows), "skipped": 0}
