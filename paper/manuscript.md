@@ -176,8 +176,8 @@ The proposal keeps the historical allocation of acronym types to task splits,
 while requiring document and duplicate checks before training. This differs from
 the submitted proposal's document-first primary split and optional type-held-out
 stress test: the intended encoder question now concerns unseen task-training
-types. Historical files remain reference inputs until human review establishes
-eligibility. Natural development candidates are being audited separately from the
+types. Historical files remain preserved references; the authorized encoder derivatives
+are described below. Natural development was qualified separately from the
 largely substituted historical development set. Their scores, if later obtained,
 would not be pooled without an explicit scientific decision.
 
@@ -222,8 +222,9 @@ Inventory size \(|C(a)|\) and the number of distinct reviewed expansions observe
 for \(a\) measure different things. A valid singleton inventory remains visible
 as a proposed evaluation stratum; selecting its sole member is structurally
 trivial. Overall reporting and a separate stratum with at least two candidates
-are proposed, without requiring two observed meanings per type. Singleton
-exclusion from pairwise training, if adopted, is a separate training decision.
+are proposed, without requiring two observed meanings per type. The existing
+encoder pair-loss contract requires at least two distinct candidates;
+otherwise-qualified singleton development items have a separate prediction-only role.
 
 Shaked is the available human reviewer. Earlier review records attributed to Ben
 are preserved with their uncertainty and notes; a historical clean label does not
@@ -244,6 +245,57 @@ inventory qualification and unresolved semantic decisions remain open. This was
 not a model-performance experiment. This deliberately selected pilot does not
 estimate the population error rate. There is no empirical
 workload estimate and no independent second annotation or agreement measurement.
+
+### Encoder input qualification — 1 October 2026
+
+Shaked authorized reuse of the existing training labels, including weak labels,
+without a new comprehensive annotation pass. The saved-export preparation produced
+2,676 training items across 433 historical types and 1,852 document keys: 2,324
+substituted, 344 natural (295 Knesset and 49 Wikipedia), and 8 deglossed. Of 3,115
+source rows, 437 remain held and 2 have recorded human exclusions. These outcomes
+reflect provenance, target, duplicate and split-separation checks, not model scores.
+The natural development set contains all 62 previously proposed Knesset items,
+covering 11 types and 35 document keys. The 289 historical development rows remain
+reference only. Training and development contain 12,065 and 331 candidate pairs,
+respectively, under the unchanged encoder contract; no singleton dev occurs.
+
+Preparation preserves sentences and exact raw targets, including approved attached
+prefixes. It computes a target only from a unique bounded quote-folded match or
+uses a saved explicit human span. Repeated occurrences and ambiguous boundaries,
+including letters outside surrounding quotes, require a human decision. It retains
+the stored per-row inventories except for the explicit corrections below; it does
+not adopt an unapproved global inventory. Every pair-loss item has at least two
+distinct candidates and exactly one trimmed positive. These engineering checks do
+not establish all weak labels or negative candidates as independently correct.
+
+Earlier human Knesset review is reused only when sentence, type, label, candidates
+and document match. Shaked explicitly approved replacing the label and existing
+metalinguistic candidate with `דוקטור` in seven development `בד״ר` items, and using
+`רבי משה בן מימון` as the label while expanding the existing abbreviated candidate
+in eleven `רמב״ם` items. The latter is an item-bounded task clarification accepting
+expansion of the proper name in the hospital/street contexts; it is not a general
+entity-identification or etymology policy. Shaked also approved the first occurrence
+in two repeated `א״ח` voting sentences and full prefix-bearing quoted targets in
+two `רמב״ם` sentences. No new sense was inserted, no type was merged and no sentence
+was rewritten. Forty-two development labels retain matching historical human
+review; twenty use saved Shaked decisions (eighteen new corrections and two earlier
+acceptances). All new decisions were made with AI assistance, not blind annotation.
+
+The [reproduction instructions](../data/README.md#qualification-and-reproduction),
+[manifest](../data/study_v1/encoder_inputs/manifest.json),
+[row trace](../data/study_v1/encoder_inputs/trace.csv), and
+[local decisions](../data/study_v1/encoder_inputs/local_decisions.json) identify sources,
+code, raw values, evidence, approvals and outputs. Mixed review records are gated
+by roles/references before exposure; reserved exact type/document metadata blocks
+overlap without opening test content. Training is blocked against all historical
+and proposed development types/documents, including held rows. Missing document
+keys and duplicate text groups are held. The 142 historically AI-authored training
+rows remain identifiable but are held for missing document provenance. Exact keys
+do not resolve aliases, type families, test-text duplicates or pretraining exposure.
+Reconstruction begins at retained exports and saved decisions, requires no repeat
+LLM call and does not claim reconstruction of original Internet mining. These
+qualified inputs await project-manager acceptance; no research model was loaded,
+trained or scored during preparation.
 
 ### 3.4 Encoder and conditional exposure extension
 
@@ -342,6 +394,17 @@ or the manuscript text. Existing data documentation attributes earlier human
 review to Ben and records AI authorship for some examples; these attributions are
 preserved, not independently re-established here. The assistant is not an
 additional human annotator.
+
+For encoder input preparation, one AI assistant wrote the code, fixtures and
+method descriptions, and an independent AI reviewer checked access gates,
+provenance, contracts and reproduction. The assistants also proposed the bounded
+label/candidate and target corrections described above. Exact input snapshots,
+proposal instructions, rationale/evidence and Shaked's explicit responses are
+saved in the local decision file. The exact serving model version was not exposed
+and is not invented. Approved development answers are human-reviewed AI proposals;
+the code reviewer is not another annotator. Historical AI-authorship declarations
+are retained as source claims. No new example generation, bulk LLM labeling or
+model-based selection was performed.
 
 This draft has not yet been represented as read, rewritten, or approved by Shaked.
 The final disclosure must reflect the work actually retained and verified, and

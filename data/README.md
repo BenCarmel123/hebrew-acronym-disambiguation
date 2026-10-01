@@ -83,3 +83,108 @@ authored text is not observed usage. Neither filenames nor categories settle the
 See [data processing commands](../docs/data_processing.md) for code responsibilities
 and retained execution limits. Preserve source exports and review work even where the
 original retrieval or full reconstruction is unavailable.
+
+## Qualified encoder inputs (1 October 2026)
+
+[Encoder inputs](study_v1/encoder_inputs/) are derivatives of the saved exports,
+prepared under Shaked's explicit authorization to use existing training labels,
+including weak labels. Technical qualification does not turn those labels or all
+negative candidates into independently verified truth. Sources and the historical
+review decisions remain unchanged. Project-manager acceptance and authorization
+for training are separate next steps.
+
+| Derivative | Items | Types | Documents | Candidate pairs |
+|---|---:|---:|---:|---:|
+| [train.csv](study_v1/encoder_inputs/train.csv) | 2,676 | 433 | 1,852 | 12,065 |
+| [dev.csv](study_v1/encoder_inputs/dev.csv) | 62 | 11 | 35 | 331 |
+| [dev_singletons.csv](study_v1/encoder_inputs/dev_singletons.csv) | 0 | 0 | 0 | Not a pair-loss input |
+
+Training contains 2,324 substituted, 344 natural (295 Knesset, 49 Wikipedia) and
+8 deglossed items. Of 3,115 training source rows, 437 are held and 2 have recorded
+human exclusions. Nonexclusive reasons include 142 missing document keys (the
+historically declared AI-authored rows), 121 repeated targets, 30 ambiguous target
+boundaries, 114 reserved-document overlaps, 60 development-document overlaps,
+2 duplicate-text records, 1 development-text overlap and 1 unresolved human label.
+Reasons overlap; do not add them to obtain an exclusion total. All 62 proposed
+natural development rows are retained. The 289 historical dev rows are reference
+only and are not substituted for this development set. No quotas from earlier
+proposals were adopted.
+
+The preparation uses each row's **stored candidate inventory**, with only the
+explicit corrections below; it does not adopt the proposed global inventory or
+a historical dev type-level union. Development labels reuse exact sentence,
+type, label, candidate and document matches to Knesset review attributed to Ben,
+or explicit Shaked decisions. A clean flag alone is insufficient. Of the final
+dev labels, 42 retain that historical human evidence and 20 use Shaked's saved
+AI-assisted decisions (18 new corrections and 2 earlier acceptances). This is a
+curated development sample, not blind reannotation or evidence of annotator agreement.
+
+Shaked approved these item-bounded changes in this preparation chat:
+
+- For all 7 proposed dev `בד״ר` items, replace the metalinguistic candidate
+  `ד"ר (ב- קליטי)` and label with `דוקטור`.
+- For all 11 proposed dev `רמב״ם` items, use `רבי משה בן מימון` as gold and replace
+  the existing abbreviated candidate `ר' משה בן מימון` with its full form. This
+  accepts expansion of the proper name in these hospital/street contexts; it is a
+  bounded clarification of the task, not a general entity or etymology policy.
+- Select the first target in the two repeated `א״ח` voting sentences, and retain
+  the full quoted tokens `ב"רמב"ם"` / `וב"רמב"ם"` in two prefixed contexts.
+
+No candidate was added to make a positive-label check pass, no type was merged,
+and no source sentence was rewritten. [Local decisions](study_v1/encoder_inputs/local_decisions.json)
+contain exact input snapshots, proposals, rationale/evidence, assistant identity
+as known, questions and verbatim human approvals. The independent code reviewer
+is not a human annotator. Earlier pilot uncertainty/exclusion records remain
+visible; the later item-bounded approvals supersede uncertainty only where explicit.
+
+### Qualification and reproduction
+
+The [preparation module](../src/hebrew_acronyms/data_processing/prepare_encoder_inputs.py)
+filters mixed audit records by roles and source references **before** exposing
+content. It uses reserved exact type/document identifiers from audit metadata;
+it does not open `test_items.csv`, inspect test text/labels/candidates or rerun the
+review generator. Unknown role/reference metadata stops export. Train and dev
+are checked against reserved identifiers; training is also blocked against all
+historical and proposed dev types/documents, including held rows. Duplicate text
+groups are held without selecting a preferred label. Missing document keys are held.
+
+Targets require a unique quote-folded match with unambiguous word boundaries or
+an explicit saved human span. Quote folding only locates a target; output preserves
+the exact sentence slice, including approved prefixes. Letters outside surrounding
+quotes also require a boundary decision. Candidates and labels must satisfy the
+unchanged encoder pair contract. Any otherwise-qualified singleton dev would be
+exported separately for description/prediction, never pair-loss selection.
+
+Run from the repository root using an environment with this package installed:
+
+```bash
+python -B -m hebrew_acronyms.data_processing.prepare_encoder_inputs \
+  --train data/splits/train_items.csv \
+  --historical-dev data/splits/dev_items.csv \
+  --audit data/study_v1/review/item_audit.csv \
+  --decisions data/study_v1/review/review_decisions.csv \
+  --policy data/study_v1/encoder_inputs/local_decisions.json \
+  --output data/study_v1/encoder_inputs
+python -B -m unittest tests.test_prepare_encoder_inputs -v
+```
+
+Use another output directory to compare a fresh reconstruction. No LLM call or
+model load is needed. [manifest.json](study_v1/encoder_inputs/manifest.json) records
+source hashes, the baseline commit, preparation/contract code hashes, rules,
+applied decisions, population/source/reason counts and output hashes. Code hashes
+identify the exact implementation independently of later documentation commits.
+[trace.csv](study_v1/encoder_inputs/trace.csv) records every authorized source row,
+its disposition, raw label/candidates and metadata, content-linked review references
+and decisions. Review evidence references include hashes of the matched saved
+records; the immutable audit retains their full payloads.
+
+IDs bind the source path, one-based CSV data record and complete source-row hash;
+legacy IDs alone are never join keys. Natural dev starts at the saved audit row,
+which retains the original aggregate reference. A record number is not a physical
+line number. Repeated runs with the same sources, decisions and code produce the
+same bytes. Reproduction starts at retained exports, not original Internet mining.
+
+Separation is limited to exact historical types and source/title document keys.
+Document aliases, linguistic type families, test-text duplicate comparisons and
+pretraining exposure are not resolved. The pair contract passed without model
+loading; tokenizer length checks and Colab training belong to the next package.
