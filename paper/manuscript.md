@@ -1,6 +1,6 @@
 # Hebrew Acronym Disambiguation: Candidate Access and Sentence Context
 
-**Working manuscript — protocol pending (29 September 2026).** This draft develops
+**Working manuscript — protocol pending (status clarified 1 October 2026).** This draft develops
 the approved research direction and task rules. Remaining method settings are
 proposals, not a frozen benchmark or completed experiments. P1 was an earlier
 structural preparation package; it does not authorize further execution. Scientific
@@ -243,8 +243,10 @@ three proposed exclusions, and three uncertain cases. Recorded target decisions
 are separate from these label counts.
 These are review records, not applied changes to research data: the inventory is
 unapproved, the uncertain cases remain open, and no review times were measured.
-The registration is partial, not a completed scientific pilot. This deliberately
-selected pilot does not estimate the population error rate. There is no empirical
+The 16-item definition and data-quality review is complete within that scope;
+inventory qualification and unresolved semantic decisions remain open. This was
+not a model-performance experiment. This deliberately selected pilot does not
+estimate the population error rate. There is no empirical
 workload estimate and no independent second annotation or agreement measurement.
 
 ### 3.4 Encoder and conditional exposure extension

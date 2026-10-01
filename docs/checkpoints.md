@@ -12,7 +12,31 @@ and resizes embeddings before loading the saved state. Pooling is selected throu
 The existing seed is applied after model initialization; a fixed seed alone does not
 establish reproducible initialization.
 
-## Historical record
+## Shaked's earlier Colab run — separate implementation
+
+The old `ShakedSchnarch/nlp-hw-team` repository records a completed run on
+30 August 2026 in `project/docs/MODEL_CACHE.md`, inspected at old commit
+`3bae9130a6a7086e3861235afc5360e4d08bc7ea` (source SHA-256
+`eb267b1350bd6c6e540a8da8f180842740dd4b49147f6e6155cfbf751fe18f9a`).
+This is documentary evidence, not a new reproduction or a claim that its weights
+are present in this repository.
+
+The record identifies training-code commit `d64d51d28d3a23bc0ad445914ebc718311933550`:
+2,552 silver (provisionally labelled) items, 11,172 candidate pairs and 295 types;
+three fixed epochs, seed 42 and learning rate 2e-5. Recorded training loss decreases
+from 0.5545 to 0.3322 to 0.2271. `final.pt` and `last.pt` were saved to Drive and
+read back according to the record. No dev/test inputs were evaluated, no accuracy
+was measured and no checkpoint was selected by an evaluation metric.
+
+Training completed; the subsequent held-out scientific evaluation did not complete
+in that recorded workflow. Development source groups had not been reserved, so the
+later proposed annotation pack cannot retrospectively become held-out data for that
+checkpoint. The training machinery and implementation experience remain useful.
+Its checkpoint is not interchangeable with Ben's checkpoints or approved for the
+current study. Current Drive availability, GPU repeatability and this historical
+run's reproduction have not been checked in the documentation reconciliation.
+
+## Ben's historical checkpoint records
 
 These values are preserved from `63b90acfae36e6b7fee8114760506868e29c681f:weights/README.md`.
 They are documentation claims, not verified checkpoint evaluations. Named artifacts
