@@ -1,6 +1,12 @@
 """Shared cross-encoder architecture, initialization and checkpoint loading."""
 from __future__ import annotations
 
+import hashlib
+import importlib.metadata
+import json
+from pathlib import Path
+import random
+
 import torch
 import torch.nn as nn
 
@@ -62,33 +68,130 @@ class CrossEncoder(nn.Module):
         return self.score(self.dropout(pooled)).squeeze(-1)
 
 
-def build_cross_encoder(model_id=MODEL_ID, revision=REVISION, pooling="cls", device="cpu"):
-    """Add target markers, resize embeddings, then initialize the scoring head.
+def set_seed(seed: int) -> None:
+    """Seed before any encoder, marker embeddings or scoring head are created."""
+    random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
 
-    No seed is set here: the original training path seeds after model initialization.
-    Pass a local snapshot directory as model_id for an offline check.
-    device=None leaves construction on CPU for the original checkpoint-loading order.
-    """
+
+def file_digest(path) -> str:
+    with open(path, "rb") as stream:
+        return hashlib.file_digest(stream, "sha256").hexdigest()
+
+
+def json_digest(value) -> str:
+    return hashlib.sha256(json.dumps(value, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+
+
+def library_versions() -> dict:
+    return {name: importlib.metadata.version(name)
+            for name in ("torch", "transformers", "tokenizers")}
+
+
+def tokenizer_identity(tok) -> dict:
+    backend = getattr(tok, "backend_tokenizer", None)
+    return {"class": type(tok).__name__, "size": len(tok),
+            "vocab_sha256": json_digest(tok.get_vocab()),
+            "backend_sha256": json_digest(backend.to_str()) if backend is not None else None,
+            "special_tokens": getattr(tok, "special_tokens_map", {}),
+            "marker_ids": tok.convert_tokens_to_ids([ACR_OPEN, ACR_CLOSE]),
+            "cls_id": tok.cls_token_id, "sep_id": tok.sep_token_id, "pad_id": tok.pad_token_id}
+
+
+def source_identity(model_id, revision, encoder) -> dict:
+    path = Path(model_id)
+    files = {}
+    if path.is_dir():
+        # Bind actual local model/tokenizer contents, including mutable directories.
+        for file in sorted(path.iterdir()):
+            if file.is_file() and file.suffix in {".json", ".txt", ".safetensors", ".bin"}:
+                files[file.name] = file_digest(file)
+    return {"model_id": str(model_id),
+            "revision": getattr(encoder.config, "_commit_hash", None) or revision,
+            "local_files_sha256": files}
+
+
+def build_cross_encoder(model_id=MODEL_ID, revision=REVISION, pooling="cls", device="cpu", seed=42):
+    """Seed, load the encoder, add markers, then initialize the scoring head."""
+    set_seed(seed)
     tok, encoder = build_base_model(model_id=model_id, revision=revision)
     n_added = tok.add_special_tokens({"additional_special_tokens": [ACR_OPEN, ACR_CLOSE]})
     if n_added:
         encoder.resize_token_embeddings(len(tok))
     acr_open_id, acr_close_id = tok.convert_tokens_to_ids([ACR_OPEN, ACR_CLOSE])
     model = CrossEncoder(encoder, hidden=encoder.config.hidden_size, pooling=pooling)
+    model.initialization = {"seed": seed, "pooling": pooling, "dropout": model.dropout.p,
+                            "source": source_identity(model_id, revision, encoder),
+                            "tokenizer": tokenizer_identity(tok), "libraries": library_versions()}
     if device is not None:
         model.to(device)
     return tok, model, acr_open_id, acr_close_id
 
 
-def load_finetuned(checkpoint_path: str, pooling: str = "cls", device: str = "cpu", *,
-                   model_id=MODEL_ID, revision=REVISION):
-    """Rebuild the training architecture and strictly load its saved state_dict.
+def metadata_path(checkpoint_path) -> Path:
+    return Path(str(checkpoint_path) + ".json")
 
-    Target tokens and resized embeddings precede weight loading. Defaults retain the
-    existing base-model selection; a local snapshot can be supplied explicitly.
+
+def save_checkpoint(model, tok, checkpoint_path, config, inputs, epoch, dev_loss):
+    """Save state_dict plus a versioned, weight-bound reconstruction manifest."""
+    from dataclasses import asdict
+    initialization = model.initialization
+    if config.seed != initialization["seed"] or config.pooling != model.pooling:
+        raise ValueError("Training config disagrees with model initialization")
+    if tokenizer_identity(tok) != initialization["tokenizer"]:
+        raise ValueError("Tokenizer changed since model initialization")
+    source = initialization["source"]
+    if not source["local_files_sha256"] and not source["revision"]:
+        raise ValueError("Checkpoint requires a resolved model revision or local snapshot identity")
+    torch.save(model.state_dict(), checkpoint_path)
+    metadata = {"format_version": 1, "initialization": initialization,
+                "training_config": asdict(config), "inputs": inputs,
+                "selection": {"rule": "strict_dev_pair_loss_improvement", "epoch": epoch,
+                              "dev_pair_loss": dev_loss},
+                "weights_sha256": file_digest(checkpoint_path)}
+    metadata_path(checkpoint_path).write_text(
+        json.dumps(metadata, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def load_finetuned(checkpoint_path: str, pooling: str | None = None, device: str = "cpu", *,
+                   model_id=None, revision=None, expected_inputs=None, config=None):
+    """Reconstruct from saved settings; fail on incompatible overrides or artifacts.
+
+    Legacy weights without metadata are intentionally not guessed. This restores
+    inference, not optimizer state for resuming an interrupted training run.
     """
+    from hebrew_acronyms.models.dictabert_cross_encoder.training import TrainingConfig
+    from dataclasses import asdict
+    path = metadata_path(checkpoint_path)
+    if not path.is_file():
+        raise ValueError(f"Checkpoint metadata is required: {path}")
+    metadata = json.loads(path.read_text(encoding="utf-8"))
+    if metadata.get("format_version") != 1:
+        raise ValueError("Unsupported checkpoint format_version")
+    settings = TrainingConfig(**metadata["training_config"])
+    saved = metadata["initialization"]
+    source = saved["source"]
+    if pooling is not None and pooling != settings.pooling:
+        raise ValueError("Pooling override disagrees with checkpoint")
+    if model_id is not None and str(model_id) != source["model_id"]:
+        raise ValueError("Model override disagrees with checkpoint")
+    if revision is not None and revision != source["revision"]:
+        raise ValueError("Revision override disagrees with checkpoint")
+    if config is not None and asdict(config) != metadata["training_config"]:
+        raise ValueError("Training config override disagrees with checkpoint")
+    if expected_inputs is not None and expected_inputs != metadata["inputs"]:
+        raise ValueError("Input identities disagree with checkpoint")
+    if file_digest(checkpoint_path) != metadata["weights_sha256"]:
+        raise ValueError("Checkpoint weights do not match metadata")
     tok, model, acr_open_id, acr_close_id = build_cross_encoder(
-        model_id=model_id, revision=revision, pooling=pooling, device=None)
-    model.load_state_dict(torch.load(checkpoint_path, map_location=device), strict=True)
+        model_id=source["model_id"], revision=source["revision"],
+        pooling=settings.pooling, device=None, seed=settings.seed)
+    if model.initialization != saved:
+        raise ValueError("Model, tokenizer, initialization or library identity mismatch")
+    model.load_state_dict(torch.load(checkpoint_path, map_location="cpu", weights_only=True), strict=True)
+    model.training_config = settings
+    model.checkpoint_metadata = metadata
     model.to(device).eval()
     return tok, model, acr_open_id, acr_close_id

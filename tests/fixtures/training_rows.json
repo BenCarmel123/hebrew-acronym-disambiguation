@@ -3,12 +3,20 @@
     "sentence": "היום נערך מפגש של ב״ד בכיתה.",
     "acronym": "ב״ד",
     "candidates": "בדיקת דוגמה | בניית דגם",
-    "gold_expansion": "בדיקת דוגמה"
+    "gold_expansion": "בדיקת דוגמה",
+    "item_id": "invented-1",
+    "target_raw": "ב״ד",
+    "span_start": 18,
+    "span_end": 21
   },
   {
     "sentence": "מחר נציג ב\"ד קטן.",
     "acronym": "ב״ד",
     "candidates": "בדיקת דוגמה | בניית דגם",
-    "gold_expansion": "בניית דגם"
+    "gold_expansion": "בניית דגם",
+    "item_id": "invented-2",
+    "target_raw": "ב\"ד",
+    "span_start": 9,
+    "span_end": 12
   }
 ]
