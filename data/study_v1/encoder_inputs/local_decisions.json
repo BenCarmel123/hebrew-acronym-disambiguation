@@ -1,0 +1,1163 @@
+{
+  "rules_version": "encoder-inputs-v1",
+  "reference_commit": "ce353ff9cd5282462c9c117c8bb3ed51ad687c7e",
+  "source_paths": {
+    "train_export": "data/splits/train_items.csv",
+    "historical_dev_export": "data/splits/dev_items.csv",
+    "scoped_audit_source": "data/study_v1/review/item_audit.csv",
+    "human_decisions": "data/study_v1/review/review_decisions.csv",
+    "local_policy": "data/study_v1/encoder_inputs/local_decisions.json"
+  },
+  "authority": {
+    "user": "Shaked",
+    "date": "2026-10-01",
+    "source": "User request in this preparation chat; transcribed by the coding assistant",
+    "approved": [
+      "Use existing training labels, including weak labels, without full reannotation.",
+      "Prefer the previously proposed natural dev and reuse matching human decisions.",
+      "Preserve original sources; create derivatives only.",
+      "Block training overlaps with development and reserved type/document metadata.",
+      "No test content, new LLM gold, mining, model loading, training or scoring."
+    ],
+    "not_approved": [
+      "Prior natural-only training restriction and proposed quotas.",
+      "Any type/prefix merge, global alias or inventory change beyond the 20 exact item-linked approved records below.",
+      "Training execution or final experimental protocol."
+    ],
+    "followup_request": "פשוט תתקן את זה, אל תשאיר חורים מיותרים כאלו",
+    "followup_boundary": "Exact label/task-interpretation and span proposals were presented and explicitly approved by Shaked in this chat; original review records remain unchanged."
+  },
+  "rules": [
+    "Inspect audit role/source references first; return only train, historical dev or aggregate-only natural_dev_proposed rows with no test role/reference. Hold unknown roles without exposing content.",
+    "Read test-role metadata only to hash exact type strings and collect existing document IDs. Do not open test_items.csv or regenerate the mixed review audit.",
+    "Bind train and historical dev to file + one-based CSV record + complete source-row hash; verify the four-field content hash against the audit. Natural dev starts at the saved audit export, retaining original source references.",
+    "Keep all 62 proposed natural dev candidates as the qualification pool without quotas; historical dev remains reference only. Reserve all their types/documents even when a candidate is held.",
+    "Keep stored candidates and labels. Apply only explicit, content-linked Shaked decisions; no gold insertion, candidate repair, semantic aliasing or type merging.",
+    "Compute a target only for a unique length-preserving quote-folded match bounded by non-word characters; hold attached/embedded boundaries and repeated matches unless a saved human span resolves them. Preserve sentence and exact raw span including approved prefixes. A letter immediately outside a surrounding quote is also an ambiguous boundary; do not silently omit it.",
+    "Reuse sentence/type/label/document-matched Knesset human review, attributed to Ben by Shaked; a clean flag or note alone is insufficient evidence. Shaked review is disclosed as AI-assisted, not a second blind annotation.",
+    "Hold missing document provenance, unresolved/adverse human decisions, ambiguous spans, invalid candidate contracts and all duplicate text groups within a split. No duplicate is preferred by label or model performance.",
+    "Block exact reserved type/document matches in train and dev, and block training against all historical/proposed dev types, documents and text. No automatic document aliases or linguistic type-family normalization.",
+    "Pair-loss inputs require at least two distinct candidates and exactly one trimmed positive under the unchanged encoder contract. Otherwise-qualified singleton dev is prediction/descriptive only.",
+    "Write stable sorted CSVs and a manifest with source/code/output hashes, counts and applied decisions. No clock-dependent fields or repeated LLM calls.",
+    "Local AI semantic/target proposals bind exact saved input hashes and remain held until a recorded explicit Shaked approval; approved candidate replacements replace an existing entry, never add gold to pass a check."
+  ],
+  "limits": [
+    "Reproduction begins with retained exports and decisions; it does not reconstruct original Internet mining or original API responses.",
+    "Technical qualification does not independently establish every training label or negative candidate as correct. Historical declared AI model names are preserved, not verified.",
+    "Development is a small curated Knesset sample; historical human review is reused where content matches. No new blind annotation, inter-annotator agreement or model performance was measured.",
+    "Overlap guarantees concern exact stored type/document IDs and authorized train/dev duplicate text only. No test text was inspected for duplicates; document aliases, prefix families and pretraining exposure are not resolved.",
+    "Unknown-role audit rows remain inaccessible; missing source-to-audit membership stops export. Missing document provenance is held.",
+    "Preparation readiness is subject to project-manager review. Model tokenization/length limits and Colab training belong to the next package.",
+    "The approved Rambam interpretation accepts a linguistic expansion of the proper name even when the sentence refers to the hospital or street. This bounded clarification is not a general entity/etymology policy and is disclosed separately from historical referent labeling."
+  ],
+  "item_decisions": [
+    {
+      "decision_id": "local-04ea81a4e75bccdc7a2d1438",
+      "audit_item_id": "item-04ea81a4e75bccdc7a2d1438",
+      "source_row_sha256": "a192bef53e4b8601203613c12b1f3822e590ea1f97155c80ab4f58d47cbacde2",
+      "input": {
+        "item_id": "kn4-0405",
+        "acronym": "בד״ר",
+        "sentence": "והממונה על ההגבלים העסקיים, בעבודה ראויה לציון – מדובר בד\"ר טורבוביץ, הממונה היוצא שעובר לתפקיד אחר – ניסה לפתור את העניין.",
+        "provisional_expansion": "ד\"ר (ב- קליטי)",
+        "sense_id": "",
+        "gold_expansion": "ד\"ר (ב- קליטי)",
+        "label_status": "verified",
+        "n_candidates": "4",
+        "candidates": "בית דין רבני | בן דב רפפורט | ד\"ר (ב- קליטי) | מאתיים ושש (גימטריה)",
+        "provenance": "knesset",
+        "multi_sense_type": "",
+        "source": "knesset",
+        "page_title": "14_ptm_532536.docx",
+        "review_verdict": "clean",
+        "review_note": "",
+        "label_origin": "human_review",
+        "category": "knesset"
+      },
+      "audit_record": 77,
+      "source_refs": [
+        {
+          "path": "data/splits/all_items.csv",
+          "record": 4066
+        }
+      ],
+      "instruction": "Approve replacing the label and existing metalinguistic candidate with דוקטור in all seven בד״ר items, and using רבי משה בן מימון as gold in all eleven רמב״ם hospital/street items while replacing the existing abbreviated candidate with that full form. This is an item-bounded AI-assisted task interpretation, not an inventory-wide alias rule.",
+      "proposal": {
+        "gold_expansion": "דוקטור",
+        "candidate_replacement": {
+          "old": "ד\"ר (ב- קליטי)",
+          "new": "דוקטור"
+        }
+      },
+      "rationale": "The saved Shaked pilot correction identifies דוקטור; the other rows retain the same abbreviated/metalinguistic label. Propose applying the stated correction to this exact item without merging types.",
+      "evidence": [
+        "saved review item-04ea81a4e75bccdc7a2d1438; review_decisions.csv",
+        "unchanged stored type, label and candidates"
+      ],
+      "AI_tool": "Codex coding assistant; exact serving model version not exposed",
+      "human_decision": {
+        "status": "approved",
+        "reviewer": "Shaked",
+        "date": "2026-10-01",
+        "response": "מאשר את שני התיקונים המדויקים",
+        "review_mode": "AI-assisted approval of explicit proposal, not blind independent annotation",
+        "elapsed_seconds": null
+      },
+      "human_question": "כדי לסגור את שני הסוגים באופן מפורש: האם לאשר שבכל 7 פריטי בד״ר נחליף את התווית והמועמד ״ד״ר (ב־ קליטי)״ ב״דוקטור״; ובכל 11 פריטי רמב״ם, גם כשהמשפט מתייחס לבית החולים או לרחוב, תשובת הזהב תהיה ״רבי משה בן מימון״? ברמב״ם נחליף את המועמד הקיים ״ר׳ משה בן מימון״ בנוסח המלא, בלי להוסיף מועמד חדש. זו הכרעה נקודתית על פריטים אלה, בסיוע AI; המטרות הגולמיות וסוגי הפיצול יישמרו. נדרשת ההכרעה הזו בגלל הכלל המקורי שלך שאין ליצור זהב ל־dev בהחלטת AI בלבד."
+    },
+    {
+      "decision_id": "local-14046e12b3b2baa201c79cf2",
+      "audit_item_id": "item-14046e12b3b2baa201c79cf2",
+      "source_row_sha256": "da2b0370e9d8ffd58116665c559132e4fc6db1a47e14396f4a472761e3ecaebb",
+      "input": {
+        "item_id": "kn4-0360",
+        "acronym": "בד״ר",
+        "sentence": "אנחנו מתחשבים בד\"ר ברובנדר כמומחה לענייני חשמל, יש לו בוודאי ניסיון יותר גדול מאשר לחבר הכנסת דן תיכון.",
+        "provisional_expansion": "ד\"ר (ב- קליטי)",
+        "sense_id": "",
+        "gold_expansion": "ד\"ר (ב- קליטי)",
+        "label_status": "verified",
+        "n_candidates": "4",
+        "candidates": "בית דין רבני | בן דב רפפורט | ד\"ר (ב- קליטי) | מאתיים ושש (גימטריה)",
+        "provenance": "knesset",
+        "multi_sense_type": "",
+        "source": "knesset",
+        "page_title": "13_ptm_532447.docx",
+        "review_verdict": "clean",
+        "review_note": "",
+        "label_origin": "human_review",
+        "category": "knesset"
+      },
+      "audit_record": 348,
+      "source_refs": [
+        {
+          "path": "data/splits/all_items.csv",
+          "record": 4021
+        }
+      ],
+      "instruction": "Approve replacing the label and existing metalinguistic candidate with דוקטור in all seven בד״ר items, and using רבי משה בן מימון as gold in all eleven רמב״ם hospital/street items while replacing the existing abbreviated candidate with that full form. This is an item-bounded AI-assisted task interpretation, not an inventory-wide alias rule.",
+      "proposal": {
+        "gold_expansion": "דוקטור",
+        "candidate_replacement": {
+          "old": "ד\"ר (ב- קליטי)",
+          "new": "דוקטור"
+        }
+      },
+      "rationale": "The saved Shaked pilot correction identifies דוקטור; the other rows retain the same abbreviated/metalinguistic label. Propose applying the stated correction to this exact item without merging types.",
+      "evidence": [
+        "saved review item-04ea81a4e75bccdc7a2d1438; review_decisions.csv",
+        "unchanged stored type, label and candidates"
+      ],
+      "AI_tool": "Codex coding assistant; exact serving model version not exposed",
+      "human_decision": {
+        "status": "approved",
+        "reviewer": "Shaked",
+        "date": "2026-10-01",
+        "response": "מאשר את שני התיקונים המדויקים",
+        "review_mode": "AI-assisted approval of explicit proposal, not blind independent annotation",
+        "elapsed_seconds": null
+      },
+      "human_question": "כדי לסגור את שני הסוגים באופן מפורש: האם לאשר שבכל 7 פריטי בד״ר נחליף את התווית והמועמד ״ד״ר (ב־ קליטי)״ ב״דוקטור״; ובכל 11 פריטי רמב״ם, גם כשהמשפט מתייחס לבית החולים או לרחוב, תשובת הזהב תהיה ״רבי משה בן מימון״? ברמב״ם נחליף את המועמד הקיים ״ר׳ משה בן מימון״ בנוסח המלא, בלי להוסיף מועמד חדש. זו הכרעה נקודתית על פריטים אלה, בסיוע AI; המטרות הגולמיות וסוגי הפיצול יישמרו. נדרשת ההכרעה הזו בגלל הכלל המקורי שלך שאין ליצור זהב ל־dev בהחלטת AI בלבד."
+    },
+    {
+      "decision_id": "local-1906c2d4cb8ed1d766bdc603",
+      "audit_item_id": "item-1906c2d4cb8ed1d766bdc603",
+      "source_row_sha256": "9a7ecb6c5894ceb2839bc1cbbe7abe4bbac232b45c391608208b1ab4d9ea816b",
+      "input": {
+        "item_id": "kn4-0010",
+        "acronym": "בד״ר",
+        "sentence": "אתחיל בד\"ר חיידר עבד אל-שאפי, ראש המשלחת, ראש וראשון להם.",
+        "provisional_expansion": "ד\"ר (ב- קליטי)",
+        "sense_id": "",
+        "gold_expansion": "ד\"ר (ב- קליטי)",
+        "label_status": "verified",
+        "n_candidates": "4",
+        "candidates": "בית דין רבני | בן דב רפפורט | ד\"ר (ב- קליטי) | מאתיים ושש (גימטריה)",
+        "provenance": "knesset",
+        "multi_sense_type": "",
+        "source": "knesset",
+        "page_title": "13_ptm_532167.docx",
+        "review_verdict": "clean",
+        "review_note": "",
+        "label_origin": "human_review",
+        "category": "knesset"
+      },
+      "audit_record": 439,
+      "source_refs": [
+        {
+          "path": "data/splits/all_items.csv",
+          "record": 3674
+        }
+      ],
+      "instruction": "Approve replacing the label and existing metalinguistic candidate with דוקטור in all seven בד״ר items, and using רבי משה בן מימון as gold in all eleven רמב״ם hospital/street items while replacing the existing abbreviated candidate with that full form. This is an item-bounded AI-assisted task interpretation, not an inventory-wide alias rule.",
+      "proposal": {
+        "gold_expansion": "דוקטור",
+        "candidate_replacement": {
+          "old": "ד\"ר (ב- קליטי)",
+          "new": "דוקטור"
+        }
+      },
+      "rationale": "The saved Shaked pilot correction identifies דוקטור; the other rows retain the same abbreviated/metalinguistic label. Propose applying the stated correction to this exact item without merging types.",
+      "evidence": [
+        "saved review item-04ea81a4e75bccdc7a2d1438; review_decisions.csv",
+        "unchanged stored type, label and candidates"
+      ],
+      "AI_tool": "Codex coding assistant; exact serving model version not exposed",
+      "human_decision": {
+        "status": "approved",
+        "reviewer": "Shaked",
+        "date": "2026-10-01",
+        "response": "מאשר את שני התיקונים המדויקים",
+        "review_mode": "AI-assisted approval of explicit proposal, not blind independent annotation",
+        "elapsed_seconds": null
+      },
+      "human_question": "כדי לסגור את שני הסוגים באופן מפורש: האם לאשר שבכל 7 פריטי בד״ר נחליף את התווית והמועמד ״ד״ר (ב־ קליטי)״ ב״דוקטור״; ובכל 11 פריטי רמב״ם, גם כשהמשפט מתייחס לבית החולים או לרחוב, תשובת הזהב תהיה ״רבי משה בן מימון״? ברמב״ם נחליף את המועמד הקיים ״ר׳ משה בן מימון״ בנוסח המלא, בלי להוסיף מועמד חדש. זו הכרעה נקודתית על פריטים אלה, בסיוע AI; המטרות הגולמיות וסוגי הפיצול יישמרו. נדרשת ההכרעה הזו בגלל הכלל המקורי שלך שאין ליצור זהב ל־dev בהחלטת AI בלבד."
+    },
+    {
+      "decision_id": "local-430060cdf15bc5f381533423",
+      "audit_item_id": "item-430060cdf15bc5f381533423",
+      "source_row_sha256": "c984af00114ffb115a23dc1e43c0a517b1fe3bc08df7f13d1866e46f526e173b",
+      "input": {
+        "item_id": "kn4-0306",
+        "acronym": "בד״ר",
+        "sentence": "אני מסיים בשאלה נוספת, והיא, אדוני השר: ידוע לי, כי שר הבריאות הקודם ראה בד\"ר גרינר מועמד ראוי וטוב לתפקיד הפסיכיאטר המחוזי.",
+        "provisional_expansion": "ד\"ר (ב- קליטי)",
+        "sense_id": "",
+        "gold_expansion": "ד\"ר (ב- קליטי)",
+        "label_status": "verified",
+        "n_candidates": "4",
+        "candidates": "בית דין רבני | בן דב רפפורט | ד\"ר (ב- קליטי) | מאתיים ושש (גימטריה)",
+        "provenance": "knesset",
+        "multi_sense_type": "",
+        "source": "knesset",
+        "page_title": "13_ptm_532403.docx",
+        "review_verdict": "clean",
+        "review_note": "",
+        "label_origin": "human_review",
+        "category": "knesset"
+      },
+      "audit_record": 1211,
+      "source_refs": [
+        {
+          "path": "data/splits/all_items.csv",
+          "record": 3967
+        }
+      ],
+      "instruction": "Approve replacing the label and existing metalinguistic candidate with דוקטור in all seven בד״ר items, and using רבי משה בן מימון as gold in all eleven רמב״ם hospital/street items while replacing the existing abbreviated candidate with that full form. This is an item-bounded AI-assisted task interpretation, not an inventory-wide alias rule.",
+      "proposal": {
+        "gold_expansion": "דוקטור",
+        "candidate_replacement": {
+          "old": "ד\"ר (ב- קליטי)",
+          "new": "דוקטור"
+        }
+      },
+      "rationale": "The saved Shaked pilot correction identifies דוקטור; the other rows retain the same abbreviated/metalinguistic label. Propose applying the stated correction to this exact item without merging types.",
+      "evidence": [
+        "saved review item-04ea81a4e75bccdc7a2d1438; review_decisions.csv",
+        "unchanged stored type, label and candidates"
+      ],
+      "AI_tool": "Codex coding assistant; exact serving model version not exposed",
+      "human_decision": {
+        "status": "approved",
+        "reviewer": "Shaked",
+        "date": "2026-10-01",
+        "response": "מאשר את שני התיקונים המדויקים",
+        "review_mode": "AI-assisted approval of explicit proposal, not blind independent annotation",
+        "elapsed_seconds": null
+      },
+      "human_question": "כדי לסגור את שני הסוגים באופן מפורש: האם לאשר שבכל 7 פריטי בד״ר נחליף את התווית והמועמד ״ד״ר (ב־ קליטי)״ ב״דוקטור״; ובכל 11 פריטי רמב״ם, גם כשהמשפט מתייחס לבית החולים או לרחוב, תשובת הזהב תהיה ״רבי משה בן מימון״? ברמב״ם נחליף את המועמד הקיים ״ר׳ משה בן מימון״ בנוסח המלא, בלי להוסיף מועמד חדש. זו הכרעה נקודתית על פריטים אלה, בסיוע AI; המטרות הגולמיות וסוגי הפיצול יישמרו. נדרשת ההכרעה הזו בגלל הכלל המקורי שלך שאין ליצור זהב ל־dev בהחלטת AI בלבד."
+    },
+    {
+      "decision_id": "local-471cc777b042d981db3a9eec",
+      "audit_item_id": "item-471cc777b042d981db3a9eec",
+      "source_row_sha256": "89ff5aa5917ba221e12022a16cb0e77003d4538a5250a2fd28d26e33faa7d0d9",
+      "input": {
+        "item_id": "kn-0251",
+        "acronym": "רמב״ם",
+        "sentence": "העניין מצוי בתוך חלק מהנושאים של בית-החולים \"רמב\"ם\".",
+        "provisional_expansion": "הקריה הרפואית לבריאות האדם – בית חולים בחיפה",
+        "sense_id": "",
+        "gold_expansion": "הקריה הרפואית לבריאות האדם – בית חולים בחיפה",
+        "label_status": "verified",
+        "n_candidates": "5",
+        "candidates": "משנה תורה | ר' משה בן מימון | המרכז הרפואי מיימונידיס | הקריה הרפואית לבריאות האדם – בית חולים בחיפה | מאתיים ושמונים ושתיים (גימטריה)",
+        "provenance": "knesset",
+        "multi_sense_type": "",
+        "source": "knesset",
+        "page_title": "13_ptm_532122.docx",
+        "review_verdict": "clean",
+        "review_note": "",
+        "label_origin": "human_review",
+        "category": "knesset"
+      },
+      "audit_record": 1297,
+      "source_refs": [
+        {
+          "path": "data/splits/all_items.csv",
+          "record": 3517
+        }
+      ],
+      "instruction": "Approve replacing the label and existing metalinguistic candidate with דוקטור in all seven בד״ר items, and using רבי משה בן מימון as gold in all eleven רמב״ם hospital/street items while replacing the existing abbreviated candidate with that full form. This is an item-bounded AI-assisted task interpretation, not an inventory-wide alias rule.",
+      "proposal": {
+        "gold_expansion": "רבי משה בן מימון",
+        "candidate_replacement": {
+          "old": "ר' משה בן מימון",
+          "new": "רבי משה בן מימון"
+        }
+      },
+      "rationale": "The earlier human pilot left hospital-referent versus linguistic expansion unresolved. Propose an explicit item-bounded task decision to expand the proper name in these hospital/street uses; this is not justified by historical clean labeling alone.",
+      "evidence": [
+        "saved unresolved review item-82b09eac472d8c63ed2aec90; review_decisions.csv",
+        "existing independently stored candidate ר' משה בן מימון; no new sense is invented"
+      ],
+      "AI_tool": "Codex coding assistant; exact serving model version not exposed",
+      "human_decision": {
+        "status": "approved",
+        "reviewer": "Shaked",
+        "date": "2026-10-01",
+        "response": "מאשר את שני התיקונים המדויקים",
+        "review_mode": "AI-assisted approval of explicit proposal, not blind independent annotation",
+        "elapsed_seconds": null
+      },
+      "human_question": "כדי לסגור את שני הסוגים באופן מפורש: האם לאשר שבכל 7 פריטי בד״ר נחליף את התווית והמועמד ״ד״ר (ב־ קליטי)״ ב״דוקטור״; ובכל 11 פריטי רמב״ם, גם כשהמשפט מתייחס לבית החולים או לרחוב, תשובת הזהב תהיה ״רבי משה בן מימון״? ברמב״ם נחליף את המועמד הקיים ״ר׳ משה בן מימון״ בנוסח המלא, בלי להוסיף מועמד חדש. זו הכרעה נקודתית על פריטים אלה, בסיוע AI; המטרות הגולמיות וסוגי הפיצול יישמרו. נדרשת ההכרעה הזו בגלל הכלל המקורי שלך שאין ליצור זהב ל־dev בהחלטת AI בלבד."
+    },
+    {
+      "decision_id": "local-4e165b7e1a515545b0d07e5e",
+      "audit_item_id": "item-4e165b7e1a515545b0d07e5e",
+      "source_row_sha256": "ea37f947ec162ca34cf5e9559211a8268607f5e65d34410c7072663aa6b195ce",
+      "input": {
+        "item_id": "kn-0158",
+        "acronym": "רמב״ם",
+        "sentence": "שני המכשירים האלה – אחד יהיה ב\"סורוקה\", אחד יהיה ב\"רמב\"ם\".",
+        "provisional_expansion": "הקריה הרפואית לבריאות האדם – בית חולים בחיפה",
+        "sense_id": "",
+        "gold_expansion": "הקריה הרפואית לבריאות האדם – בית חולים בחיפה",
+        "label_status": "verified",
+        "n_candidates": "5",
+        "candidates": "משנה תורה | ר' משה בן מימון | המרכז הרפואי מיימונידיס | הקריה הרפואית לבריאות האדם – בית חולים בחיפה | מאתיים ושמונים ושתיים (גימטריה)",
+        "provenance": "knesset",
+        "multi_sense_type": "",
+        "source": "knesset",
+        "page_title": "13_ptm_532062.docx",
+        "review_verdict": "clean",
+        "review_note": "",
+        "label_origin": "human_review",
+        "category": "knesset"
+      },
+      "audit_record": 1428,
+      "source_refs": [
+        {
+          "path": "data/splits/all_items.csv",
+          "record": 3425
+        }
+      ],
+      "instruction": "Approve replacing the label and existing metalinguistic candidate with דוקטור in all seven בד״ר items, and using רבי משה בן מימון as gold in all eleven רמב״ם hospital/street items while replacing the existing abbreviated candidate with that full form. This is an item-bounded AI-assisted task interpretation, not an inventory-wide alias rule. Preserve the attached prefix outside the opening quotation mark; propose the full quoted token shown in the additional human question.",
+      "proposal": {
+        "gold_expansion": "רבי משה בן מימון",
+        "candidate_replacement": {
+          "old": "ר' משה בן מימון",
+          "new": "רבי משה בן מימון"
+        },
+        "span": [
+          49,
+          57
+        ],
+        "target_raw": "ב\"רמב\"ם\""
+      },
+      "rationale": "The earlier human pilot left hospital-referent versus linguistic expansion unresolved. Propose an explicit item-bounded task decision to expand the proper name in these hospital/street uses; this is not justified by historical clean labeling alone. Independent code review found the former automatic span omitted the attached prefix outside quotation marks; the full token boundary is now explicitly human approved.",
+      "evidence": [
+        "saved unresolved review item-82b09eac472d8c63ed2aec90; review_decisions.csv",
+        "existing independently stored candidate ר' משה בן מימון; no new sense is invented"
+      ],
+      "AI_tool": "Codex coding assistant; exact serving model version not exposed",
+      "human_decision": {
+        "status": "approved",
+        "reviewer": "Shaked",
+        "date": "2026-10-01",
+        "response": "מאשר את שני התיקונים המדויקים",
+        "review_mode": "AI-assisted approval of explicit proposal, not blind independent annotation",
+        "elapsed_seconds": null
+      },
+      "human_question": "כדי לסגור את שני הסוגים באופן מפורש: האם לאשר שבכל 7 פריטי בד״ר נחליף את התווית והמועמד ״ד״ר (ב־ קליטי)״ ב״דוקטור״; ובכל 11 פריטי רמב״ם, גם כשהמשפט מתייחס לבית החולים או לרחוב, תשובת הזהב תהיה ״רבי משה בן מימון״? ברמב״ם נחליף את המועמד הקיים ״ר׳ משה בן מימון״ בנוסח המלא, בלי להוסיף מועמד חדש. זו הכרעה נקודתית על פריטים אלה, בסיוע AI; המטרות הגולמיות וסוגי הפיצול יישמרו. נדרשת ההכרעה הזו בגלל הכלל המקורי שלך שאין ליצור זהב ל־dev בהחלטת AI בלבד.",
+      "additional_human_approvals": [
+        {
+          "question": "המבקר מצא עוד שני גבולות מטרה שדורשים הכרעה כדי לשמור את התחילית: (1) ״שני המכשירים האלה – אחד יהיה ב׳סורוקה׳, אחד יהיה [ב״רמב״ם״].״ — המטרה תכלול את ב ואת המרכאות העוטפות; (2) ״החולים מטופלים בבתי־חולים בישראל: ב׳הדסה׳ [וב״רמב״ם״].״ — המטרה תכלול את וב ואת המרכאות העוטפות. האם לאשר את שתי המטרות המלאות המסומנות? במשפטי המקור נשמור בדיוק על התווים המקוריים; התווית נשארת כפי שאישרת.",
+          "response": "מאשר את שתי המטרות עם התחיליות",
+          "reviewer": "Shaked",
+          "date": "2026-10-01",
+          "scope": "span only; earlier label/candidate approval remains in human_decision",
+          "status": "approved"
+        }
+      ]
+    },
+    {
+      "decision_id": "local-5e4eae79fc701a9e40d7515f",
+      "audit_item_id": "item-5e4eae79fc701a9e40d7515f",
+      "source_row_sha256": "8bd0d9ce17707edb06ac56ba9a40d27a3a3b3652656394bb64c78a9477fd4bbd",
+      "input": {
+        "item_id": "kn-0167",
+        "acronym": "רמב״ם",
+        "sentence": "אני חייב לחזור שבע שנים אחורה, לפרשת בית-החולים \"רמב\"ם\", שעל הגג שלו מצאו תינוקות מתים.",
+        "provisional_expansion": "הקריה הרפואית לבריאות האדם – בית חולים בחיפה",
+        "sense_id": "",
+        "gold_expansion": "הקריה הרפואית לבריאות האדם – בית חולים בחיפה",
+        "label_status": "verified",
+        "n_candidates": "5",
+        "candidates": "משנה תורה | ר' משה בן מימון | המרכז הרפואי מיימונידיס | הקריה הרפואית לבריאות האדם – בית חולים בחיפה | מאתיים ושמונים ושתיים (גימטריה)",
+        "provenance": "knesset",
+        "multi_sense_type": "",
+        "source": "knesset",
+        "page_title": "13_ptm_532068.docx",
+        "review_verdict": "clean",
+        "review_note": "",
+        "label_origin": "human_review",
+        "category": "knesset"
+      },
+      "audit_record": 1728,
+      "source_refs": [
+        {
+          "path": "data/splits/all_items.csv",
+          "record": 3434
+        }
+      ],
+      "instruction": "Approve replacing the label and existing metalinguistic candidate with דוקטור in all seven בד״ר items, and using רבי משה בן מימון as gold in all eleven רמב״ם hospital/street items while replacing the existing abbreviated candidate with that full form. This is an item-bounded AI-assisted task interpretation, not an inventory-wide alias rule.",
+      "proposal": {
+        "gold_expansion": "רבי משה בן מימון",
+        "candidate_replacement": {
+          "old": "ר' משה בן מימון",
+          "new": "רבי משה בן מימון"
+        }
+      },
+      "rationale": "The earlier human pilot left hospital-referent versus linguistic expansion unresolved. Propose an explicit item-bounded task decision to expand the proper name in these hospital/street uses; this is not justified by historical clean labeling alone.",
+      "evidence": [
+        "saved unresolved review item-82b09eac472d8c63ed2aec90; review_decisions.csv",
+        "existing independently stored candidate ר' משה בן מימון; no new sense is invented"
+      ],
+      "AI_tool": "Codex coding assistant; exact serving model version not exposed",
+      "human_decision": {
+        "status": "approved",
+        "reviewer": "Shaked",
+        "date": "2026-10-01",
+        "response": "מאשר את שני התיקונים המדויקים",
+        "review_mode": "AI-assisted approval of explicit proposal, not blind independent annotation",
+        "elapsed_seconds": null
+      },
+      "human_question": "כדי לסגור את שני הסוגים באופן מפורש: האם לאשר שבכל 7 פריטי בד״ר נחליף את התווית והמועמד ״ד״ר (ב־ קליטי)״ ב״דוקטור״; ובכל 11 פריטי רמב״ם, גם כשהמשפט מתייחס לבית החולים או לרחוב, תשובת הזהב תהיה ״רבי משה בן מימון״? ברמב״ם נחליף את המועמד הקיים ״ר׳ משה בן מימון״ בנוסח המלא, בלי להוסיף מועמד חדש. זו הכרעה נקודתית על פריטים אלה, בסיוע AI; המטרות הגולמיות וסוגי הפיצול יישמרו. נדרשת ההכרעה הזו בגלל הכלל המקורי שלך שאין ליצור זהב ל־dev בהחלטת AI בלבד."
+    },
+    {
+      "decision_id": "local-788589b75b0c8c81343b2d9a",
+      "audit_item_id": "item-788589b75b0c8c81343b2d9a",
+      "source_row_sha256": "6bb9212b0851ddfc7e8c44d709374532c6437dc9e79f9a0ad3062595bb04394f",
+      "input": {
+        "item_id": "kn4-0046",
+        "acronym": "א״ח",
+        "sentence": "הצבעה מס' 9 בעד התיקון של חברי הכנסת א\"ח שאקי וי' ביבי לסעיף 1 – 4 נגד – 12 נמנעים – אין התיקון של חברי הכנסת א\"ח שאקי וי' ביבי לסעיף 1 לא נתקבל.",
+        "provisional_expansion": "אבנר חי (שאקי)",
+        "sense_id": "",
+        "gold_expansion": "אבנר חי (שאקי)",
+        "label_status": "verified",
+        "n_candidates": "4",
+        "candidates": "אורך חיים | אגף חקירות | אבנר חי (שאקי) | תשע (גימטריה)",
+        "provenance": "knesset",
+        "multi_sense_type": "",
+        "source": "knesset",
+        "page_title": "13_ptm_532209.docx",
+        "review_verdict": "clean",
+        "review_note": "",
+        "label_origin": "human_review",
+        "category": "knesset"
+      },
+      "audit_record": 2197,
+      "source_refs": [
+        {
+          "path": "data/splits/all_items.csv",
+          "record": 3710
+        }
+      ],
+      "instruction": "For the two natural dev voting sentences containing א״ח שאקי twice, approve the first א״ח occurrence as target in each unchanged sentence; retain the existing human label אבנר חי (שאקי).",
+      "proposal": {
+        "span": [
+          37,
+          40
+        ]
+      },
+      "rationale": "Both occurrences refer to the same named participant in the retained voting sentence. Propose the first occurrence for a human target decision; do not treat index() as permission to select it.",
+      "evidence": [
+        "matching saved Ben review for unchanged label",
+        "two quote-folded target occurrences in unchanged sentence"
+      ],
+      "AI_tool": "Codex coding assistant; exact serving model version not exposed",
+      "human_decision": {
+        "status": "approved",
+        "reviewer": "Shaked",
+        "date": "2026-10-01",
+        "response": "מאשר את המופע הראשון בשתיהן",
+        "review_mode": "AI-assisted approval of explicit proposal, not blind independent annotation",
+        "elapsed_seconds": null
+      },
+      "human_question": "נותרו גם שתי רשומות dev שבהן ״א״ח שאקי״ מופיע פעמיים באותו משפט הצבעה. התווית הקיימת היא ״אבנר חי (שאקי)״. כדי לשמור אותן בלי לבחור מופע אוטומטית: האם לאשר את המופע הראשון כמטרה בשתיהן? (1) הצבעה מס׳ 9: ״בעד התיקון של חברי הכנסת [א״ח] שאקי וי׳ ביבי…״; (2) הצבעה מס׳ 8: ״בעד התיקון של חברי הכנסת ד׳ תיכון, [א״ח] שאקי וי׳ ביבי…״. המשפטים המלאים נשמרים ללא שינוי."
+    },
+    {
+      "decision_id": "local-82b09eac472d8c63ed2aec90",
+      "audit_item_id": "item-82b09eac472d8c63ed2aec90",
+      "source_row_sha256": "bbfc7d2e3703524f7da3f7c55d04cb692cdbf9ecb93c7ab1f8d29878bc860085",
+      "input": {
+        "item_id": "kn-0253",
+        "acronym": "רמב״ם",
+        "sentence": "הוא מפעיל את סדר העדיפויות הזה לפי שיקוליו, ואם בית-החולים \"רמב\"ם\" חושב שזה נושא חשוב מבחינתו, העניין הזה יידון בין בית-החולים \"רמב\"ם\" לבין המשרד.",
+        "provisional_expansion": "הקריה הרפואית לבריאות האדם – בית חולים בחיפה",
+        "sense_id": "",
+        "gold_expansion": "הקריה הרפואית לבריאות האדם – בית חולים בחיפה",
+        "label_status": "verified",
+        "n_candidates": "5",
+        "candidates": "משנה תורה | ר' משה בן מימון | המרכז הרפואי מיימונידיס | הקריה הרפואית לבריאות האדם – בית חולים בחיפה | מאתיים ושמונים ושתיים (גימטריה)",
+        "provenance": "knesset",
+        "multi_sense_type": "",
+        "source": "knesset",
+        "page_title": "13_ptm_532122.docx",
+        "review_verdict": "clean",
+        "review_note": "",
+        "label_origin": "human_review",
+        "category": "knesset"
+      },
+      "audit_record": 2379,
+      "source_refs": [
+        {
+          "path": "data/splits/all_items.csv",
+          "record": 3519
+        }
+      ],
+      "instruction": "Approve replacing the label and existing metalinguistic candidate with דוקטור in all seven בד״ר items, and using רבי משה בן מימון as gold in all eleven רמב״ם hospital/street items while replacing the existing abbreviated candidate with that full form. This is an item-bounded AI-assisted task interpretation, not an inventory-wide alias rule.",
+      "proposal": {
+        "gold_expansion": "רבי משה בן מימון",
+        "candidate_replacement": {
+          "old": "ר' משה בן מימון",
+          "new": "רבי משה בן מימון"
+        }
+      },
+      "rationale": "The earlier human pilot left hospital-referent versus linguistic expansion unresolved. Propose an explicit item-bounded task decision to expand the proper name in these hospital/street uses; this is not justified by historical clean labeling alone.",
+      "evidence": [
+        "saved unresolved review item-82b09eac472d8c63ed2aec90; review_decisions.csv",
+        "existing independently stored candidate ר' משה בן מימון; no new sense is invented"
+      ],
+      "AI_tool": "Codex coding assistant; exact serving model version not exposed",
+      "human_decision": {
+        "status": "approved",
+        "reviewer": "Shaked",
+        "date": "2026-10-01",
+        "response": "מאשר את שני התיקונים המדויקים",
+        "review_mode": "AI-assisted approval of explicit proposal, not blind independent annotation",
+        "elapsed_seconds": null
+      },
+      "human_question": "כדי לסגור את שני הסוגים באופן מפורש: האם לאשר שבכל 7 פריטי בד״ר נחליף את התווית והמועמד ״ד״ר (ב־ קליטי)״ ב״דוקטור״; ובכל 11 פריטי רמב״ם, גם כשהמשפט מתייחס לבית החולים או לרחוב, תשובת הזהב תהיה ״רבי משה בן מימון״? ברמב״ם נחליף את המועמד הקיים ״ר׳ משה בן מימון״ בנוסח המלא, בלי להוסיף מועמד חדש. זו הכרעה נקודתית על פריטים אלה, בסיוע AI; המטרות הגולמיות וסוגי הפיצול יישמרו. נדרשת ההכרעה הזו בגלל הכלל המקורי שלך שאין ליצור זהב ל־dev בהחלטת AI בלבד."
+    },
+    {
+      "decision_id": "local-844d94aaed2ca6c5cfa3b4be",
+      "audit_item_id": "item-844d94aaed2ca6c5cfa3b4be",
+      "source_row_sha256": "a5263f72ffb81636c3acb8525284af8ea6fa97b25d0477e421bee17bc63be406",
+      "input": {
+        "item_id": "kn4-0039",
+        "acronym": "רמב״ם",
+        "sentence": "משמרת התחנה הנחתה במקביל באלחוט את אמבולנס התחנה, שהיה בדרכו חזרה מבית-החולים \"רמב\"ם\", להגיע במהירות לביתו של החולה.",
+        "provisional_expansion": "הקריה הרפואית לבריאות האדם – בית חולים בחיפה",
+        "sense_id": "",
+        "gold_expansion": "הקריה הרפואית לבריאות האדם – בית חולים בחיפה",
+        "label_status": "verified",
+        "n_candidates": "5",
+        "candidates": "משנה תורה | ר' משה בן מימון | המרכז הרפואי מיימונידיס | הקריה הרפואית לבריאות האדם – בית חולים בחיפה | מאתיים ושמונים ושתיים (גימטריה)",
+        "provenance": "knesset",
+        "multi_sense_type": "",
+        "source": "knesset",
+        "page_title": "13_ptm_532196.docx",
+        "review_verdict": "clean",
+        "review_note": "",
+        "label_origin": "human_review",
+        "category": "knesset"
+      },
+      "audit_record": 2406,
+      "source_refs": [
+        {
+          "path": "data/splits/all_items.csv",
+          "record": 3703
+        }
+      ],
+      "instruction": "Approve replacing the label and existing metalinguistic candidate with דוקטור in all seven בד״ר items, and using רבי משה בן מימון as gold in all eleven רמב״ם hospital/street items while replacing the existing abbreviated candidate with that full form. This is an item-bounded AI-assisted task interpretation, not an inventory-wide alias rule.",
+      "proposal": {
+        "gold_expansion": "רבי משה בן מימון",
+        "candidate_replacement": {
+          "old": "ר' משה בן מימון",
+          "new": "רבי משה בן מימון"
+        }
+      },
+      "rationale": "The earlier human pilot left hospital-referent versus linguistic expansion unresolved. Propose an explicit item-bounded task decision to expand the proper name in these hospital/street uses; this is not justified by historical clean labeling alone.",
+      "evidence": [
+        "saved unresolved review item-82b09eac472d8c63ed2aec90; review_decisions.csv",
+        "existing independently stored candidate ר' משה בן מימון; no new sense is invented"
+      ],
+      "AI_tool": "Codex coding assistant; exact serving model version not exposed",
+      "human_decision": {
+        "status": "approved",
+        "reviewer": "Shaked",
+        "date": "2026-10-01",
+        "response": "מאשר את שני התיקונים המדויקים",
+        "review_mode": "AI-assisted approval of explicit proposal, not blind independent annotation",
+        "elapsed_seconds": null
+      },
+      "human_question": "כדי לסגור את שני הסוגים באופן מפורש: האם לאשר שבכל 7 פריטי בד״ר נחליף את התווית והמועמד ״ד״ר (ב־ קליטי)״ ב״דוקטור״; ובכל 11 פריטי רמב״ם, גם כשהמשפט מתייחס לבית החולים או לרחוב, תשובת הזהב תהיה ״רבי משה בן מימון״? ברמב״ם נחליף את המועמד הקיים ״ר׳ משה בן מימון״ בנוסח המלא, בלי להוסיף מועמד חדש. זו הכרעה נקודתית על פריטים אלה, בסיוע AI; המטרות הגולמיות וסוגי הפיצול יישמרו. נדרשת ההכרעה הזו בגלל הכלל המקורי שלך שאין ליצור זהב ל־dev בהחלטת AI בלבד."
+    },
+    {
+      "decision_id": "local-8c5d718eca8a8f64ffbc6aef",
+      "audit_item_id": "item-8c5d718eca8a8f64ffbc6aef",
+      "source_row_sha256": "34d722ca62cc3dbd66ad77c133257e368d5336e86e584ce786c6bfafabdaa5c2",
+      "input": {
+        "item_id": "kn4-0045",
+        "acronym": "א״ח",
+        "sentence": "הצבעה מס' 8 בעד התיקון של חברי הכנסת ד' תיכון, א\"ח שאקי וי' ביבי לסעיף 1 – 3 נגד – 12 נמנעים – אין התיקון של חברי הכנסת ד' תיכון א\"ח שאקי וי' ביבי לסעיף 1 לא נתקבל.",
+        "provisional_expansion": "אבנר חי (שאקי)",
+        "sense_id": "",
+        "gold_expansion": "אבנר חי (שאקי)",
+        "label_status": "verified",
+        "n_candidates": "4",
+        "candidates": "אורך חיים | אגף חקירות | אבנר חי (שאקי) | תשע (גימטריה)",
+        "provenance": "knesset",
+        "multi_sense_type": "",
+        "source": "knesset",
+        "page_title": "13_ptm_532209.docx",
+        "review_verdict": "clean",
+        "review_note": "",
+        "label_origin": "human_review",
+        "category": "knesset"
+      },
+      "audit_record": 2564,
+      "source_refs": [
+        {
+          "path": "data/splits/all_items.csv",
+          "record": 3709
+        }
+      ],
+      "instruction": "For the two natural dev voting sentences containing א״ח שאקי twice, approve the first א״ח occurrence as target in each unchanged sentence; retain the existing human label אבנר חי (שאקי).",
+      "proposal": {
+        "span": [
+          47,
+          50
+        ]
+      },
+      "rationale": "Both occurrences refer to the same named participant in the retained voting sentence. Propose the first occurrence for a human target decision; do not treat index() as permission to select it.",
+      "evidence": [
+        "matching saved Ben review for unchanged label",
+        "two quote-folded target occurrences in unchanged sentence"
+      ],
+      "AI_tool": "Codex coding assistant; exact serving model version not exposed",
+      "human_decision": {
+        "status": "approved",
+        "reviewer": "Shaked",
+        "date": "2026-10-01",
+        "response": "מאשר את המופע הראשון בשתיהן",
+        "review_mode": "AI-assisted approval of explicit proposal, not blind independent annotation",
+        "elapsed_seconds": null
+      },
+      "human_question": "נותרו גם שתי רשומות dev שבהן ״א״ח שאקי״ מופיע פעמיים באותו משפט הצבעה. התווית הקיימת היא ״אבנר חי (שאקי)״. כדי לשמור אותן בלי לבחור מופע אוטומטית: האם לאשר את המופע הראשון כמטרה בשתיהן? (1) הצבעה מס׳ 9: ״בעד התיקון של חברי הכנסת [א״ח] שאקי וי׳ ביבי…״; (2) הצבעה מס׳ 8: ״בעד התיקון של חברי הכנסת ד׳ תיכון, [א״ח] שאקי וי׳ ביבי…״. המשפטים המלאים נשמרים ללא שינוי."
+    },
+    {
+      "decision_id": "local-a9d1ffcd0e77c7df2ad0172b",
+      "audit_item_id": "item-a9d1ffcd0e77c7df2ad0172b",
+      "source_row_sha256": "0393a9848b66a16161ce3e84cf2a415b8e5c4bda39d17c94a96535d66c657500",
+      "input": {
+        "item_id": "kn-0138",
+        "acronym": "רמב״ם",
+        "sentence": "במקרה הזה, גברתי היושבת-ראש, שני השוטרים שהיו אחראים למעשה הורשעו בתיק פלילי 121/89 על-ידי בית-המשפט המחוזי חיפה, נידונו לשישה חודשי עבודות תחזוקה בבית-חולים \"רמב\"ם\".",
+        "provisional_expansion": "הקריה הרפואית לבריאות האדם – בית חולים בחיפה",
+        "sense_id": "",
+        "gold_expansion": "הקריה הרפואית לבריאות האדם – בית חולים בחיפה",
+        "label_status": "verified",
+        "n_candidates": "5",
+        "candidates": "משנה תורה | ר' משה בן מימון | המרכז הרפואי מיימונידיס | הקריה הרפואית לבריאות האדם – בית חולים בחיפה | מאתיים ושמונים ושתיים (גימטריה)",
+        "provenance": "knesset",
+        "multi_sense_type": "",
+        "source": "knesset",
+        "page_title": "13_ptm_532048.docx",
+        "review_verdict": "clean",
+        "review_note": "",
+        "label_origin": "human_review",
+        "category": "knesset"
+      },
+      "audit_record": 3068,
+      "source_refs": [
+        {
+          "path": "data/splits/all_items.csv",
+          "record": 3405
+        }
+      ],
+      "instruction": "Approve replacing the label and existing metalinguistic candidate with דוקטור in all seven בד״ר items, and using רבי משה בן מימון as gold in all eleven רמב״ם hospital/street items while replacing the existing abbreviated candidate with that full form. This is an item-bounded AI-assisted task interpretation, not an inventory-wide alias rule.",
+      "proposal": {
+        "gold_expansion": "רבי משה בן מימון",
+        "candidate_replacement": {
+          "old": "ר' משה בן מימון",
+          "new": "רבי משה בן מימון"
+        }
+      },
+      "rationale": "The earlier human pilot left hospital-referent versus linguistic expansion unresolved. Propose an explicit item-bounded task decision to expand the proper name in these hospital/street uses; this is not justified by historical clean labeling alone.",
+      "evidence": [
+        "saved unresolved review item-82b09eac472d8c63ed2aec90; review_decisions.csv",
+        "existing independently stored candidate ר' משה בן מימון; no new sense is invented"
+      ],
+      "AI_tool": "Codex coding assistant; exact serving model version not exposed",
+      "human_decision": {
+        "status": "approved",
+        "reviewer": "Shaked",
+        "date": "2026-10-01",
+        "response": "מאשר את שני התיקונים המדויקים",
+        "review_mode": "AI-assisted approval of explicit proposal, not blind independent annotation",
+        "elapsed_seconds": null
+      },
+      "human_question": "כדי לסגור את שני הסוגים באופן מפורש: האם לאשר שבכל 7 פריטי בד״ר נחליף את התווית והמועמד ״ד״ר (ב־ קליטי)״ ב״דוקטור״; ובכל 11 פריטי רמב״ם, גם כשהמשפט מתייחס לבית החולים או לרחוב, תשובת הזהב תהיה ״רבי משה בן מימון״? ברמב״ם נחליף את המועמד הקיים ״ר׳ משה בן מימון״ בנוסח המלא, בלי להוסיף מועמד חדש. זו הכרעה נקודתית על פריטים אלה, בסיוע AI; המטרות הגולמיות וסוגי הפיצול יישמרו. נדרשת ההכרעה הזו בגלל הכלל המקורי שלך שאין ליצור זהב ל־dev בהחלטת AI בלבד."
+    },
+    {
+      "decision_id": "local-b0479f88216431afff7c51b2",
+      "audit_item_id": "item-b0479f88216431afff7c51b2",
+      "source_row_sha256": "3305bfb05ad86260670e69d13d18c9f99d13842d88b05befb363134f3699b929",
+      "input": {
+        "item_id": "kn-0250",
+        "acronym": "רמב״ם",
+        "sentence": "הגשתי לשר הצעה בקשר להקמת מכון מחקר שכרוך בקליטת עולים חדשים בבית-החולים \"רמב\"ם\".",
+        "provisional_expansion": "הקריה הרפואית לבריאות האדם – בית חולים בחיפה",
+        "sense_id": "",
+        "gold_expansion": "הקריה הרפואית לבריאות האדם – בית חולים בחיפה",
+        "label_status": "verified",
+        "n_candidates": "5",
+        "candidates": "משנה תורה | ר' משה בן מימון | המרכז הרפואי מיימונידיס | הקריה הרפואית לבריאות האדם – בית חולים בחיפה | מאתיים ושמונים ושתיים (גימטריה)",
+        "provenance": "knesset",
+        "multi_sense_type": "",
+        "source": "knesset",
+        "page_title": "13_ptm_532122.docx",
+        "review_verdict": "clean",
+        "review_note": "",
+        "label_origin": "human_review",
+        "category": "knesset"
+      },
+      "audit_record": 3216,
+      "source_refs": [
+        {
+          "path": "data/splits/all_items.csv",
+          "record": 3516
+        }
+      ],
+      "instruction": "Approve replacing the label and existing metalinguistic candidate with דוקטור in all seven בד״ר items, and using רבי משה בן מימון as gold in all eleven רמב״ם hospital/street items while replacing the existing abbreviated candidate with that full form. This is an item-bounded AI-assisted task interpretation, not an inventory-wide alias rule.",
+      "proposal": {
+        "gold_expansion": "רבי משה בן מימון",
+        "candidate_replacement": {
+          "old": "ר' משה בן מימון",
+          "new": "רבי משה בן מימון"
+        }
+      },
+      "rationale": "The earlier human pilot left hospital-referent versus linguistic expansion unresolved. Propose an explicit item-bounded task decision to expand the proper name in these hospital/street uses; this is not justified by historical clean labeling alone.",
+      "evidence": [
+        "saved unresolved review item-82b09eac472d8c63ed2aec90; review_decisions.csv",
+        "existing independently stored candidate ר' משה בן מימון; no new sense is invented"
+      ],
+      "AI_tool": "Codex coding assistant; exact serving model version not exposed",
+      "human_decision": {
+        "status": "approved",
+        "reviewer": "Shaked",
+        "date": "2026-10-01",
+        "response": "מאשר את שני התיקונים המדויקים",
+        "review_mode": "AI-assisted approval of explicit proposal, not blind independent annotation",
+        "elapsed_seconds": null
+      },
+      "human_question": "כדי לסגור את שני הסוגים באופן מפורש: האם לאשר שבכל 7 פריטי בד״ר נחליף את התווית והמועמד ״ד״ר (ב־ קליטי)״ ב״דוקטור״; ובכל 11 פריטי רמב״ם, גם כשהמשפט מתייחס לבית החולים או לרחוב, תשובת הזהב תהיה ״רבי משה בן מימון״? ברמב״ם נחליף את המועמד הקיים ״ר׳ משה בן מימון״ בנוסח המלא, בלי להוסיף מועמד חדש. זו הכרעה נקודתית על פריטים אלה, בסיוע AI; המטרות הגולמיות וסוגי הפיצול יישמרו. נדרשת ההכרעה הזו בגלל הכלל המקורי שלך שאין ליצור זהב ל־dev בהחלטת AI בלבד."
+    },
+    {
+      "decision_id": "local-b4e4ca61df46c43f38300413",
+      "audit_item_id": "item-b4e4ca61df46c43f38300413",
+      "source_row_sha256": "b19ab846586b56fecba172180b7e1998f2ddca5cc55c1c768905fbdf10cc2760",
+      "input": {
+        "item_id": "kn4-0307",
+        "acronym": "בד״ר",
+        "sentence": "בעקבות כל מה שקשור בד\"ר גרינר ובעברו, שחשיפת הליקויים לא היתה הנקודה היחידה בהם – – –",
+        "provisional_expansion": "ד\"ר (ב- קליטי)",
+        "sense_id": "",
+        "gold_expansion": "ד\"ר (ב- קליטי)",
+        "label_status": "verified",
+        "n_candidates": "4",
+        "candidates": "בית דין רבני | בן דב רפפורט | ד\"ר (ב- קליטי) | מאתיים ושש (גימטריה)",
+        "provenance": "knesset",
+        "multi_sense_type": "",
+        "source": "knesset",
+        "page_title": "13_ptm_532403.docx",
+        "review_verdict": "clean",
+        "review_note": "",
+        "label_origin": "human_review",
+        "category": "knesset"
+      },
+      "audit_record": 3298,
+      "source_refs": [
+        {
+          "path": "data/splits/all_items.csv",
+          "record": 3968
+        }
+      ],
+      "instruction": "Approve replacing the label and existing metalinguistic candidate with דוקטור in all seven בד״ר items, and using רבי משה בן מימון as gold in all eleven רמב״ם hospital/street items while replacing the existing abbreviated candidate with that full form. This is an item-bounded AI-assisted task interpretation, not an inventory-wide alias rule.",
+      "proposal": {
+        "gold_expansion": "דוקטור",
+        "candidate_replacement": {
+          "old": "ד\"ר (ב- קליטי)",
+          "new": "דוקטור"
+        }
+      },
+      "rationale": "The saved Shaked pilot correction identifies דוקטור; the other rows retain the same abbreviated/metalinguistic label. Propose applying the stated correction to this exact item without merging types.",
+      "evidence": [
+        "saved review item-04ea81a4e75bccdc7a2d1438; review_decisions.csv",
+        "unchanged stored type, label and candidates"
+      ],
+      "AI_tool": "Codex coding assistant; exact serving model version not exposed",
+      "human_decision": {
+        "status": "approved",
+        "reviewer": "Shaked",
+        "date": "2026-10-01",
+        "response": "מאשר את שני התיקונים המדויקים",
+        "review_mode": "AI-assisted approval of explicit proposal, not blind independent annotation",
+        "elapsed_seconds": null
+      },
+      "human_question": "כדי לסגור את שני הסוגים באופן מפורש: האם לאשר שבכל 7 פריטי בד״ר נחליף את התווית והמועמד ״ד״ר (ב־ קליטי)״ ב״דוקטור״; ובכל 11 פריטי רמב״ם, גם כשהמשפט מתייחס לבית החולים או לרחוב, תשובת הזהב תהיה ״רבי משה בן מימון״? ברמב״ם נחליף את המועמד הקיים ״ר׳ משה בן מימון״ בנוסח המלא, בלי להוסיף מועמד חדש. זו הכרעה נקודתית על פריטים אלה, בסיוע AI; המטרות הגולמיות וסוגי הפיצול יישמרו. נדרשת ההכרעה הזו בגלל הכלל המקורי שלך שאין ליצור זהב ל־dev בהחלטת AI בלבד."
+    },
+    {
+      "decision_id": "local-bcdcd4ec4e4e69eadd486fab",
+      "audit_item_id": "item-bcdcd4ec4e4e69eadd486fab",
+      "source_row_sha256": "465293fa7b97800580ca9af06ff56f0fa4c7bf96aad15c2ce022ba09fb2a019a",
+      "input": {
+        "item_id": "kn4-0454",
+        "acronym": "בד״ר",
+        "sentence": "מדובר בד\"ר יאיר סמוכה, הוא אומר כך: משרד החינוך מודע לקשיים בהפעלת יום חינוך ארוך באמצע השנה.",
+        "provisional_expansion": "ד\"ר (ב- קליטי)",
+        "sense_id": "",
+        "gold_expansion": "ד\"ר (ב- קליטי)",
+        "label_status": "verified",
+        "n_candidates": "4",
+        "candidates": "בית דין רבני | בן דב רפפורט | ד\"ר (ב- קליטי) | מאתיים ושש (גימטריה)",
+        "provenance": "knesset",
+        "multi_sense_type": "",
+        "source": "knesset",
+        "page_title": "14_ptm_532626.docx",
+        "review_verdict": "clean",
+        "review_note": "",
+        "label_origin": "human_review",
+        "category": "knesset"
+      },
+      "audit_record": 3438,
+      "source_refs": [
+        {
+          "path": "data/splits/all_items.csv",
+          "record": 4115
+        }
+      ],
+      "instruction": "Approve replacing the label and existing metalinguistic candidate with דוקטור in all seven בד״ר items, and using רבי משה בן מימון as gold in all eleven רמב״ם hospital/street items while replacing the existing abbreviated candidate with that full form. This is an item-bounded AI-assisted task interpretation, not an inventory-wide alias rule.",
+      "proposal": {
+        "gold_expansion": "דוקטור",
+        "candidate_replacement": {
+          "old": "ד\"ר (ב- קליטי)",
+          "new": "דוקטור"
+        }
+      },
+      "rationale": "The saved Shaked pilot correction identifies דוקטור; the other rows retain the same abbreviated/metalinguistic label. Propose applying the stated correction to this exact item without merging types.",
+      "evidence": [
+        "saved review item-04ea81a4e75bccdc7a2d1438; review_decisions.csv",
+        "unchanged stored type, label and candidates"
+      ],
+      "AI_tool": "Codex coding assistant; exact serving model version not exposed",
+      "human_decision": {
+        "status": "approved",
+        "reviewer": "Shaked",
+        "date": "2026-10-01",
+        "response": "מאשר את שני התיקונים המדויקים",
+        "review_mode": "AI-assisted approval of explicit proposal, not blind independent annotation",
+        "elapsed_seconds": null
+      },
+      "human_question": "כדי לסגור את שני הסוגים באופן מפורש: האם לאשר שבכל 7 פריטי בד״ר נחליף את התווית והמועמד ״ד״ר (ב־ קליטי)״ ב״דוקטור״; ובכל 11 פריטי רמב״ם, גם כשהמשפט מתייחס לבית החולים או לרחוב, תשובת הזהב תהיה ״רבי משה בן מימון״? ברמב״ם נחליף את המועמד הקיים ״ר׳ משה בן מימון״ בנוסח המלא, בלי להוסיף מועמד חדש. זו הכרעה נקודתית על פריטים אלה, בסיוע AI; המטרות הגולמיות וסוגי הפיצול יישמרו. נדרשת ההכרעה הזו בגלל הכלל המקורי שלך שאין ליצור זהב ל־dev בהחלטת AI בלבד."
+    },
+    {
+      "decision_id": "local-c51cc4063b086756ca22a534",
+      "audit_item_id": "item-c51cc4063b086756ca22a534",
+      "source_row_sha256": "f8bd7d532792745f3feacaf92d4d161f04ebe29d7e997de432773e2d0d9a057b",
+      "input": {
+        "item_id": "kn4-0002",
+        "acronym": "בד״ר",
+        "sentence": "על כן, לפני שמטילים אשמה, ואינני רוצה להטיל כל אשמה בד\"ר גולדשמידט, ראוי וחובה שמה שהוא עשה ייבדק.",
+        "provisional_expansion": "ד\"ר (ב- קליטי)",
+        "sense_id": "",
+        "gold_expansion": "ד\"ר (ב- קליטי)",
+        "label_status": "verified",
+        "n_candidates": "4",
+        "candidates": "בית דין רבני | בן דב רפפורט | ד\"ר (ב- קליטי) | מאתיים ושש (גימטריה)",
+        "provenance": "knesset",
+        "multi_sense_type": "",
+        "source": "knesset",
+        "page_title": "13_ptm_532072.docx",
+        "review_verdict": "clean",
+        "review_note": "",
+        "label_origin": "human_review",
+        "category": "knesset"
+      },
+      "audit_record": 3594,
+      "source_refs": [
+        {
+          "path": "data/splits/all_items.csv",
+          "record": 3667
+        }
+      ],
+      "instruction": "Approve replacing the label and existing metalinguistic candidate with דוקטור in all seven בד״ר items, and using רבי משה בן מימון as gold in all eleven רמב״ם hospital/street items while replacing the existing abbreviated candidate with that full form. This is an item-bounded AI-assisted task interpretation, not an inventory-wide alias rule.",
+      "proposal": {
+        "gold_expansion": "דוקטור",
+        "candidate_replacement": {
+          "old": "ד\"ר (ב- קליטי)",
+          "new": "דוקטור"
+        }
+      },
+      "rationale": "The saved Shaked pilot correction identifies דוקטור; the other rows retain the same abbreviated/metalinguistic label. Propose applying the stated correction to this exact item without merging types.",
+      "evidence": [
+        "saved review item-04ea81a4e75bccdc7a2d1438; review_decisions.csv",
+        "unchanged stored type, label and candidates"
+      ],
+      "AI_tool": "Codex coding assistant; exact serving model version not exposed",
+      "human_decision": {
+        "status": "approved",
+        "reviewer": "Shaked",
+        "date": "2026-10-01",
+        "response": "מאשר את שני התיקונים המדויקים",
+        "review_mode": "AI-assisted approval of explicit proposal, not blind independent annotation",
+        "elapsed_seconds": null
+      },
+      "human_question": "כדי לסגור את שני הסוגים באופן מפורש: האם לאשר שבכל 7 פריטי בד״ר נחליף את התווית והמועמד ״ד״ר (ב־ קליטי)״ ב״דוקטור״; ובכל 11 פריטי רמב״ם, גם כשהמשפט מתייחס לבית החולים או לרחוב, תשובת הזהב תהיה ״רבי משה בן מימון״? ברמב״ם נחליף את המועמד הקיים ״ר׳ משה בן מימון״ בנוסח המלא, בלי להוסיף מועמד חדש. זו הכרעה נקודתית על פריטים אלה, בסיוע AI; המטרות הגולמיות וסוגי הפיצול יישמרו. נדרשת ההכרעה הזו בגלל הכלל המקורי שלך שאין ליצור זהב ל־dev בהחלטת AI בלבד."
+    },
+    {
+      "decision_id": "local-cdcf38e2b5dd5e86a3019453",
+      "audit_item_id": "item-cdcf38e2b5dd5e86a3019453",
+      "source_row_sha256": "243f1a24ccf31b74c772012f301b30adb61eb769d8ead946e33cbbbca9664064",
+      "input": {
+        "item_id": "kn-0157",
+        "acronym": "רמב״ם",
+        "sentence": "כך כותבת הגברת יפה חממי מרחוב רמב\"ם 20, ראשון-לציון.",
+        "provisional_expansion": "ר' משה בן מימון",
+        "sense_id": "",
+        "gold_expansion": "ר' משה בן מימון",
+        "label_status": "verified",
+        "n_candidates": "5",
+        "candidates": "משנה תורה | ר' משה בן מימון | המרכז הרפואי מיימונידיס | הקריה הרפואית לבריאות האדם – בית חולים בחיפה | מאתיים ושמונים ושתיים (גימטריה)",
+        "provenance": "knesset",
+        "multi_sense_type": "",
+        "source": "knesset",
+        "page_title": "13_ptm_532056.docx",
+        "review_verdict": "clean",
+        "review_note": "",
+        "label_origin": "human_review",
+        "category": "knesset"
+      },
+      "audit_record": 3755,
+      "source_refs": [
+        {
+          "path": "data/splits/all_items.csv",
+          "record": 3424
+        }
+      ],
+      "instruction": "Approve replacing the label and existing metalinguistic candidate with דוקטור in all seven בד״ר items, and using רבי משה בן מימון as gold in all eleven רמב״ם hospital/street items while replacing the existing abbreviated candidate with that full form. This is an item-bounded AI-assisted task interpretation, not an inventory-wide alias rule.",
+      "proposal": {
+        "gold_expansion": "רבי משה בן מימון",
+        "candidate_replacement": {
+          "old": "ר' משה בן מימון",
+          "new": "רבי משה בן מימון"
+        }
+      },
+      "rationale": "The earlier human pilot left hospital-referent versus linguistic expansion unresolved. Propose an explicit item-bounded task decision to expand the proper name in these hospital/street uses; this is not justified by historical clean labeling alone.",
+      "evidence": [
+        "saved unresolved review item-82b09eac472d8c63ed2aec90; review_decisions.csv",
+        "existing independently stored candidate ר' משה בן מימון; no new sense is invented"
+      ],
+      "AI_tool": "Codex coding assistant; exact serving model version not exposed",
+      "human_decision": {
+        "status": "approved",
+        "reviewer": "Shaked",
+        "date": "2026-10-01",
+        "response": "מאשר את שני התיקונים המדויקים",
+        "review_mode": "AI-assisted approval of explicit proposal, not blind independent annotation",
+        "elapsed_seconds": null
+      },
+      "human_question": "כדי לסגור את שני הסוגים באופן מפורש: האם לאשר שבכל 7 פריטי בד״ר נחליף את התווית והמועמד ״ד״ר (ב־ קליטי)״ ב״דוקטור״; ובכל 11 פריטי רמב״ם, גם כשהמשפט מתייחס לבית החולים או לרחוב, תשובת הזהב תהיה ״רבי משה בן מימון״? ברמב״ם נחליף את המועמד הקיים ״ר׳ משה בן מימון״ בנוסח המלא, בלי להוסיף מועמד חדש. זו הכרעה נקודתית על פריטים אלה, בסיוע AI; המטרות הגולמיות וסוגי הפיצול יישמרו. נדרשת ההכרעה הזו בגלל הכלל המקורי שלך שאין ליצור זהב ל־dev בהחלטת AI בלבד."
+    },
+    {
+      "decision_id": "local-d0704dead985d90a573448b3",
+      "audit_item_id": "item-d0704dead985d90a573448b3",
+      "source_row_sha256": "507619d45a91dbeb5890aa11095ce9854d9be3d2cc8385426db5c1eb65e8b3c2",
+      "input": {
+        "item_id": "kn-0252",
+        "acronym": "רמב״ם",
+        "sentence": "לבית-החולים \"רמב\"ם\" יש סדר עדיפויות משלו.",
+        "provisional_expansion": "הקריה הרפואית לבריאות האדם – בית חולים בחיפה",
+        "sense_id": "",
+        "gold_expansion": "הקריה הרפואית לבריאות האדם – בית חולים בחיפה",
+        "label_status": "verified",
+        "n_candidates": "5",
+        "candidates": "משנה תורה | ר' משה בן מימון | המרכז הרפואי מיימונידיס | הקריה הרפואית לבריאות האדם – בית חולים בחיפה | מאתיים ושמונים ושתיים (גימטריה)",
+        "provenance": "knesset",
+        "multi_sense_type": "",
+        "source": "knesset",
+        "page_title": "13_ptm_532122.docx",
+        "review_verdict": "clean",
+        "review_note": "",
+        "label_origin": "human_review",
+        "category": "knesset"
+      },
+      "audit_record": 3799,
+      "source_refs": [
+        {
+          "path": "data/splits/all_items.csv",
+          "record": 3518
+        }
+      ],
+      "instruction": "Approve replacing the label and existing metalinguistic candidate with דוקטור in all seven בד״ר items, and using רבי משה בן מימון as gold in all eleven רמב״ם hospital/street items while replacing the existing abbreviated candidate with that full form. This is an item-bounded AI-assisted task interpretation, not an inventory-wide alias rule.",
+      "proposal": {
+        "gold_expansion": "רבי משה בן מימון",
+        "candidate_replacement": {
+          "old": "ר' משה בן מימון",
+          "new": "רבי משה בן מימון"
+        }
+      },
+      "rationale": "The earlier human pilot left hospital-referent versus linguistic expansion unresolved. Propose an explicit item-bounded task decision to expand the proper name in these hospital/street uses; this is not justified by historical clean labeling alone.",
+      "evidence": [
+        "saved unresolved review item-82b09eac472d8c63ed2aec90; review_decisions.csv",
+        "existing independently stored candidate ר' משה בן מימון; no new sense is invented"
+      ],
+      "AI_tool": "Codex coding assistant; exact serving model version not exposed",
+      "human_decision": {
+        "status": "approved",
+        "reviewer": "Shaked",
+        "date": "2026-10-01",
+        "response": "מאשר את שני התיקונים המדויקים",
+        "review_mode": "AI-assisted approval of explicit proposal, not blind independent annotation",
+        "elapsed_seconds": null
+      },
+      "human_question": "כדי לסגור את שני הסוגים באופן מפורש: האם לאשר שבכל 7 פריטי בד״ר נחליף את התווית והמועמד ״ד״ר (ב־ קליטי)״ ב״דוקטור״; ובכל 11 פריטי רמב״ם, גם כשהמשפט מתייחס לבית החולים או לרחוב, תשובת הזהב תהיה ״רבי משה בן מימון״? ברמב״ם נחליף את המועמד הקיים ״ר׳ משה בן מימון״ בנוסח המלא, בלי להוסיף מועמד חדש. זו הכרעה נקודתית על פריטים אלה, בסיוע AI; המטרות הגולמיות וסוגי הפיצול יישמרו. נדרשת ההכרעה הזו בגלל הכלל המקורי שלך שאין ליצור זהב ל־dev בהחלטת AI בלבד."
+    },
+    {
+      "decision_id": "local-ea95c6953523a618e2de59b4",
+      "audit_item_id": "item-ea95c6953523a618e2de59b4",
+      "source_row_sha256": "a97e3968d20f84d5ebe71d26ed3b7a0d1014a3019324dd5268a20ecae5e1ea0c",
+      "input": {
+        "item_id": "kn-0089",
+        "acronym": "רמב״ם",
+        "sentence": "החולים מטופלים בבתי-חולים בישראל: ב\"הדסה\" וב\"רמב\"ם\".",
+        "provisional_expansion": "הקריה הרפואית לבריאות האדם – בית חולים בחיפה",
+        "sense_id": "",
+        "gold_expansion": "הקריה הרפואית לבריאות האדם – בית חולים בחיפה",
+        "label_status": "verified",
+        "n_candidates": "5",
+        "candidates": "משנה תורה | ר' משה בן מימון | המרכז הרפואי מיימונידיס | הקריה הרפואית לבריאות האדם – בית חולים בחיפה | מאתיים ושמונים ושתיים (גימטריה)",
+        "provenance": "knesset",
+        "multi_sense_type": "",
+        "source": "knesset",
+        "page_title": "13_ptm_532027.docx",
+        "review_verdict": "clean",
+        "review_note": "",
+        "label_origin": "human_review",
+        "category": "knesset"
+      },
+      "audit_record": 4253,
+      "source_refs": [
+        {
+          "path": "data/splits/all_items.csv",
+          "record": 3356
+        }
+      ],
+      "instruction": "Approve replacing the label and existing metalinguistic candidate with דוקטור in all seven בד״ר items, and using רבי משה בן מימון as gold in all eleven רמב״ם hospital/street items while replacing the existing abbreviated candidate with that full form. This is an item-bounded AI-assisted task interpretation, not an inventory-wide alias rule. Preserve the attached prefix outside the opening quotation mark; propose the full quoted token shown in the additional human question.",
+      "proposal": {
+        "gold_expansion": "רבי משה בן מימון",
+        "candidate_replacement": {
+          "old": "ר' משה בן מימון",
+          "new": "רבי משה בן מימון"
+        },
+        "span": [
+          42,
+          51
+        ],
+        "target_raw": "וב\"רמב\"ם\""
+      },
+      "rationale": "The earlier human pilot left hospital-referent versus linguistic expansion unresolved. Propose an explicit item-bounded task decision to expand the proper name in these hospital/street uses; this is not justified by historical clean labeling alone. Independent code review found the former automatic span omitted the attached prefix outside quotation marks; the full token boundary is now explicitly human approved.",
+      "evidence": [
+        "saved unresolved review item-82b09eac472d8c63ed2aec90; review_decisions.csv",
+        "existing independently stored candidate ר' משה בן מימון; no new sense is invented"
+      ],
+      "AI_tool": "Codex coding assistant; exact serving model version not exposed",
+      "human_decision": {
+        "status": "approved",
+        "reviewer": "Shaked",
+        "date": "2026-10-01",
+        "response": "מאשר את שני התיקונים המדויקים",
+        "review_mode": "AI-assisted approval of explicit proposal, not blind independent annotation",
+        "elapsed_seconds": null
+      },
+      "human_question": "כדי לסגור את שני הסוגים באופן מפורש: האם לאשר שבכל 7 פריטי בד״ר נחליף את התווית והמועמד ״ד״ר (ב־ קליטי)״ ב״דוקטור״; ובכל 11 פריטי רמב״ם, גם כשהמשפט מתייחס לבית החולים או לרחוב, תשובת הזהב תהיה ״רבי משה בן מימון״? ברמב״ם נחליף את המועמד הקיים ״ר׳ משה בן מימון״ בנוסח המלא, בלי להוסיף מועמד חדש. זו הכרעה נקודתית על פריטים אלה, בסיוע AI; המטרות הגולמיות וסוגי הפיצול יישמרו. נדרשת ההכרעה הזו בגלל הכלל המקורי שלך שאין ליצור זהב ל־dev בהחלטת AI בלבד.",
+      "additional_human_approvals": [
+        {
+          "question": "המבקר מצא עוד שני גבולות מטרה שדורשים הכרעה כדי לשמור את התחילית: (1) ״שני המכשירים האלה – אחד יהיה ב׳סורוקה׳, אחד יהיה [ב״רמב״ם״].״ — המטרה תכלול את ב ואת המרכאות העוטפות; (2) ״החולים מטופלים בבתי־חולים בישראל: ב׳הדסה׳ [וב״רמב״ם״].״ — המטרה תכלול את וב ואת המרכאות העוטפות. האם לאשר את שתי המטרות המלאות המסומנות? במשפטי המקור נשמור בדיוק על התווים המקוריים; התווית נשארת כפי שאישרת.",
+          "response": "מאשר את שתי המטרות עם התחיליות",
+          "reviewer": "Shaked",
+          "date": "2026-10-01",
+          "scope": "span only; earlier label/candidate approval remains in human_decision",
+          "status": "approved"
+        }
+      ]
+    },
+    {
+      "decision_id": "local-f71c11d1a6e1bd5a4e76c3e6",
+      "audit_item_id": "item-f71c11d1a6e1bd5a4e76c3e6",
+      "source_row_sha256": "ac5b19f0fb4d7ca9bee2a92f7931a3c39456edf3022fd13cd57257acf16f9e79",
+      "input": {
+        "item_id": "kn-0105",
+        "acronym": "רמב״ם",
+        "sentence": "רק לפני חודש אמר רופא בבית-החולים \"רמב\"ם\", ואינני רוצה להזכיר את שמו אף שהוא הופיע בכל העיתונים, כאשר פנה אל חולה שהיתה מאושפזת שם ואל מי שבא לבקר אותה ואמר: ספרדים פרימיטיבים, מרוקאית מלוכלכת.",
+        "provisional_expansion": "הקריה הרפואית לבריאות האדם – בית חולים בחיפה",
+        "sense_id": "",
+        "gold_expansion": "הקריה הרפואית לבריאות האדם – בית חולים בחיפה",
+        "label_status": "verified",
+        "n_candidates": "5",
+        "candidates": "משנה תורה | ר' משה בן מימון | המרכז הרפואי מיימונידיס | הקריה הרפואית לבריאות האדם – בית חולים בחיפה | מאתיים ושמונים ושתיים (גימטריה)",
+        "provenance": "knesset",
+        "multi_sense_type": "",
+        "source": "knesset",
+        "page_title": "13_ptm_532035.docx",
+        "review_verdict": "clean",
+        "review_note": "",
+        "label_origin": "human_review",
+        "category": "knesset"
+      },
+      "audit_record": 4497,
+      "source_refs": [
+        {
+          "path": "data/splits/all_items.csv",
+          "record": 3372
+        }
+      ],
+      "instruction": "Approve replacing the label and existing metalinguistic candidate with דוקטור in all seven בד״ר items, and using רבי משה בן מימון as gold in all eleven רמב״ם hospital/street items while replacing the existing abbreviated candidate with that full form. This is an item-bounded AI-assisted task interpretation, not an inventory-wide alias rule.",
+      "proposal": {
+        "gold_expansion": "רבי משה בן מימון",
+        "candidate_replacement": {
+          "old": "ר' משה בן מימון",
+          "new": "רבי משה בן מימון"
+        }
+      },
+      "rationale": "The earlier human pilot left hospital-referent versus linguistic expansion unresolved. Propose an explicit item-bounded task decision to expand the proper name in these hospital/street uses; this is not justified by historical clean labeling alone.",
+      "evidence": [
+        "saved unresolved review item-82b09eac472d8c63ed2aec90; review_decisions.csv",
+        "existing independently stored candidate ר' משה בן מימון; no new sense is invented"
+      ],
+      "AI_tool": "Codex coding assistant; exact serving model version not exposed",
+      "human_decision": {
+        "status": "approved",
+        "reviewer": "Shaked",
+        "date": "2026-10-01",
+        "response": "מאשר את שני התיקונים המדויקים",
+        "review_mode": "AI-assisted approval of explicit proposal, not blind independent annotation",
+        "elapsed_seconds": null
+      },
+      "human_question": "כדי לסגור את שני הסוגים באופן מפורש: האם לאשר שבכל 7 פריטי בד״ר נחליף את התווית והמועמד ״ד״ר (ב־ קליטי)״ ב״דוקטור״; ובכל 11 פריטי רמב״ם, גם כשהמשפט מתייחס לבית החולים או לרחוב, תשובת הזהב תהיה ״רבי משה בן מימון״? ברמב״ם נחליף את המועמד הקיים ״ר׳ משה בן מימון״ בנוסח המלא, בלי להוסיף מועמד חדש. זו הכרעה נקודתית על פריטים אלה, בסיוע AI; המטרות הגולמיות וסוגי הפיצול יישמרו. נדרשת ההכרעה הזו בגלל הכלל המקורי שלך שאין ליצור זהב ל־dev בהחלטת AI בלבד."
+    }
+  ]
+}
