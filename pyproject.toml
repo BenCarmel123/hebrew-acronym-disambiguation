@@ -15,6 +15,3 @@ dependencies = {file = ["requirements.txt"]}
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["hebrew_acronyms*"]
-
-[tool.setuptools.package-data]
-"hebrew_acronyms.pipelines" = ["run_pipeline.sh"]

@@ -30,12 +30,11 @@
   Keep weights, caches, environments, secrets and generated outputs out of Git.
   Use the safe checks documented in README for structural work. Real-data training,
   evaluation, mining, Ollama and paid API use require explicit task authorization.
-  `src/hebrew_acronyms/pipelines/run_pipeline.sh` automatically evaluates test if present; `--skip-llm`
-  does not disable test. Do not use it or `hebrew_acronyms.pipelines.run_all` as a structural smoke test.
 - Structural extraction preserves data, labels, candidates, splits, prompts, scoring,
   results and model behavior. Compare to the identified baseline, not only the new
-  implementation. Report existing defects instead of fixing them incidentally.
-  In the historical training path, keep seeding after model initialization and strict
+  implementation when a behavioral change requires it. Routine checks use explicit
+  fixture expectations without requiring Git history. Report existing defects instead
+  of fixing them incidentally. Preserve seed-before-initialization and strict
   development-loss improvement for checkpoint selection unless separately authorized.
 - For an authorized notebook restructuring, preserve behavior; put imports
   and environment setup in the first code cell, then short explanations and function

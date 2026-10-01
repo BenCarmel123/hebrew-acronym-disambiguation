@@ -1,183 +1,105 @@
 # Hebrew Acronym Disambiguation
 
-A TAU NLP course project on interpreting Hebrew acronyms in context: generating an
-expansion freely or selecting one from a supplied candidate list. The repository
-contains data construction code, existing model implementations, a training notebook
-and a preliminary companion for experimental methods and analysis. Scientific choices
-and the final experiment protocol remain open.
+A TAU NLP course project comparing free expansion of Hebrew acronyms with selection
+from a candidate inventory. The planned study compares the same LLM with and without
+context in both formats, alongside a task-trained Hebrew encoder. Detailed data and
+evaluation choices remain open; no final results exist for this study.
 
-The code is organized for local development and inspection. Fixture tests and CPU
-smoke checks establish execution and structural compatibility, not model quality.
-[Historical results](results/all_arms_summary.md) are not findings on the current data.
-AI-assisted code organization and reviews are not human approval of the protocol;
-AI-authored examples remain disclosed in the [data documentation](data/README.md).
+## Code and reading map
 
-## Repository map
-
-| Location | Responsibility |
+| Location | Purpose |
 |---|---|
-| [src/hebrew_acronyms/](src/hebrew_acronyms/) | Importable Python package, installed into the project environment. |
-| ↳ `data_processing/` | Source collection, candidate tables, mining, review application and split construction. See [commands](docs/data_processing.md). |
-| ↳ `models/` | Shared input/scoring helpers, baselines, `dictabert_similarity`, `dictabert_cross_encoder`, Gemini and Qwen implementations. |
-| ↳ `pipelines/` | Environment check, data validation and research evaluation entry points. See [execution reference](docs/pipelines.md). |
-| [data/](data/README.md) | Source exports, review evidence and historical split/aggregate inputs. |
-| [notebooks/](notebooks/) | [Experimental methods and analysis](notebooks/experimental_study.ipynb): environment check and study outline. [Training appendix](notebooks/train_dictabert.ipynb): runnable source calls; default is offline smoke. |
-| [results/](results/all_arms_summary.md) | Preserved historical predictions and summaries. |
-| [docs/](docs/) | [Course sources](docs/course/README.md), command references and [checkpoint notes](docs/checkpoints.md). |
-| [tests/](tests/) | Baseline-equivalence tests and invented fixtures, separate from research data. |
+| [Training appendix](notebooks/train_dictabert.ipynb) | Explicit inputs, candidate pairs, DictaBERT initialization or loading, optional training and item predictions. Start here to inspect executable model code. |
+| [Methods and analysis](notebooks/experimental_study.ipynb) | Study design, source documentation and analysis outline; not a completed experiment. |
+| [Cross-encoder source](src/hebrew_acronyms/models/dictabert_cross_encoder/) | `encoding.py`: length-bounded inputs; `model.py`: scoring and checkpoints; `training.py`: optimization; `eval.py`: item records; `workflow.py`: small local setup helpers. |
+| [Input contract](src/hebrew_acronyms/models/common/pairs.py) | Exact target spans, IDs, candidate pairs and input identities. |
+| [Other models](src/hebrew_acronyms/models/) | Baselines, encoder similarity and LLM components; their historical scoring rules are not yet unified. |
+| [Data preparation](docs/data_processing.md) | Source collection, review application and split-construction functions and commands. |
+| [Local checks](docs/pipelines.md) | Environment check and explicit data validation; no combined model runner. |
+| [Tests](tests/) | Invented fixtures, tiny learning and reconstruction checks; no Git history needed. |
 
-The working [manuscript](paper/manuscript.md) and [bibliography](paper/references.bib)
-live in `paper/`. The draft describes the approved research direction and pending
-method settings; it contains no current experimental results. Checkpoint files
-remain local and ignored by Git.
-
-[AGENTS.md](AGENTS.md) is the single source of operating instructions for agents.
-The coordinator maintains the existing project plan at `../PROJECT_PLAN.md`, alongside
-this repository. The next phase is research clarification with Shaked; existing
-experiment proposals are not approved execution settings.
-
-## Research history and current authority
-
-Start with the [submitted proposal and its status](docs/course/README.md), then the
-active section of the [central plan](../PROJECT_PLAN.md). Shaked confirmed the
-ID-named proposal on 1 October 2026; his Downloads copy is byte-identical to the
-preserved PDF. The other proposal PDF is an earlier draft of the same project.
-
-Two repositories contributed work. `ShakedSchnarch/nlp-hw-team`, under `project/`,
-contains earlier modelling, planning and research evidence and is now read-only.
-`BenCarmel123/hebrew-acronym-disambiguation`, this repository, is the selected
-submission base, developed from Ben's work. The two implementations and their old
-plans are not interchangeable. The old 600-type HeAcro concept is not an active
-delivery requirement.
-
-| Work | What it establishes | Current use |
-|---|---|---|
-| Shaked's 30 August Colab DictaBERT run | Recorded completion of three training epochs on 2,552 provisionally labelled examples; no dev/test accuracy | Training feasibility history; see [distinct run records](docs/checkpoints.md) |
-| Ben's encoder experiments and historical LLM predictions | Development exploration on earlier data; some scores and input versions conflict | Preserve [historical results](results/all_arms_summary.md); do not report them as current findings |
-| Code organization, fixtures and notebook preparation | Structural and execution checks within their recorded scope | Reusable implementation, not scientific validation |
-| P1/P1-R, 16-item review and later preparation packages | Completed preparation and recorded occurrence judgments; inventories remain unapproved | [Working manuscript](paper/manuscript.md) and proposed review artifacts |
-| Focused 100–120 natural-occurrence direction | Approved research scope, including four LLM conditions and task-unseen encoder types | Detailed protocol, qualified inputs and final results remain pending |
-
-As of 1 October 2026, Shaked requests documentation reconciliation before another
-planning conversation. No next research package has been authorized by that request.
-The central plan distinguishes approved direction, completed work, pending choices
-and historical prompts. Prior results exist; final results for the current study do not.
+The [manuscript](paper/manuscript.md), [bibliography](paper/references.bib) and
+[course sources](docs/course/README.md) describe the research context. The ID-named PDF
+is the submitted proposal; the other PDF is an earlier draft. The [data inventory](data/README.md)
+and [dataset card](data/mined/DATASET_CARD.md) preserve source and construction details.
+[Historical results](results/all_arms_summary.md) and [training records](docs/checkpoints.md)
+refer to earlier inputs and include unresolved score discrepancies. They are not
+results for the current study. Earlier work also exists in `ShakedSchnarch/nlp-hw-team`;
+its checkpoints and implementation are not interchangeable with this repository.
 
 ## Install and check
 
-Use the reviewed `review-handoff` branch with its **full Git history**. The 19 September
-handoff records a push of an earlier revision of this branch; later work is local.
-Do not assume a remote checkout contains the latest handoff or use remote `main`
-as its substitute. Check the actual local HEAD and upstream before copying. To check a separate copy:
+From the repository root:
 
 ```bash
-git clone --no-hardlinks --branch review-handoff /path/to/reviewed/local/repository hebrew-acronym-check
-cd hebrew-acronym-check
-git rev-parse HEAD
-git status --short
 python3.12 -m venv .venv
 .venv/bin/python -m pip install -e .
-```
-
-Confirm the expected commit and a clean tree. The editable installation uses
-`pyproject.toml`, which reads dependencies from `requirements.txt`; there is one
-dependency list. It pins selected packages, not the complete transitive environment. A ZIP or shallow clone may omit
-reference commits required by the equivalence tests; missing history is a failure,
-not a skipped pass. The old `nlp-hw-team` repository remains a separate historical source.
-
-Verify the installed package in a fresh interpreter first:
-
-```bash
-.venv/bin/python -I -B -c "import hebrew_acronyms.pipelines.run_all"
-```
-
-If the local editable installation cannot import, use a separate virtual environment
-outside the repository, reuse the existing local dependencies and install the project
-there with `pip install --no-index --no-deps --no-build-isolation -e .`. Verify the
-fresh-process import again and use that environment's Python for checks. Do not rely
-on `sys.path`/`PYTHONPATH` overrides; this does not repair the original `.venv`.
-
-Run from the repository root, each command in a fresh process:
-
-```bash
+.venv/bin/python -I -B -c "import hebrew_acronyms.models.dictabert_cross_encoder.workflow"
 .venv/bin/python -m pip check
 HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 .venv/bin/python -B -m unittest discover -s tests -v
-.venv/bin/python -B -m hebrew_acronyms.pipelines.check_environment
+```
+
+Dependencies are declared once in `requirements.txt` through `pyproject.toml`.
+Selected versions are pinned; the complete transitive environment is not locked.
+If an editable installation fails to import in a fresh interpreter, create a clean
+external environment and install the package there. When reusing already installed
+local dependencies, `pip install --no-index --no-deps --no-build-isolation -e .` avoids
+downloads. Do not use `sys.path` or `PYTHONPATH` overrides to hide installation failures.
+
+The essential suite runs on temporary invented data and tiny CPU models. It checks
+input contracts, length limits, pooling, controlled initialization, one small learning
+exercise, strict checkpoint selection, identity-checked reload, prediction failures,
+notebook execution and data-review protections. It requires neither a model cache
+nor Git history. These checks establish engineering behavior, not model quality.
+
+## Training appendix
+
+Open [train_dictabert.ipynb](notebooks/train_dictabert.ipynb) in a notebook editor using
+the installed environment. Imports and settings appear first, then inspectable steps:
+input rows → candidate pairs → model → optional training → predictions.
+Jupyter and a notebook kernel are not installed by the project dependencies.
+
+The default (`TRAIN=False`, `LOAD_CHECKPOINT=None`) uses two invented rows and an
+existing local DictaBERT snapshot, selected with `SNAPSHOT` or discovered in local
+cache. No training, research-file reads or services occur. A missing snapshot raises
+an explicit error; no model is downloaded. Initial rankings come from a random head.
+For a cache-free engineering execution of all cells with a tiny injected model:
+
+```bash
 .venv/bin/python -B -m tests.run_notebook
 ```
 
-The test suite uses temporary files, invented rows and tiny encoders. It compares
-encoding, pooling, optimizer updates, checkpoint selection, data commands and loading
-against preserved Git baselines. It does not evaluate research data.
+The test runner blocks sockets and research-file access in its own process and
+executes unchanged cells. It performs inference only. The single tiny learning check
+runs separately in the contract suite. Ordinary notebook setup does not install a
+permanent socket blocker.
 
-The two smoke checks require an **existing local DictaBERT snapshot**, run on CPU and
-block network access. They do not download, train or write research results. Missing
-cache means **NOT RUN**: environment-check exit code 2; other failures return nonzero.
-For explicit cache selection, pass `--snapshot /path/to/local/snapshot` to the environment
-check and set `DICTABERT_SNAPSHOT` for the notebook runner. The base check uses two
-invented sentences; the notebook uses [test fixtures](tests/fixtures).
+For separately authorized training, choose explicit `TRAIN_PATH`, `DEV_PATH` and a
+fresh `CHECKPOINT_PATH`, then set `TRAIN=True`. The notebook validates inputs, builds
+pairs, initializes the model, trains and reloads the best development-loss checkpoint.
+For checkpoint inference, set `LOAD_CHECKPOINT` with `TRAIN=False`; saved settings
+are restored. Change the explicit prediction input when using qualified data. No test
+file or other research input is selected automatically.
 
-The notebook runner executes every Python code cell in a new process. It does not test
-the Jupyter interface; Jupyter is not installed by `requirements.txt`. GPU execution,
-full training and historical checkpoint reproduction remain unverified. Newly initialized
-pooler/marker/scoring parameters in smoke checks are expected and imply no learned result.
+Items require unique `item_id`, original `sentence`, exact `target_raw` including any
+prefix, half-open `span_start`/`span_end`, and pipe-separated `candidates`. Training
+requires `gold_expansion` to match exactly one candidate after surrounding whitespace
+is trimmed, with at least two distinct candidates. Prediction preserves singleton
+items and identified failure records. Context may be cropped; targets, markers and
+candidates are retained or the input fails explicitly. No aliases or metrics are inferred.
 
-## Project notebooks
+## Technical and scientific limits
 
-Start with [experimental_study.ipynb](notebooks/experimental_study.ipynb),
-**Experimental Methods and Analysis**, for the sequence from corpus preparation to
-the manuscript's results. Its environment check is executable; the remaining sections
-outline methods pending protocol finalization. They will be completed alongside the
-approved data, evaluation and analysis work, rather than deferred to final packaging.
-It does not yet execute the complete experiment or reproduce research results.
+The encoder uses the existing pooling, BCE loss, AdamW and strict development-pair-loss
+checkpoint selection. Defaults in [TrainingConfig](src/hebrew_acronyms/models/dictabert_cross_encoder/training.py)
+are implementation settings, not a finalized research protocol. Checkpoints require a
+JSON manifest and matching model/tokenizer, inputs when supplied, and library identities;
+see [checkpoint details](docs/checkpoints.md). Legacy weight-only files and relocation
+of snapshot paths need separate handling. GPU training and research performance have
+not been verified by the tiny CPU checks.
 
-### Training appendix
-
-The first code cell holds imports and configuration; later cells call source functions.
-`MODE="smoke"` performs offline CPU inference on invented fixtures using an existing
-local snapshot. `train` requires separately authorized, explicit train/dev CSVs and
-a new checkpoint path. The default notebook does not train or call services.
-
-E1 inputs require unique `item_id`, the original `sentence`, exact `target_raw`
-including its prefix, and half-open character offsets `span_start`/`span_end`.
-Candidates are pipe-separated; training requires `gold_expansion` to match exactly
-one candidate after surrounding whitespace is trimmed. Missing/invalid spans,
-duplicate IDs and invalid training inventories fail explicitly. Singleton training
-remains unsupported; prediction retains singleton records and per-item failure
-statuses. No aliases, research inclusion rules or metrics are inferred.
-
-Seeding precedes encoder, marker and head initialization. Encoding crops context
-only; an over-budget target plus candidate fails explicitly. Pooling, BCE, AdamW,
-default epochs and strict development-pair-loss checkpoint selection are unchanged.
-Settings live in [TrainingConfig](src/hebrew_acronyms/models/dictabert_cross_encoder/training.py).
-Weights are accompanied by a JSON reconstruction manifest with settings, model and
-tokenizer identities, input IDs/hashes and a weight hash. Reloading checks mismatches
-and applies the saved length budget; see [checkpoint details](docs/checkpoints.md).
-Legacy weight-only checkpoints require separate handling and are not guessed.
-
-For an explicit engineering learning check, run:
-
-```bash
-HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 .venv/bin/python -B -m tests.run_notebook --tiny-sanity
-```
-
-This executes every appendix cell with a tiny local encoder, two invented examples,
-180 repeated sanity epochs and temporary checkpoints. It needs no model cache.
-The separate sanity settings do not alter research defaults. Falling loss and learned
-choices establish tiny-set memorization only. CPU checkpoint prediction comparisons
-use absolute tolerance `1e-7` with zero relative tolerance. GPU training, real DictaBERT
-learning and research quality remain unverified. Both notebook modes and sanity block
-network access for the lifetime of the process; restart before unrelated network work.
-
-**E1-I integration:** `pipelines.check_environment` now uses explicit IDs, raw
-targets and spans in its invented pair examples. `pipelines.run_all` rejects any
-supplied checkpoint at the start of `run`, before input reads or model/service calls.
-For separately authorized item predictions, use
-[`dictabert_cross_encoder.eval`](src/hebrew_acronyms/models/dictabert_cross_encoder/eval.py).
-Benchmark metric aggregation remains pending; no accuracy or denominator policy is
-inferred. The no-checkpoint runner behavior is unchanged. Research input files have
-not been migrated.
-
-Research training, evaluation, mining and service calls require a separately authorized
-task. **`src/hebrew_acronyms/pipelines/run_pipeline.sh` evaluates test automatically when present; `--skip-llm`
-does not disable test.** Do not use it as an E1 smoke check.
+The shared benchmark, final scoring rules, qualified inputs and final research runs
+remain incomplete. Natural, substituted and AI-authored material must remain
+identifiable; see the data documentation. AI assistance contributed code, checks and
+draft prose and does not constitute human annotation or scientific validation.
+Weights, caches, environments, secrets and generated outputs stay outside version control.

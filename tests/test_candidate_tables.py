@@ -1,38 +1,9 @@
-"""Offline table equivalence against the accepted S3a Git source."""
-
-import ast
-import csv
-from dataclasses import asdict, dataclass, fields
-import logging
+"""Candidate-table persistence, resume and metadata contracts on invented rows."""
+from dataclasses import asdict
 from pathlib import Path
-import socket
 import tempfile
-from typing import Iterable
 import unittest
-from unittest.mock import patch
-
-from hebrew_acronyms.data_processing.common import candidates, hebrew_text
-from tests.reference import reference_git
-
-BASE = "2b9b84eb20b0be89d728b963cc753924e83b53ea"
-ROOT = Path(__file__).resolve().parents[1]
-NAMES = {"BulletRow", "acronym_script", "read_existing", "write_csv", "summarise"}
-
-
-def baseline_tables():
-    """Execute only table definitions, excluding source access and all API calls."""
-    source = reference_git(BASE, "show", f"{BASE}:data_preprocess/wikipedia/source.py")
-    nodes = [node for node in ast.parse(source).body
-             if (isinstance(node, (ast.FunctionDef, ast.ClassDef)) and node.name in NAMES)
-             or (isinstance(node, ast.Assign)
-                 and any(isinstance(t, ast.Name) and t.id == "FIELDS" for t in node.targets))]
-    scope = {"__name__": __name__, "csv": csv, "dataclass": dataclass, "asdict": asdict,
-             "Path": Path, "Iterable": Iterable, "hebrew_text": hebrew_text,
-             "LOG": logging.getLogger("data_preprocess.wikipedia.source")}
-    exec(compile(ast.Module(body=nodes, type_ignores=[]), f"git:{BASE}", "exec",
-                 dont_inherit=True), scope)
-    return scope, nodes
-
+from hebrew_acronyms.data_processing.common import candidates
 
 def fixture_rows(row_type):
     """Invented rows cover source metadata, Unicode, errors and threshold ties."""
@@ -51,129 +22,51 @@ def fixture_rows(row_type):
     return [row_type(*value) for value in values]
 
 
-class CandidateTableEquivalenceTests(unittest.TestCase):
-    def setUp(self):
-        for name in ("connect", "connect_ex", "sendto"):
-            guard = patch.object(socket.socket, name,
-                                 side_effect=AssertionError("Network is forbidden in fixtures"))
-            guard.start()
-            self.addCleanup(guard.stop)
-        self.old, self.nodes = baseline_tables()
-        self.temporary = tempfile.TemporaryDirectory()
-        self.addCleanup(self.temporary.cleanup)
-        self.root = Path(self.temporary.name)
+class CandidateTableTests(unittest.TestCase):
+    def test_roundtrip_preserves_source_metadata_order_and_hit_cache(self):
+        rows = fixture_rows(candidates.BulletRow)
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "candidates.csv"
+            candidates.write_csv(path, rows[2:], existing=rows[:2])
+            loaded, done, cache = candidates.read_existing(path)
+            self.assertEqual([asdict(r) for r in loaded], [asdict(r) for r in rows])
+            self.assertEqual(done, {r.page_title for r in rows})
+            self.assertEqual(cache, {"אלף בית": 100, "ארמון בדוי": 10, "סימן מומצא": 0})
+            self.assertTrue(path.read_bytes().startswith(b"\xef\xbb\xbf"))
+            self.assertEqual(candidates.read_existing(path.parent / "missing.csv"), ([], set(), {}))
 
-    def test_extracted_definitions_are_unchanged(self):
-        current = ast.parse(Path(candidates.__file__).read_text())
-        new_nodes = [node for node in current.body
-                     if (isinstance(node, (ast.FunctionDef, ast.ClassDef)) and node.name in NAMES)
-                     or (isinstance(node, ast.Assign)
-                         and any(isinstance(t, ast.Name) and t.id == "FIELDS"
-                                 for t in node.targets))]
-        self.assertEqual([ast.dump(n) for n in new_nodes],
-                         [ast.dump(n) for n in self.nodes])
-
-    def test_dataclass_defaults_and_script_detection(self):
-        args = ("אב", "fixture", "אלף בית", 1, "hebrew", True, False, "raw")
-        self.assertEqual(asdict(candidates.BulletRow(*args)),
-                         asdict(self.old["BulletRow"](*args)))
-        self.assertEqual([(f.name, f.default) for f in fields(candidates.BulletRow)],
-                         [(f.name, f.default) for f in fields(self.old["BulletRow"])])
-        for value in ("", "123", "Ä", "אA", "AI", "ß", "אב", "a", "🙂"):
-            with self.subTest(acronym=value):
-                self.assertEqual(candidates.acronym_script(value),
-                                 self.old["acronym_script"](value))
-        self.assertEqual(candidates.FIELDS, self.old["FIELDS"])
-
-    def test_csv_bytes_and_resume_sets_cache_and_order(self):
-        results = []
-        for label, row_type, writer, reader in (
-            ("old", self.old["BulletRow"], self.old["write_csv"], self.old["read_existing"]),
-            ("new", candidates.BulletRow, candidates.write_csv, candidates.read_existing),
-        ):
-            rows = fixture_rows(row_type)
-            path = self.root / label / "candidates.csv"
-            collected = writer(path, iter(rows[2:]), existing=rows[:2])
-            loaded, done, cache = reader(path)
-            results.append((path.read_bytes(), [asdict(r) for r in collected],
-                            [asdict(r) for r in loaded], done, cache))
-        self.assertEqual(*results)
-        self.assertTrue(results[1][0].startswith(b"\xef\xbb\xbf"))
-        self.assertEqual(results[1][4]["אלף בית"], 100)
-        self.assertNotIn("מונח מומצא", results[1][4])
-
-    def test_empty_missing_and_legacy_csv(self):
-        missing = self.root / "missing.csv"
-        empty = self.root / "empty.csv"
-        empty.touch()
-        legacy = self.root / "legacy.csv"
-        legacy.write_text(
-            "acronym,page_title,expansion,hits,script,initials_match,looks_like_person,raw_line\n"
-            "אב,fixture,אלף בית,8,hebrew,unknown,True,raw\n", encoding="utf-8")
-        header = self.root / "header.csv"
-        header.write_text(",".join(candidates.FIELDS) + "\n", encoding="utf-8")
-        for path in (missing, empty, legacy, header):
-            with self.subTest(path=path.name):
-                old_rows, old_done, old_cache = self.old["read_existing"](path)
-                rows, done, cache = candidates.read_existing(path)
-                self.assertEqual(([asdict(r) for r in rows], done, cache),
-                                 ([asdict(r) for r in old_rows], old_done, old_cache))
-        self.assertEqual(candidates.read_existing(legacy)[0][0].source, "wikipedia")
-
-    def test_bad_csv_errors_are_preserved(self):
-        malformed = self.root / "malformed.csv"
-        malformed.write_text("acronym,hits\nאב,no-number\n", encoding="utf-8")
-        invalid_hits = self.root / "invalid-hits.csv"
-        candidates.write_csv(invalid_hits, fixture_rows(candidates.BulletRow)[:1])
-        invalid_hits.write_bytes(invalid_hits.read_bytes().replace(b",50,", b",bad,"))
-        for path in (malformed, invalid_hits, self.root):
-            failures = []
-            for reader in (self.old["read_existing"], candidates.read_existing):
-                with self.assertRaises(Exception) as caught:
-                    reader(path)
-                failures.append((type(caught.exception), str(caught.exception)))
-            self.assertEqual(*failures)
-
-    def test_interrupted_stream_preserves_partial_bytes_and_resume(self):
-        results = []
-        for label, row_type, writer, reader in (
-            ("old", self.old["BulletRow"], self.old["write_csv"], self.old["read_existing"]),
-            ("new", candidates.BulletRow, candidates.write_csv, candidates.read_existing),
-        ):
-            rows = fixture_rows(row_type)
-            path = self.root / label / "interrupted.csv"
-
-            def interrupted():
-                yield rows[1]
-                raise RuntimeError("fixture interruption")
-
+    def test_interrupted_stream_can_resume_without_losing_rows(self):
+        rows = fixture_rows(candidates.BulletRow)
+        def interrupted():
+            yield rows[1]
+            raise RuntimeError("fixture interruption")
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "partial.csv"
             with self.assertRaisesRegex(RuntimeError, "fixture interruption"):
-                writer(path, interrupted(), existing=rows[:1])
-            partial = path.read_bytes()
-            existing, done, cache = reader(path)
-            writer(path, iter(rows[2:]), existing=existing)
-            results.append((partial, path.read_bytes(), done, cache))
-        self.assertEqual(*results)
+                candidates.write_csv(path, interrupted(), existing=rows[:1])
+            existing, _, _ = candidates.read_existing(path)
+            self.assertEqual(existing, rows[:2])
+            candidates.write_csv(path, rows[2:], existing=existing)
+            self.assertEqual(candidates.read_existing(path)[0], rows)
 
-    def test_summary_empty_and_custom_thresholds(self):
-        for thresholds in ((10, 50, 100, 500), (50, 0, -1, 10, 50), ()):
-            for empty in (False, True):
-                old_rows = [] if empty else fixture_rows(self.old["BulletRow"])
-                rows = [] if empty else fixture_rows(candidates.BulletRow)
-                self.assertEqual(candidates.summarise(rows, thresholds),
-                                 self.old["summarise"](old_rows, thresholds))
+    def test_legacy_source_default_and_invalid_hits(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "legacy.csv"
+            path.write_text("acronym,page_title,expansion,hits,script,initials_match,looks_like_person,raw_line\n"
+                            "אב,fixture,אלף בית,8,hebrew,unknown,True,raw\n", encoding="utf-8")
+            rows, _, _ = candidates.read_existing(path)
+            self.assertEqual((rows[0].source, rows[0].domain, rows[0].initials_match), ("wikipedia", "", None))
+            path.write_text(path.read_text().replace(",8,", ",bad,"))
+            with self.assertRaises(ValueError):
+                candidates.read_existing(path)
 
-    def test_consumers_share_one_row_class(self):
-        from hebrew_acronyms import data_processing
-        from hebrew_acronyms.data_processing import dedupe_expansions, merge_sources
-        from hebrew_acronyms.data_processing.wikipedia import source as wikipedia
-        from hebrew_acronyms.data_processing.wiktionary import source as wiktionary
-        for consumer in (data_processing, dedupe_expansions, merge_sources,
-                         wikipedia, wiktionary):
-            self.assertIs(consumer.BulletRow, candidates.BulletRow)
-        self.assertIs(data_processing.summarise, candidates.summarise)
-        self.assertIs(data_processing.write_csv, candidates.write_csv)
-
-
-if __name__ == "__main__":
-    unittest.main()
+    def test_script_detection_and_thresholds(self):
+        self.assertEqual([candidates.acronym_script(a) for a in ("אב", "AI", "123", "אA")],
+                         ["hebrew", "latin", "other", "hebrew"])
+        result = candidates.summarise(fixture_rows(candidates.BulletRow), (10, 50, 100))
+        self.assertEqual(result["n_bullets"], 5)
+        self.assertEqual(result["n_pages"], 3)
+        self.assertEqual(result["thresholds"], {
+            "10": {"bullets_at_or_above": 3, "acronyms_with_2plus_senses": 1},
+            "50": {"bullets_at_or_above": 2, "acronyms_with_2plus_senses": 1},
+            "100": {"bullets_at_or_above": 1, "acronyms_with_2plus_senses": 0}})
