@@ -1,6 +1,7 @@
 """Shared cross-encoder architecture, initialization and checkpoint loading."""
 from __future__ import annotations
 
+from copy import deepcopy
 import hashlib
 import importlib.metadata
 import json
@@ -100,7 +101,7 @@ def tokenizer_identity(tok) -> dict:
             "cls_id": tok.cls_token_id, "sep_id": tok.sep_token_id, "pad_id": tok.pad_token_id}
 
 
-def source_identity(model_id, revision, encoder) -> dict:
+def _local_source_files(model_id) -> dict:
     path = Path(model_id)
     files = {}
     if path.is_dir():
@@ -108,9 +109,13 @@ def source_identity(model_id, revision, encoder) -> dict:
         for file in sorted(path.iterdir()):
             if file.is_file() and file.suffix in {".json", ".txt", ".safetensors", ".bin"}:
                 files[file.name] = file_digest(file)
+    return files
+
+
+def source_identity(model_id, revision, encoder) -> dict:
     return {"model_id": str(model_id),
             "revision": getattr(encoder.config, "_commit_hash", None) or revision,
-            "local_files_sha256": files}
+            "local_files_sha256": _local_source_files(model_id)}
 
 
 def build_cross_encoder(model_id=MODEL_ID, revision=REVISION, pooling="cls", device="cpu", seed=42):
@@ -155,21 +160,64 @@ def save_checkpoint(model, tok, checkpoint_path, config, inputs, epoch, dev_loss
         json.dumps(metadata, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def inspect_checkpoint(checkpoint_path, *, snapshot_path=None) -> dict:
+    """Inspect original artifacts locally, without constructing a model or tokenizer.
+
+    An explicit relocated snapshot is accepted only when its complete recorded
+    file inventory has identical hashes. Hashless Hub identities cannot establish
+    equivalence to an arbitrary local directory. Tokenizer reconstruction is still
+    checked by load_finetuned; this inspection does not claim inference success.
+    """
+    if checkpoint_path is None or not str(checkpoint_path).strip():
+        raise ValueError("Set checkpoint to Ben's weights file; the adjacent original JSON is required.")
+    checkpoint_path = Path(checkpoint_path).expanduser().resolve()
+    path = metadata_path(checkpoint_path)
+    if not path.is_file():
+        raise ValueError(f"Checkpoint metadata is required: {path}. Obtain Ben's original JSON.")
+    metadata = json.loads(path.read_text(encoding="utf-8"))
+    if metadata.get("format_version") != 1:
+        raise ValueError("Unsupported checkpoint format_version")
+    weights_hash = file_digest(checkpoint_path)
+    if weights_hash != metadata["weights_sha256"]:
+        raise ValueError("Checkpoint weights do not match metadata")
+    saved = metadata["initialization"]
+    actual_libraries = library_versions()
+    if saved["libraries"] != actual_libraries:
+        raise ValueError(f"Checkpoint library identity mismatch: required {saved['libraries']}; "
+                         f"installed {actual_libraries}. Use a matching isolated environment.")
+    source = saved["source"]
+    load_model_id = source["model_id"]
+    if snapshot_path is not None:
+        if not source["local_files_sha256"]:
+            raise ValueError("Snapshot relocation requires original local file hashes in the manifest")
+        load_model_id = str(Path(snapshot_path).expanduser().resolve())
+    if source["local_files_sha256"]:
+        if not Path(load_model_id).is_dir():
+            raise FileNotFoundError(f"Recorded snapshot is missing: {load_model_id}. "
+                                    "Supply an identical local copy with snapshot_path.")
+        if _local_source_files(load_model_id) != source["local_files_sha256"]:
+            raise ValueError("Snapshot content identity mismatch with the original model/tokenizer files")
+    return {"metadata": metadata, "weights_sha256": weights_hash,
+            "manifest_sha256": file_digest(path), "load_model_id": load_model_id,
+            "relocated": load_model_id != source["model_id"],
+            "libraries": actual_libraries, "tokenizer_reconstruction": "not yet checked"}
+
+
 def load_finetuned(checkpoint_path: str, pooling: str | None = None, device: str = "cpu", *,
-                   model_id=None, revision=None, expected_inputs=None, config=None):
+                   model_id=None, revision=None, expected_inputs=None, config=None,
+                   snapshot_path=None):
     """Reconstruct from saved settings; fail on incompatible overrides or artifacts.
 
     Legacy weights without metadata are intentionally not guessed. This restores
     inference, not optimizer state for resuming an interrupted training run.
+    snapshot_path permits only a content-identical local snapshot relocation;
+    the original manifest, tokenizer, revision and library checks remain intact.
     """
     from hebrew_acronyms.models.dictabert_cross_encoder.training import TrainingConfig
     from dataclasses import asdict
-    path = metadata_path(checkpoint_path)
-    if not path.is_file():
-        raise ValueError(f"Checkpoint metadata is required: {path}")
-    metadata = json.loads(path.read_text(encoding="utf-8"))
-    if metadata.get("format_version") != 1:
-        raise ValueError("Unsupported checkpoint format_version")
+    inspection = inspect_checkpoint(checkpoint_path, snapshot_path=snapshot_path)
+    checkpoint_path = Path(checkpoint_path).expanduser().resolve()
+    metadata = inspection["metadata"]
     settings = TrainingConfig(**metadata["training_config"])
     saved = metadata["initialization"]
     source = saved["source"]
@@ -183,15 +231,20 @@ def load_finetuned(checkpoint_path: str, pooling: str | None = None, device: str
         raise ValueError("Training config override disagrees with checkpoint")
     if expected_inputs is not None and expected_inputs != metadata["inputs"]:
         raise ValueError("Input identities disagree with checkpoint")
-    if file_digest(checkpoint_path) != metadata["weights_sha256"]:
-        raise ValueError("Checkpoint weights do not match metadata")
     tok, model, acr_open_id, acr_close_id = build_cross_encoder(
-        model_id=source["model_id"], revision=source["revision"],
+        model_id=inspection["load_model_id"], revision=source["revision"],
         pooling=settings.pooling, device=None, seed=settings.seed)
-    if model.initialization != saved:
+    reconstructed = deepcopy(model.initialization)
+    if inspection["relocated"]:
+        # Only the location may differ; content hashes were checked before loading
+        # and are compared again here alongside tokenizer and library identities.
+        reconstructed["source"]["model_id"] = source["model_id"]
+    if reconstructed != saved:
         raise ValueError("Model, tokenizer, initialization or library identity mismatch")
     model.load_state_dict(torch.load(checkpoint_path, map_location="cpu", weights_only=True), strict=True)
     model.training_config = settings
     model.checkpoint_metadata = metadata
+    model.checkpoint_load_identity = {"load_model_id": inspection["load_model_id"],
+                                      "relocated": inspection["relocated"]}
     model.to(device).eval()
     return tok, model, acr_open_id, acr_close_id

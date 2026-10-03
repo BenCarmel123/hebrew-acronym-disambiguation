@@ -1,7 +1,7 @@
 """Open-generation / candidate-select evaluation against a local Qwen model via Ollama.
 
 Requires Ollama running locally (`ollama serve` or `brew services start ollama`) with
-the model pulled (`ollama pull qwen2.5:7b`).
+the explicitly selected model already available. The notebook never starts or pulls it.
 
     python -m hebrew_acronyms.models.qwen.eval --mode generate
     python -m hebrew_acronyms.models.qwen.eval --mode select
@@ -9,6 +9,7 @@ the model pulled (`ollama pull qwen2.5:7b`).
 from __future__ import annotations
 
 import argparse
+import math
 
 import requests
 
@@ -18,11 +19,82 @@ from hebrew_acronyms.models.common.pairs import load_rows
 OLLAMA_URL = "http://localhost:11434/api/generate"
 
 
-def ollama_generate(prompt: str, model: str = "qwen2.5:7b") -> str:
-    response = requests.post(
-        OLLAMA_URL,
-        json={"model": model, "prompt": prompt, "stream": False},
-    )
+def _request_settings(base_url, timeout):
+    if type(timeout) not in {int, float} or not math.isfinite(timeout) or timeout <= 0:
+        raise ValueError("Ollama timeout must be positive seconds")
+    return base_url.rstrip("/"), timeout
+
+
+def ollama_model_identity(model, *, base_url="http://localhost:11434", timeout=120):
+    """Resolve the exact installed tag to its server-reported digest; never pull/start."""
+    base_url, timeout = _request_settings(base_url, timeout)
+    response = requests.get(base_url + "/api/tags", timeout=timeout)
+    response.raise_for_status()
+    matches = [entry for entry in response.json()["models"]
+               if model in {entry.get("name"), entry.get("model")}]
+    if len(matches) != 1 or not isinstance(matches[0].get("digest"), str) or not matches[0]["digest"]:
+        raise ValueError(f"Exact Ollama tag {model!r} with a digest is not uniquely installed; check ollama list")
+    return matches[0]
+
+
+def inspect_ollama(model, *, base_url="http://localhost:11434", timeout=120, options=None):
+    """Read server identity and model defaults only during an explicitly enabled run.
+
+    Documented API: https://docs.ollama.com/api/tags and
+    https://docs.ollama.com/api-reference/show-model-details . No generation here.
+    """
+    base_url, timeout = _request_settings(base_url, timeout)
+    identity = ollama_model_identity(model, base_url=base_url, timeout=timeout)
+    response = requests.get(base_url + "/api/version", timeout=timeout)
+    response.raise_for_status()
+    server_version = response.json()["version"]
+    response = requests.post(base_url + "/api/show", json={"model": model}, timeout=timeout)
+    response.raise_for_status()
+    details = response.json()
+    confirmed = ollama_model_identity(model, base_url=base_url, timeout=timeout)
+    if confirmed["digest"] != identity["digest"]:
+        raise ValueError("Ollama model changed while inspecting it; start a new run")
+    return {"model": model, "digest": identity["digest"], "identity_verification": "server_reported_before_generation",
+            "server_version": server_version, "base_url": base_url, "timeout_seconds": timeout,
+            "options": dict(options or {}), "stream": False, "installed_model": identity,
+            "model_parameters": details.get("parameters"), "template": details.get("template"),
+            "details": details.get("details"), "model_info": details.get("model_info"),
+            "defaults_note": "Explicit options plus server-reported model parameters; unspecified server defaults are not inferred"}
+
+
+def ollama_response(prompt, *, model, expected_digest, base_url="http://localhost:11434", timeout=120, options=None):
+    """Generate once with bounded waits and digest checks; preserve raw text after a failed postcheck."""
+    base_url, timeout = _request_settings(base_url, timeout)
+    before = ollama_model_identity(model, base_url=base_url, timeout=timeout)
+    if before["digest"] != expected_digest:
+        raise ValueError("Ollama tag digest changed before the request; start a new run")
+    body = {"model": model, "prompt": prompt, "stream": False, "options": dict(options or {})}
+    response = requests.post(base_url + "/api/generate", json=body, timeout=timeout)
+    response.raise_for_status()
+    payload = response.json()
+    raw = payload.get("response")
+    if not isinstance(raw, str):
+        raise ValueError("Ollama response must contain text")
+    result = {"response": raw, "model": payload.get("model"), "expected_digest": expected_digest,
+              "request_settings": {key: value for key, value in body.items() if key != "prompt"},
+              "response_metadata": {key: value for key, value in payload.items() if key not in {"response", "context"}},
+              "identity_status": "verified", "digest_before": before["digest"], "digest_after": None, "error": None}
+    try:
+        after = ollama_model_identity(model, base_url=base_url, timeout=timeout)
+        result["digest_after"] = after["digest"]
+        if after["digest"] != expected_digest or payload.get("model") != model:
+            raise ValueError("Ollama model identity changed or response model differs")
+        if payload.get("done") is not True:
+            raise ValueError("Ollama returned an incomplete response")
+    except Exception as error:
+        result.update(identity_status="unverified", error=f"{type(error).__name__}: {error}")
+    return result
+
+
+def ollama_generate(prompt: str, model: str = "qwen2.5:7b", *, timeout=120) -> str:
+    """Compatibility text interface; study runs use ollama_response for identity evidence."""
+    _request_settings("http://localhost:11434", timeout)
+    response = requests.post(OLLAMA_URL, json={"model": model, "prompt": prompt, "stream": False}, timeout=timeout)
     response.raise_for_status()
     return response.json()["response"]
 
