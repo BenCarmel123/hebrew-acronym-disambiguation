@@ -101,11 +101,15 @@ def gemini_response(prompt, *, model, timeout=120, generation_config=None):
                                  json=body, timeout=timeout, allow_redirects=False)
         result["http_status"] = response.status_code
         if not 200 <= response.status_code < 300:
+            retry_after = getattr(response, "headers", {}).get("Retry-After")
+            result["retry_after"] = retry_after if isinstance(retry_after, str) else None
+            result["retryable"] = response.status_code in {408, 429, 500, 502, 503, 504}
             result["error"] = f"Gemini HTTP {response.status_code}; no retry attempted"
             return _redact(result, secret)
         payload = response.json()
-    except requests.Timeout:
-        result["error"] = "Gemini request timed out; no retry attempted"
+    except (requests.Timeout, requests.ConnectionError):
+        result["retryable"] = True
+        result["error"] = "Gemini request timed out or connection failed; no retry attempted"
         return _redact(result, secret)
     except Exception:
         # requests errors and JSON decoders may include URLs, bodies or headers.

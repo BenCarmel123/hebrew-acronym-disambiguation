@@ -80,7 +80,7 @@ def fixture_rows():
 
 
 def check_readiness(root, input_path, checkpoint, output_dir, *, run, encoder, llm,
-                    model, saved_encoder=None):
+                    model, saved_encoder=None, checkpoint_format="manifest"):
     """Check paths and installed interfaces locally; never read research inputs or call a service."""
     from hebrew_acronyms.models.dictabert_cross_encoder.model import load_finetuned
     from hebrew_acronyms.models.dictabert_cross_encoder.eval import evaluate
@@ -102,7 +102,9 @@ def check_readiness(root, input_path, checkpoint, output_dir, *, run, encoder, l
     if encoder:
         if checkpoint is None or not Path(checkpoint).is_file():
             raise FileNotFoundError("Set CHECKPOINT to Ben's weights and provide the adjacent .json")
-        if not Path(str(checkpoint) + ".json").is_file():
+        if checkpoint_format not in {"manifest", "colab_state_dict"}:
+            raise ValueError("Unknown checkpoint format")
+        if checkpoint_format == "manifest" and not Path(str(checkpoint) + ".json").is_file():
             raise FileNotFoundError(f"Matching checkpoint JSON is required: {checkpoint}.json")
     if saved_encoder is not None and not Path(saved_encoder).is_file():
         raise FileNotFoundError(saved_encoder)
@@ -331,11 +333,20 @@ def validate_artifact(artifact, *, expected_run_id, rows=None):
             if record["status"] not in {"ok", "invalid_input", "encoding_error", "model_error", "invalid_scores"}:
                 raise ValueError("Unknown encoder status")
             origin = record.get("encoder_origin")
+            identity_fields = ("weights_sha256", "reconstruction_sha256") if isinstance(origin, dict) and origin.get("checkpoint_format") == "colab_state_dict" else ("weights_sha256", "manifest_sha256")
             if not isinstance(origin, dict) or any(
                     not isinstance(origin.get(key), str) or len(origin[key]) != 64
                     or any(ch not in "0123456789abcdef" for ch in origin[key])
-                    for key in ("weights_sha256", "manifest_sha256")):
-                raise ValueError("Encoder predictions require original weights and manifest SHA-256 provenance")
+                    for key in identity_fields):
+                raise ValueError("Encoder predictions require weights and explicit manifest/reconstruction SHA-256 provenance")
+            if origin.get("checkpoint_format") == "colab_state_dict":
+                reconstruction = origin.get("reconstruction")
+                # This is reconstructed evidence, never an original training manifest.
+                serialized = json.dumps(reconstruction, ensure_ascii=False, sort_keys=True, allow_nan=False)
+                if (not isinstance(reconstruction, dict) or
+                        hashlib.sha256(serialized.encode("utf-8")).hexdigest() != origin["reconstruction_sha256"] or
+                        reconstruction.get("weights_sha256") != origin["weights_sha256"]):
+                    raise ValueError("Colab reconstruction evidence differs from its bound identity")
             if record["status"] == "ok":
                 candidates = candidates_for(items[record["item_id"]])
                 index = record.get("selected_index")
@@ -552,7 +563,8 @@ def prepare_study(rows, cohort, settings):
     output_dir = Path(settings["output_root"]) / settings["run_id"]
     check_readiness(settings["root"], settings["input_path"], settings.get("checkpoint"), output_dir,
                     run=settings["mode"] == "run", encoder=settings["enable_encoder"], llm=settings["enable_qwen"],
-                    model=settings.get("qwen_model"), saved_encoder=settings.get("saved_encoder"))
+                    model=settings.get("qwen_model"), saved_encoder=settings.get("saved_encoder"),
+                    checkpoint_format=settings.get("checkpoint_format", "manifest"))
     stored = {key: str(value) if isinstance(value, Path) else deepcopy(value) for key, value in settings.items()}
     stored.update(selection_shuffle_seed=prompts.SHUFFLE_SEED, prompt_scope="exact_marked_occurrence_with_sentence",
                   scoring="derived preliminary dev selection accuracy; generation manual review")
@@ -609,6 +621,11 @@ def checkpoint_report(artifact):
     origin = next((record.get("encoder_origin") for record in records if record.get("encoder_origin")), None)
     if not origin:
         return None, {"state": "not run"}
+    if origin.get("checkpoint_format") == "colab_state_dict":
+        evidence = origin.get("reconstruction", {})
+        return evidence, {"checkpoint_format": "colab_state_dict", "strict_load": evidence.get("strict_load"),
+                          "architecture": evidence.get("architecture"),
+                          "input_match": origin.get("input_match"), "unknowns": evidence.get("unknowns")}
     metadata = origin.get("checkpoint_metadata", {})
     inputs = metadata.get("inputs", {})
     return metadata, {"training_config": metadata.get("training_config"),
@@ -714,3 +731,10 @@ def connect_gemini(artifact):
     save_study(artifact)
     return partial(gemini_response, model=runtime["requested_model"], timeout=settings["request_timeout"],
                    generation_config=deepcopy(settings["gemini_generation_config"]))
+
+
+def predict_colab_study(artifact, *, checkpoint, snapshot_path, expected_sha256, device="cpu"):
+    """Import the explicit Colab model adapter only for an authorized inference call."""
+    from hebrew_acronyms.models.dictabert_cross_encoder.colab import predict_colab_study as predict
+    return predict(artifact, checkpoint=checkpoint, snapshot_path=snapshot_path,
+                   expected_sha256=expected_sha256, device=device)
