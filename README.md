@@ -61,8 +61,10 @@ setting. Existing environment variables take precedence. Restart the kernel afte
 changing the key. Keep `.env` local (Git ignores it); never put keys in notebook
 cells or settings. See the [official model settings](https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash).
 
-The systems can run independently. Requests have a 120-second timeout and no automatic
-retries. Qwen records its server-reported digest; Gemini records the returned
+The systems can run independently. The basic notebook request has a 120-second timeout
+and no automatic retries. The explicit `resume_gemini_study` runner below bounds
+transient retries and saves each attempt. Qwen records its server-reported digest;
+Gemini records the returned
 `modelVersion`. Partial answers are retained and marked incomplete. Checkpoints and
 live services still need the manual validation below.
 
@@ -75,14 +77,14 @@ LLMs → results. Its centralized settings include:
 |---|---|
 | `train_path` | Qualified `data/study_v1/encoder_inputs/train.csv`, used to check the checkpoint's training inputs. |
 | `input_path` | Qualified `data/study_v1/encoder_inputs/dev.csv`, containing all 62 dev items. |
-| `checkpoint` | Ben’s exact weights filename under `<project>/artifacts/dictabert/2026-10-03/`, with its original adjacent `<weights>.json`. |
+| `checkpoint` | Exact checkpoint path. Default `checkpoint_format="manifest"` requires the original adjacent JSON; the explicit Colab route below accepts an authorized complete state dictionary. |
 | `snapshot_path` | A content-identical local base-model/tokenizer snapshot if relocated; otherwise `None`. |
 | `device` | `"cpu"` by default; set a supported `"mps"` or `"cuda"` explicitly if needed. |
 | `enable_encoder`, `enable_qwen`, `enable_gemini` | Independent switches, initially `False`. |
 | `output_root` | `<project>/artifacts/study-runs`; each run creates a fresh directory outside Git. |
 | `saved_run`, `saved_run_id` | Exact result JSON path and run ID for reload. |
 
-Before encoder prediction or saved-prediction reuse, the study compares the complete
+For manifest-bound encoder prediction or saved-prediction reuse, the study compares the complete
 qualified train/dev rows with the checkpoint's recorded inputs. Validation checks
 against the full dev file, even though it predicts only three items. The compact
 checkpoint summary shows training settings, selected epoch, train/dev counts and
@@ -150,9 +152,10 @@ candidates are retained or the input fails explicitly. No aliases or metrics are
 
 The encoder uses the existing pooling, BCE loss, AdamW and strict development-pair-loss
 checkpoint selection. Defaults in [TrainingConfig](src/hebrew_acronyms/models/dictabert_cross_encoder/training.py)
-are implementation settings, not a finalized research protocol. Checkpoints require a
+are implementation settings, not a finalized research protocol. The default loader requires a
 JSON manifest and matching model/tokenizer, inputs when supplied, and library identities;
-see [checkpoint details](docs/checkpoints.md). Legacy weight-only files are rejected.
+see [checkpoint details](docs/checkpoints.md). Unspecified weight-only files are rejected.
+The explicitly selected Colab adapter below is a separate, provenance-labelled exception.
 An explicit relocated snapshot is accepted only after content identity verification;
 the original manifest is not rewritten. GPU training and research performance have
 not been verified by the tiny CPU checks.
@@ -164,3 +167,36 @@ contributed code, checks and draft prose, not human annotation or scientific val
 Weights, caches, environments, secrets and raw run outputs stay outside version control.
 The explicitly selected paper run may publish small derived PDF figures, TeX tables
 and provenance manifests under `paper/generated/`; preview and fixtures cannot do so.
+
+## Separate runs and Colab checkpoints
+
+The main notebook accepts `checkpoint_format="colab_state_dict"`, an explicit
+`checkpoint_sha256`, local `snapshot_path`, and the supplied `checkpoint_attestation`.
+The [Colab adapter](src/hebrew_acronyms/models/dictabert_cross_encoder/colab.py)
+reconstructs CLS pooling, length 256, `[ACR]`/`[/ACR]`, and the original pair encoding
+from the inspected Colab notebook. It verifies the exact checkpoint hash and strictly
+loads every encoder and head tensor, validates three items, then predicts the remaining
+cohort. Original training seed, library versions and exact training-row identity remain
+unknown unless separately evidenced. Reconstruction evidence is not an original manifest.
+
+To run or resume Gemini with the exact prompts and candidate orders from a saved Qwen
+full-dev source (explicit service authorization is required):
+
+```bash
+python -m hebrew_acronyms.resume_gemini_study --root . \
+  --source /path/to/qwen/study.json --source-run-id EXACT_QWEN_RUN_ID \
+  --output-root /path/outside/repository --run-id NEW_GEMINI_RUN_ID
+```
+
+The same command resumes unattempted items, never resends completed responses, and
+retains ambiguous interrupted requests for inspection. Each HTTP request is saved
+separately; transient failures permit at most three attempts per item with Retry-After
+and backoff. Five consecutive failed items stop collection with remaining items marked
+unrun. Resume after service recovery; existing terminal failure records are preserved.
+
+The notebook's final comparison cell accepts `(study.json path, original run ID)`
+entries for independently saved runs. It checks complete input identity and prompt
+agreement, retains original arm run IDs, and displays all 62 items without model or
+network calls. Selection includes service/format failures in its denominator; generation
+remains semantically unscored. Review gold labels and candidate inventories with Ben,
+including institutional uses, before interpreting these diagnostic development scores.
