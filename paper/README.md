@@ -2,9 +2,10 @@
 
 `main.tex` and `sections/*.tex` are the single maintained manuscript. The previous
 Markdown version is preserved at `9a14416:paper/manuscript.md`; its current file is
-only a pointer. This draft contains no verified model results and is not ready for
-submission. The active deadline is **14 October 2026**, as supplied by Shaked; the
-course PDF's 30 September date is superseded.
+only a pointer. This draft describes verified development execution and its
+limitations, but contains no final-test results and is not ready for submission.
+The active deadline is **14 October 2026**, as supplied by Shaked; the course
+PDF's 30 September date is superseded.
 
 ## Build the readable draft
 
@@ -82,11 +83,51 @@ run JSON and raw responses remain outside it. Retained immutable bundles provide
 provenance and are never picked automatically. Do not edit generated files by hand.
 
 **After changing the selected run, reread the abstract, Results, Discussion and all
-numerical claims.** Updating numbers does not update conclusions. The current
-pending-results prose must be revised only once research execution and interpretation
-have actually been checked. Human confirmation is still needed for the final
-model/checkpoint settings, generation judgments, evaluation population, baseline
+numerical claims.** Updating numbers does not update conclusions. The final-results
+placeholders must be revised only after the identified test execution and
+interpretation have been checked. Saved dev runs remain diagnostic. Human
+confirmation is still needed for the final model/checkpoint settings, generation
+judgments, evaluation population, baseline
 and uncertainty choices, author details and personal AI reflection.
+
+## Input counts and evidence for the manuscript
+
+The data table is a read-only count of the train/dev CSVs at `04ec317`, not a
+regenerated qualification manifest or proof of the original training inputs:
+
+| File | SHA-256 |
+|---|---|
+| `data/study_v1/encoder_inputs/train.csv` | `9e88f87b45d131f2f405393f8a73cb4a5e3b36c2d596da4ac3eb01b0cfd9dedd` |
+| `data/study_v1/encoder_inputs/dev.csv` | `155c771ad7a37f59ef2dcbc710ead5d9fe73a316a85792e50a721c6c50f8ce6e` |
+
+Counts use CSV records, distinct `acronym`, distinct nonempty `doc_id`, and the
+sum of pipe-separated candidate counts. Construction totals group by
+`construction` and `source`; review evidence groups by `label_evidence`, not the
+coarser `label_status`. There are 136 authored rows without document keys. The
+164 added rows comprise 136 authored and 28 natural rows; the documented 126-row
+release group excludes the 10 authored boundary-correction cases.
+
+Exact train/dev acronym and sentence intersections are empty. The nonempty
+`doc_id` intersection has three keys, involving three train and five dev rows:
+`doc-e7c170bc620ba9e456f8b550`, `doc-154690507021202f9730f042`, and
+`doc-c2c93d64c922428639a059dc`. This contradicts complete document separation for
+the updated files; the manuscript reports it without modifying data. Reserved
+evaluation files were not opened. The old manifest is historical evidence only.
+
+The [saved development summary](../results/dev-2026-10-03/summary.json) identifies
+three original run IDs and artifact hashes. The manuscript's loading claims come
+from the DictaBERT artifact's saved reconstruction and validation record, including
+strict loading of 201 tensors, equality of encoding tensors for 62 items and
+forward-logit checks for three items. They were not rerun during writing.
+Qwen's recorded digest is
+`845dbda0ea48ed749caafd9e6037047aa19acfcfd82e704d7ca97d631a0b697e`;
+Gemini's returned version is `gemini-3.8-flash`. These are saved-run identities,
+not claims about current service availability. Full original artifacts remain
+outside Git as described in the results package.
+
+Code links in the manuscript pin the inspected integrated revision `04ec317`,
+including the Colab notebook and adapter. Their targets were checked locally;
+this writing package does not publish commits or assert remote availability.
 
 ## Offline verification
 

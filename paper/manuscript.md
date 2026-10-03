@@ -9,4 +9,5 @@ It includes superseded no-sentence conditions and is not a parallel current draf
 Ben's 3 October held-row review from `e160915` is incorporated in
 [Task and Data](sections/task_data.tex), distinguishing the earlier 2,665-row
 snapshot from the updated 2,829-row training CSV and its stale manifest.
-No verified research results are asserted in the current paper.
+Saved development execution and diagnostic limitations are described; final-test
+results and conclusions remain pending.
