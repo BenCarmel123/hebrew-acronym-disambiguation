@@ -78,16 +78,31 @@ def ollama_response(prompt, *, model, expected_digest, base_url="http://localhos
     result = {"response": raw, "model": payload.get("model"), "expected_digest": expected_digest,
               "request_settings": {key: value for key, value in body.items() if key != "prompt"},
               "response_metadata": {key: value for key, value in payload.items() if key not in {"response", "context"}},
-              "identity_status": "verified", "digest_before": before["digest"], "digest_after": None, "error": None}
+              "identity_status": "verified", "digest_before": before["digest"], "digest_after": None,
+              "identity_error": None, "completion_error": None, "error": None}
+    # API done_reason is optional. For new study requests, only an explicit stop
+    # confirms completion; length, absent and unknown reasons remain unscored.
+    # https://docs.ollama.com/api/generate
+    complete = payload.get("done") is True and payload.get("done_reason") == "stop"
+    result.update(completion_status="complete" if complete else "incomplete",
+                  status="response_received" if complete else "incomplete_response")
+    if not complete:
+        if payload.get("done") is not True:
+            reason = "Ollama did not confirm finished generation"
+        elif payload.get("done_reason") == "length":
+            reason = "Ollama stopped at the output length limit"
+        else:
+            reason = "Ollama completion reason is missing or unrecognized"
+        result["completion_error"] = reason
     try:
         after = ollama_model_identity(model, base_url=base_url, timeout=timeout)
         result["digest_after"] = after["digest"]
         if after["digest"] != expected_digest or payload.get("model") != model:
             raise ValueError("Ollama model identity changed or response model differs")
-        if payload.get("done") is not True:
-            raise ValueError("Ollama returned an incomplete response")
     except Exception as error:
-        result.update(identity_status="unverified", error=f"{type(error).__name__}: {error}")
+        result.update(identity_status="unverified", identity_error=f"{type(error).__name__}: {error}")
+    result["error"] = "; ".join(message for message in
+                               (result["completion_error"], result["identity_error"]) if message) or None
     return result
 
 

@@ -30,90 +30,82 @@ refer to earlier inputs and include unresolved score discrepancies. They are not
 results for the current study. Earlier work also exists in `ShakedSchnarch/nlp-hw-team`;
 its checkpoints and implementation are not interchangeable with this repository.
 
-## Install and check
+<a id="install-and-check"></a>
 
-From the repository root:
+## Local setup
+
+From this checkout, create an isolated environment and open the main notebook:
 
 ```bash
 python3.12 -m venv .venv
-.venv/bin/python -m pip install -e .
-.venv/bin/python -I -B -c "import hebrew_acronyms.models.dictabert_cross_encoder.workflow"
+.venv/bin/python -m pip install -e . jupyterlab ipykernel
 .venv/bin/python -m pip check
-```
-
-Dependencies are declared once in `requirements.txt` through `pyproject.toml`.
-Selected versions are pinned; the complete transitive environment is not locked.
-If an editable installation fails to import in a fresh interpreter, create a clean
-external environment and install the package there. When reusing already installed
-local dependencies, `pip install --no-index --no-deps --no-build-isolation -e .` avoids
-downloads. Do not use `sys.path` or `PYTHONPATH` overrides to hide installation failures.
-
-The essential suite runs on temporary invented data and tiny CPU models. It checks
-input contracts, length limits, pooling, controlled initialization, one small learning
-exercise, strict checkpoint selection, identity-checked reload, prediction failures,
-notebook execution and data-review protections. It requires neither a model cache
-nor Git history. These checks establish engineering behavior, not model quality.
-
-## Run and inspect the local dev study
-
-After the isolated installation above, add the notebook tools to that environment:
-
-```bash
-.venv/bin/python -m pip install jupyterlab ipykernel
 .venv/bin/python -m jupyter lab notebooks/experimental_study.ipynb
 ```
 
-Select its kernel. The notebook opens in `mode="preview"`, using invented examples
-without loading models, contacting services, reading research inputs or saving output.
-It contains the detailed setup and explicit input → encoder → LLM → save → inspect flow.
-Use its centralized settings for these values:
+Select the `.venv` kernel. Project dependencies are pinned in `requirements.txt`
+through `pyproject.toml`; the complete transitive environment is not locked. The
+checkpoint also records the required model, tokenizer and library versions. For
+installation troubleshooting, use a fresh environment rather than import-path overrides.
+
+**Qwen:** provision `qwen2.5:7b` in local Ollama, then check `ollama list` and
+`curl http://localhost:11434/api/tags`. The notebook connects to the existing service;
+it does not start it or download models.
+
+**Gemini:** the selected model is `gemini-3.8-flash` with
+`{"thinkingConfig": {"thinkingLevel": "low"}}`. Low thinking is not disabled thinking.
+Set `GEMINI_API_KEY` in the environment inherited by the notebook kernel before
+launching Jupyter. Keep the key out of notebook cells and settings; `.env` files are
+not loaded automatically. See the [official model settings](https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash).
+
+The systems can run independently. Requests have a 120-second timeout and no automatic
+retries. Qwen records its server-reported digest; Gemini records the returned
+`modelVersion`. Partial answers are retained and marked incomplete. Checkpoints and
+live services still need the manual validation below.
+
+## Configure and run
+
+The [main notebook](notebooks/experimental_study.ipynb) follows inputs → encoder →
+LLMs → results. Its centralized settings include:
 
 | Setting | Value or required input |
 |---|---|
-| `input_path` | Qualified `data/study_v1/encoder_inputs/dev.csv`, expected 62 items; no historical-dev fallback. |
-| `checkpoint` | Ben’s exact weights file under `<project>/artifacts/dictabert/2026-10-03/`; its adjacent `<weights>.json` must be the original. No file is selected automatically. |
-| `snapshot_path` | Explicit local base-model/tokenizer snapshot if relocated; otherwise `None`. Loading verifies identical content and the recorded library identities. |
-| `device` | `"cpu"` by default; choose a supported `"mps"` or `"cuda"` explicitly if needed. |
-| `enable_encoder`, `enable_qwen`, `enable_gemini` | Independent switches, all `False` by default. |
-| `qwen_model`, `ollama_url` | `"qwen2.5:7b"`, `"http://localhost:11434"`; the user provisions the service/model separately. |
-| `gemini_model`, `gemini_generation_config` | Selected `"gemini-3.8-flash"`, `{"thinkingConfig": {"thinkingLevel": "low"}}`. Low thinking is not disabled thinking. |
-| `output_root` | `<project>/artifacts/study-runs`, outside Git; every run gets a fresh ID and directory. |
-| `saved_run`, `saved_run_id` | Exact saved JSON path and run ID when using `mode="reload"`. |
+| `train_path` | Qualified `data/study_v1/encoder_inputs/train.csv`, used to check the checkpoint's training inputs. |
+| `input_path` | Qualified `data/study_v1/encoder_inputs/dev.csv`, containing all 62 dev items. |
+| `checkpoint` | Ben’s exact weights filename under `<project>/artifacts/dictabert/2026-10-03/`, with its original adjacent `<weights>.json`. |
+| `snapshot_path` | A content-identical local base-model/tokenizer snapshot if relocated; otherwise `None`. |
+| `device` | `"cpu"` by default; set a supported `"mps"` or `"cuda"` explicitly if needed. |
+| `enable_encoder`, `enable_qwen`, `enable_gemini` | Independent switches, initially `False`. |
+| `output_root` | `<project>/artifacts/study-runs`; each run creates a fresh directory outside Git. |
+| `saved_run`, `saved_run_id` | Exact result JSON path and run ID for reload. |
 
-Set `GEMINI_API_KEY` only in the environment inherited by the kernel. Do not put it
-in notebook cells, settings or saved files; no `.env` file is loaded automatically.
-Qwen-only and encoder-only runs need no Gemini key, and Gemini-only runs need no
-Ollama service. Each enabled request has a 120-second timeout and no automatic retries.
-Qwen records server-reported digest evidence; Gemini records the returned `modelVersion`,
-finish reason and usage without claiming digest verification. Model availability and
-account access still require manual validation. See the [official Gemini model page](https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash).
+Before encoder prediction or saved-prediction reuse, the study compares the complete
+qualified train/dev rows with the checkpoint's recorded inputs. Validation checks
+against the full dev file, even though it predicts only three items. The compact
+checkpoint summary shows training settings, selected epoch, train/dev counts and
+match status; full metadata stays in the saved result. See [checkpoint details](docs/checkpoints.md).
 
-Start with `mode="run"`, `run_kind="validation"`: three dev items for DictaBERT and
-one request per task for each enabled LLM, four LLM requests when both are enabled.
-After success, restart the settings and run all cells with `run_kind="full_dev"` for
-all 62 items per enabled arm, **248 LLM requests** with both providers. Validation and
-full-dev outputs stay separate. `mode="reload"` inspects saved evidence without
-models, services or credentials; older three-arm artifacts remain readable without
-inventing Gemini results.
+- **Preview:** leave `mode="preview"` for invented examples with no model calls or research reads.
+- **Validation:** set `mode="run"`, `run_kind="validation"` and enable the desired systems. DictaBERT predicts three items; each LLM sends one generation and one selection request, four requests with both enabled.
+- **Full dev:** after manual validation succeeds, rerun from fresh settings with `run_kind="full_dev"`. All 62 items are requested per enabled arm: **248 LLM requests** with both providers.
+- **Reload:** set `mode="reload"`, `saved_run` and `saved_run_id`. Inspection needs no models, services, credentials or original research files. Older three-arm results remain readable as three-arm results.
 
-The source-backed results view shows context, gold, raw answers, candidate mapping,
-decoded selections, failures and disagreements. Selection uses strict uppercase-letter
-parsing and exact trimmed candidate–gold equality. Micro accuracy includes every
-requested item; macro is the unweighted mean of within-`type_id` accuracies. Failures
-and unrun items remain in denominators; disabled systems and partial/subset runs are
-labelled explicitly. Generation remains unscored for human review. These are preliminary
-dev measures, not test results or proof of compatibility with an actual checkpoint.
+The notebook defines the scoring rules and interpretation limits beside the results.
+Expand an item to inspect its context, candidate mapping, answers and failure details.
+To reuse encoder predictions in a new run, set `enable_encoder=False`, `saved_encoder`
+to the source `study.json`, and `saved_encoder_run_id` to its run ID. Keep the current
+train/dev paths: reuse must pass the same input comparison as fresh prediction.
 
-Focused offline checks use invented fixtures and mocked service responses; they do
-not train or call real models/services:
+## Offline study checks
+
+These checks use invented inputs and mocked responses, without training or live services:
 
 ```bash
-.venv/bin/python -B -m unittest tests.test_experimental_study tests.test_five_arm_study tests.test_study_evaluation tests.test_qwen_study tests.test_gemini_study tests.test_checkpoint_relocation -v
+.venv/bin/python -B -m unittest tests.test_experimental_study tests.test_five_arm_study tests.test_study_evaluation tests.test_qwen_study tests.test_gemini_study tests.test_checkpoint_relocation tests.test_encoder_study_inputs -v
 ```
 
-Network and research-file guards exist only in those test processes. The wider
-repository suite also includes the small learning exercise described above; it is
-separate from the study checks.
+Network and research-file guards apply only inside the test processes. The wider
+repository suite separately includes tiny-model learning tests.
 
 ## Training appendix
 
@@ -164,6 +156,6 @@ not been verified by the tiny CPU checks.
 
 Qualified dev inputs and preliminary selection scoring are available. Final benchmark
 runs and generation judgment rules remain separate work. Natural, substituted and
-AI-authored material must remain identifiable; see the data documentation. AI assistance contributed code, checks and
-draft prose and does not constitute human annotation or scientific validation.
+AI-authored material must remain identifiable; see the data documentation. AI assistance
+contributed code, checks and draft prose, not human annotation or scientific validation.
 Weights, caches, environments, secrets and generated outputs stay outside version control.
