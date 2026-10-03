@@ -20,6 +20,12 @@ data/raw/
 # Secrets — API keys, never committed.
 .env
 
+# Personal local notes, never committed.
+NOTES_FOR_SHAKED.md
+
+# One-off local working scripts/tools, never committed.
+scratch/
+
 # macOS
 .DS_Store
 

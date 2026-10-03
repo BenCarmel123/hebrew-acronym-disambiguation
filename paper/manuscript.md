@@ -259,6 +259,20 @@ covering 11 types and 35 document keys. The 289 historical development rows rema
 reference only. Training and development contain 12,020 and 331 candidate pairs,
 respectively, under the unchanged encoder contract; no singleton dev occurs.
 
+### Held-row review — 3 October 2026
+
+Ben reviewed a subset of the 448 rows the qualification step above held and
+released 164 back into training: 126 held only for a missing document key that
+does not apply to them (Claude-authored thin-sense-gap rows with no source
+document by construction), 10 with a resolved span-boundary issue, and 28
+natural repeated-target rows truncated to one occurrence with trailing context,
+removing the ambiguity by construction rather than by per-row judgment. Left
+held: the 93 substituted repeated-target rows (kept consistent with how the
+development set treats substituted text) and 6 further span-ambiguous rows.
+Training now totals 2,829 items across 434 types and 1,864 document keys. The
+1 October counts above (and `manifest.json`) reflect the pre-release state and
+have not yet been regenerated against this update.
+
 The approved `ד״ר`/`בד״ר` separation additionally holds all eleven otherwise
 eligible training `ד״ר` items across their labels, without changing their content
 or applying general prefix normalization. The decision is recorded separately
