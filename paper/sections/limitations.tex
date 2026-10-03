@@ -1,0 +1,6 @@
+\section{Limitations}
+The qualified inputs are not representative of Hebrew acronym use. Training is dominated by substituted Wikipedia examples; development is natural parliamentary text. Domain, construction method and type composition change together. Weak labels and unverified negative candidates may affect the ranker, and qualification did not independently validate every entry.
+
+Development has only one observed reference meaning per type and is used for checkpoint selection. Its eventual score cannot establish discrimination between senses of the same acronym or final-test generalization. Exact overlap checks also leave unmodeled morphological families and pretraining exposure unresolved.
+
+Candidate access is coupled to output format, and the encoder and LLMs differ in supervision and architecture. Strict parsing can penalize a clear intended selection; an inventory can hide the difficulty of proposing an expansion. These limits qualify any later comparison. A simple final-evaluation baseline also remains to be specified: a per-type majority estimated from training is undefined for task-unseen types. The pending generation protocol, final evaluation and execution validation prevent a conclusion about practical accuracy, cost or reliability.
