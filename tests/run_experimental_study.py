@@ -1,6 +1,7 @@
 """Execute unchanged study cells on invented inputs with guarded, mocked interfaces."""
 import ast
 import csv
+from copy import deepcopy
 import json
 import os
 from pathlib import Path
@@ -42,44 +43,73 @@ def response(prompt, *, model, expected_digest, base_url, timeout, options):
             "request_settings": {"model": model, "options": options, "stream": False}}
 
 
-def execute(controls=None):
+def legacy_artifact(rows, run_id, settings, provenance):
+    """Frozen format-1 fixture shape from 1a8708f; never invent Gemini records."""
+    from hebrew_acronyms.models.common.pairs import input_identity
+    identity = input_identity(rows)
+    records = [{"run_id": run_id, "input_sha256": identity["sha256"],
+                "item_id": row["item_id"], "condition": condition, "status": "not_run",
+                "score_status": "unscored", "raw_response": None, "error": None}
+               for condition in ("dictabert", "generate", "select") for row in rows]
+    return {"format_version": 1, "run_id": run_id, "input_identity": identity,
+            "items": deepcopy(rows), "settings": deepcopy(settings),
+            "provenance": deepcopy(provenance), "records": records}
+
+
+def execute(controls=None, *, qwen_failure=False, gemini_failure=False):
     from hebrew_acronyms.models.dictabert_cross_encoder import model, eval as encoder_eval
     from hebrew_acronyms.models.qwen import eval as qwen_eval
+    from hebrew_acronyms.models.gemini import eval as gemini_eval
     namespace = {"__name__": "__main__"}
     notebook = json.loads((ROOT / "notebooks/experimental_study.ipynb").read_text())
     display_module = SimpleNamespace(HTML=lambda value: value, display=lambda value: None)
+    def gemini_http(*args, **kwargs):
+        if gemini_failure:
+            raise gemini_eval.requests.Timeout("invented secret must not leak")
+        prompt = kwargs["json"]["contents"][0]["parts"][0]["text"]
+        payload = {"modelVersion": "gemini-3.8-flash-fixture", "usageMetadata": {"totalTokenCount": 10},
+                   "candidates": [{"finishReason": "STOP", "content": {"parts": [
+                       {"text": "not a final answer", "thought": True},
+                       {"text": "אור בוקר" if "פירוש:" in prompt else "A"}]}}]}
+        return SimpleNamespace(status_code=200, json=lambda: payload)
     with (patch.dict(sys.modules, {"IPython": SimpleNamespace(), "IPython.display": display_module}),
+          patch.dict(os.environ),
           patch.object(model, "inspect_checkpoint", autospec=True, return_value={"fixture": True}) as inspect,
           patch.object(model, "load_finetuned", autospec=True,
                        return_value=(object(), SimpleNamespace(checkpoint_metadata={"fixture": True}), 1, 2)) as load,
           patch.object(encoder_eval, "evaluate", autospec=True, side_effect=lambda rows, *a: predictions(rows)) as evaluate,
-          patch.object(qwen_eval, "inspect_ollama", autospec=True, side_effect=runtime) as inspect_llm,
-          patch.object(qwen_eval, "ollama_response", autospec=True, side_effect=response) as generate):
+          patch.object(qwen_eval, "inspect_ollama", autospec=True,
+                       side_effect=RuntimeError("fixture unavailable") if qwen_failure else runtime) as inspect_llm,
+          patch.object(qwen_eval, "ollama_response", autospec=True, side_effect=response) as generate,
+          patch.object(gemini_eval.requests, "post", side_effect=gemini_http) as gemini_post):
+        os.environ.pop("GEMINI_API_KEY", None)
+        if controls and controls.get("enable_gemini") and controls.get("mode") == "run":
+            os.environ["GEMINI_API_KEY"] = "invented-key-for-fixture-only"
         for index, cell in enumerate(notebook["cells"]):
             if cell["cell_type"] != "code":
                 continue
-            print(f"Study cell {index}", flush=True)
             source = "".join(cell["source"])
             if index == 1:
-                # Execute the unchanged first-cell statements, overriding only the
-                # centralized settings immediately after assignment, before its guard.
                 for statement in ast.parse(source).body:
                     exec(compile(ast.Module(body=[statement], type_ignores=[]), "study-settings-cell", "exec"), namespace)
                     if isinstance(statement, ast.Assign) and any(isinstance(target, ast.Name) and target.id == "settings" for target in statement.targets):
                         namespace["settings"].update(controls or {})
             else:
                 exec(compile(source, f"experimental_study.ipynb:{index}", "exec"), namespace)
-        mode = namespace["settings"]["mode"]
-        if mode != "run":
-            inspect.assert_not_called();load.assert_not_called();evaluate.assert_not_called()
-            inspect_llm.assert_not_called();generate.assert_not_called()
-        elif namespace["settings"]["enable_llm"]:
-            count = 2 if namespace["settings"]["run_kind"] == "validation" else 2 * len(namespace["rows"])
-            assert generate.call_count == count
-            assert all(call.kwargs["model"] == "qwen2.5:7b" for call in generate.call_args_list)
+        settings = namespace["settings"]
+        mode = settings["mode"]
+        count = 2 if settings["run_kind"] == "validation" else 2 * len(namespace["rows"])
+        if mode == "run" and settings["enable_qwen"]:
+            inspect_llm.assert_called_once()
+            assert generate.call_count == (0 if qwen_failure else count)
         else:
             inspect_llm.assert_not_called();generate.assert_not_called()
-        if mode == "run" and namespace["settings"]["enable_encoder"]:
+        if mode == "run" and settings["enable_gemini"]:
+            assert gemini_post.call_count == count
+            assert all('key=' not in call.args[0] for call in gemini_post.call_args_list)
+        else:
+            gemini_post.assert_not_called()
+        if mode == "run" and settings["enable_encoder"]:
             inspect.assert_called_once();load.assert_called_once();evaluate.assert_called_once()
         else:
             inspect.assert_not_called();load.assert_not_called();evaluate.assert_not_called()
@@ -103,28 +133,47 @@ def main():
         checkpoint.write_text("not weights; mocked load")
         Path(str(checkpoint) + ".json").write_text("{}")
         controls = dict(mode="run", input_path=input_path, expected_dev_items=4, validation_items=3,
-                        enable_encoder=True, enable_llm=True, checkpoint=checkpoint, device="cpu",
+                        enable_encoder=True, enable_qwen=True, enable_gemini=True, checkpoint=checkpoint, device="cpu",
                         output_root=folder, run_id="validation-one", run_kind="validation")
         validation = execute(controls)
         assert len(validation["rows"]) == 3
         assert validation["results"]["cohort"]["full_dev"] is False
         assert validation["results"]["metrics"][1]["n_attempted"] == 1
         assert validation["results"]["metrics"][1]["partial"] is True
-        encoder_only = execute(dict(controls, run_id="encoder-only", enable_llm=False, qwen_model=None))
+        encoder_only = execute(dict(controls, run_id="encoder-only", enable_qwen=False, enable_gemini=False, qwen_model=None))
         assert encoder_only["results"]["metrics"][0]["n_valid_predictions"] == 3
         assert encoder_only["results"]["metrics"][1]["n_attempted"] == 0
+        qwen_only = execute(dict(controls, run_id="qwen-only", enable_encoder=False, checkpoint=None, enable_gemini=False, gemini_model=None))
+        assert qwen_only["results"]["metrics"][2]["execution_status"] == "not_run"
+        gemini_only = execute(dict(controls, run_id="gemini-only", enable_encoder=False, checkpoint=None, enable_qwen=False, qwen_model=None))
+        assert gemini_only["results"]["metrics"][1]["micro_accuracy"] is None
+        qwen_failed = execute(dict(controls, run_id="qwen-failed"), qwen_failure=True)
+        assert qwen_failed["results"]["metrics"][2]["n_valid_predictions"] == 1
+        gemini_failed = execute(dict(controls, run_id="gemini-failed"), gemini_failure=True)
+        assert gemini_failed["results"]["metrics"][1]["n_valid_predictions"] == 1
+        assert gemini_failed["results"]["metrics"][2]["n_failures"] == 1
         full = execute(dict(controls, run_id="full-one", run_kind="full_dev"))
         assert len(full["rows"]) == 4
         assert all(not metric["partial"] for metric in full["results"]["metrics"])
         reloaded = execute(dict(mode="reload", saved_run=full["artifact_path"], saved_run_id="full-one",
-                               enable_llm=True, enable_encoder=True, qwen_model=None))
+                               enable_qwen=True, enable_gemini=True, enable_encoder=True, qwen_model=None))
         assert reloaded["artifact"] == full["artifact"]
+        old = legacy_artifact(rows, "old-run", {"qwen_model": "old-model", "qwen_revision": "old-version"}, {})
+        study.attach_encoder(old, predictions(rows), origin={"weights_sha256": "a"*64, "manifest_sha256": "b"*64})
+        study.collect_responses(old, "generate", lambda prompt: "historic final")
+        study.collect_responses(old, "select", lambda prompt: "A")
+        old_path = study.save_artifact(old, folder / "old", create=True)
+        original_bytes = old_path.read_bytes()
+        old_reload = execute(dict(mode="reload", saved_run=old_path, saved_run_id="old-run", enable_gemini=True))
+        assert old_reload["artifact"] == old and old_path.read_bytes() == original_bytes
+        assert len(old_reload["results"]["metrics"]) == 2
+        assert all("gemini" not in item["systems"] for item in old_reload["results"]["items"])
         reused = execute(dict(controls, run_id="saved-encoder", run_kind="full_dev", enable_encoder=False,
-                              enable_llm=False, qwen_model=None, checkpoint=None,
+                              enable_qwen=False, enable_gemini=False, qwen_model=None, checkpoint=None,
                               saved_encoder=full["artifact_path"], saved_encoder_run_id="full-one"))
         assert reused["results"]["metrics"][0]["n_valid_predictions"] == 4
         assert reused["results"]["metrics"][1]["n_attempted"] == 0
-    print("Study notebook: PASS (preview, validation, full fixture, reload, saved encoder; no real models/services/data)")
+    print("Study notebook: PASS (11 routes including five arms, isolated providers, failures and legacy reload; no real models/services/data)")
 
 
 if __name__ == "__main__":

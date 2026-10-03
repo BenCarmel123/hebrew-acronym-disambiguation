@@ -145,7 +145,7 @@ def summarize_selection(rows: list[dict], records: list[dict], condition: str) -
     """
     from collections import Counter, defaultdict
     from hebrew_acronyms.models.common.pairs import validate_ids
-    if condition not in {"dictabert", "select"}:
+    if condition not in {"dictabert", "select", "qwen_select", "gemini_select"}:
         raise ValueError("Automatic dev accuracy is defined only for selection systems")
     validate_ids(rows)
     selected_records = [record for record in records if record.get("condition", condition) == condition]
@@ -162,7 +162,7 @@ def summarize_selection(rows: list[dict], records: list[dict], condition: str) -
         if condition == "dictabert" and status == "ok":
             selected = record.get("selected_candidate")
             index = record.get("selected_index")
-        elif condition == "select" and status == "response_received":
+        elif condition != "dictabert" and status == "response_received":
             shown = record.get("shown_order")
             index = parse_letter_choice(record.get("raw_response"), len(shown) if isinstance(shown, list) else 0)
             if index is None:
@@ -194,46 +194,80 @@ def summarize_selection(rows: list[dict], records: list[dict], condition: str) -
         warnings.append("Accuracy unavailable: missing gold_expansion for " + ", ".join(missing_gold))
     if missing_type:
         warnings.append("Macro unavailable: missing type_id for " + ", ".join(missing_type))
-    return {"condition": condition, "n_items": n,
-            "n_attempted": sum(record["status"] != "not_run" for record in selected_records),
+    attempted = sum(record["status"] != "not_run" for record in selected_records)
+    partial = any(detail["raw_status"] in {"not_run", "interrupted"} for detail in details)
+    if not attempted:
+        for group in per_type:
+            group["accuracy"] = None
+    system = "qwen" if condition == "select" else condition.removesuffix("_select")
+    return {"condition": condition, "system": system, "n_items": n,
+            "n_attempted": attempted,
+            "n_failures": sum(detail["status"] not in {"ok", "not_run"} for detail in details),
+            "execution_status": "not_run" if not attempted else "partial" if partial else "completed",
             "n_valid_predictions": sum(detail["status"] == "ok" for detail in details),
             "partial": any(detail["raw_status"] in {"not_run", "interrupted"} for detail in details),
-            "micro_accuracy": sum(detail["correct"] for detail in details) / n if n and not missing_gold else None,
+            "micro_accuracy": sum(detail["correct"] for detail in details) / n if n and attempted and not missing_gold else None,
             "macro_accuracy": sum(group["accuracy"] for group in per_type) / len(per_type)
-                if per_type and not missing_gold and not missing_type else None,
+                if per_type and attempted and not missing_gold and not missing_type else None,
             "by_type": per_type, "status_counts": dict(Counter(detail["status"] for detail in details)),
             "warnings": warnings, "details": details}
 
 
 def inspect_predictions(rows: list[dict], records: list[dict]) -> dict:
-    """Join context, gold, raw answers, letter mappings and decoded dev selections."""
-    encoder = summarize_selection(rows, records, "dictabert")
-    selection = summarize_selection(rows, records, "select")
+    """Inspect only systems present in the artifact, including historical Qwen runs."""
+    from hebrew_acronyms.models.common.pairs import explicit_span, mark_span
+    conditions = {record["condition"] for record in records}
+    selection_conditions = [name for name in ("dictabert", "select", "qwen_select", "gemini_select")
+                            if name in conditions]
+    metrics = [summarize_selection(rows, records, name) for name in selection_conditions]
+    details = {metric["system"]: {detail["item_id"]: detail for detail in metric["details"]}
+               for metric in metrics}
     raw = {(record["condition"], record["item_id"]): record for record in records}
-    encoder_by_id = {detail["item_id"]: detail for detail in encoder["details"]}
-    selection_by_id = {detail["item_id"]: detail for detail in selection["details"]}
     items, disagreements = [], []
     for row in rows:
         item_id = row["item_id"]
-        enc, sel = encoder_by_id[item_id], selection_by_id[item_id]
-        generation, select = raw[("generate", item_id)], raw[("select", item_id)]
-        both_valid = enc["status"] == sel["status"] == "ok"
-        disagree = both_valid and enc["selected_candidate"].strip() != sel["selected_candidate"].strip()
+        try:
+            marked = mark_span(row["sentence"], explicit_span(row))
+        except (KeyError, ValueError):
+            marked = None
         item = {"item_id": item_id, "type_id": row.get("type_id"), "sentence": row.get("sentence"),
-                "target_raw": row.get("target_raw"), "span": [row.get("span_start"), row.get("span_end")],
-                "gold": row.get("gold_expansion"), "encoder_prediction": enc["selected_candidate"],
-                "encoder_status": enc["status"], "encoder_correct": enc["correct"],
-                "generation_raw": generation.get("raw_response"), "generation_status": generation["status"],
-                "generation_score_status": "manual_review_unscored", "selection_raw": select.get("raw_response"),
-                "letter_mapping": dict(zip(string.ascii_uppercase, select.get("shown_order") or [])),
-                "selection_decoded": sel["selected_candidate"], "selection_status": sel["status"],
-                "selection_correct": sel["correct"], "disagreement": disagree,
-                "failures": {condition: raw[(condition, item_id)].get("error") for condition in
-                             ("dictabert", "generate", "select") if raw[(condition, item_id)].get("error")}}
-        if sel["status"] == "parse_error":
-            item["failures"]["select"] = "Expected a single uppercase letter in the displayed range"
+                "marked_sentence": marked, "target_raw": row.get("target_raw"),
+                "span": [row.get("span_start"), row.get("span_end")], "gold": row.get("gold_expansion"),
+                "candidates": row.get("candidates"), "systems": {}, "failures": {},
+                "generation_score_status": "manual_review_unscored"}
+        valid = {}
+        for metric in metrics:
+            system, condition = metric["system"], metric["condition"]
+            detail = details[system][item_id]
+            record = raw[(condition, item_id)]
+            result = {"selection_decoded": detail["selected_candidate"], "selection_status": detail["status"],
+                      "selection_correct": detail["correct"], "selection_raw": record.get("raw_response"),
+                      "letter_mapping": dict(zip(string.ascii_uppercase, record.get("shown_order") or [])),
+                      "selection_error": detail.get("error")}
+            if detail["status"] == "parse_error":
+                result["selection_error"] = "Expected a single uppercase letter in the displayed range"
+            if system != "dictabert":
+                generation_condition = "generate" if condition == "select" else system + "_generate"
+                generation = raw[(generation_condition, item_id)]
+                result.update(generation_raw=generation.get("raw_response"), generation_status=generation["status"],
+                              generation_error=generation.get("error"))
+            if detail["status"] == "ok":
+                valid[system] = detail["selected_candidate"]
+            item["systems"][system] = result
+            for task in ("selection", "generation"):
+                if result.get(task + "_error"):
+                    item["failures"][system + "_" + task] = result[task + "_error"]
+        item["disagreement"] = len({value.strip() for value in valid.values()}) > 1
+        item["valid_selections"] = valid
+        # Preserve the earlier inspection dictionary keys for Qwen-only consumers.
+        enc, qwen = item["systems"].get("dictabert", {}), item["systems"].get("qwen", {})
+        item.update(encoder_prediction=enc.get("selection_decoded"), encoder_status=enc.get("selection_status"),
+                    encoder_correct=enc.get("selection_correct"))
+        item.update(qwen)
+        if qwen.get("selection_error"):
+            item["failures"]["select"] = qwen["selection_error"]
         items.append(item)
-        if disagree:
+        if item["disagreement"]:
             disagreements.append(item)
-    return {"items": items, "metrics": [encoder, selection], "disagreements": disagreements,
+    return {"items": items, "metrics": metrics, "disagreements": disagreements,
             "generation_score_status": "manual_review_unscored"}

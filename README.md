@@ -1,19 +1,22 @@
 # Hebrew Acronym Disambiguation
 
-A TAU NLP course project comparing free expansion of Hebrew acronyms with selection
-from a candidate inventory. The planned study compares the same LLM with and without
-context in both formats, alongside a task-trained Hebrew encoder. Detailed data and
-evaluation choices remain open; no final results exist for this study.
+A TAU NLP course project comparing five arms: trained DictaBERT candidate selection,
+Qwen free expansion and selection, and Gemini free expansion and selection. All arms
+use the sentence and the same identified target occurrence. The two LLMs receive the
+same prompt per task and the same displayed candidates for selection; generation
+receives neither candidates nor gold. This compares systems, without isolating the
+causal effect of model size or context. No final research results are reported.
 
 ## Code and reading map
 
 | Location | Purpose |
 |---|---|
 | [Training appendix](notebooks/train_dictabert.ipynb) | Explicit inputs, candidate pairs, DictaBERT initialization or loading, optional training and item predictions. Start here to inspect executable model code. |
-| [Methods and analysis](notebooks/experimental_study.ipynb) | Study design, source documentation and analysis outline; not a completed experiment. |
+| [Main dev study](notebooks/experimental_study.ipynb) | Runnable local preview, saved-result inspection, manual validation and full-dev prediction across five arms; no training. |
 | [Cross-encoder source](src/hebrew_acronyms/models/dictabert_cross_encoder/) | `encoding.py`: length-bounded inputs; `model.py`: scoring and checkpoints; `training.py`: optimization; `eval.py`: item records; `workflow.py`: small local setup helpers. |
 | [Input contract](src/hebrew_acronyms/models/common/pairs.py) | Exact target spans, IDs, candidate pairs and input identities. |
-| [Other models](src/hebrew_acronyms/models/) | Baselines, encoder similarity and LLM components; their historical scoring rules are not yet unified. |
+| [Shared study evaluation](src/hebrew_acronyms/models/common/eval.py) | Strict letter parsing, preliminary selection micro/macro accuracy and item inspection. Historical scoring functions remain separate from the current study. |
+| [LLM backends](src/hebrew_acronyms/models/) | Qwen via local Ollama and Gemini via its API, with bounded requests and response provenance; other retained model code is historical context. |
 | [Data preparation](docs/data_processing.md) | Source collection, review application and split-construction functions and commands. |
 | [Local checks](docs/pipelines.md) | Environment check and explicit data validation; no combined model runner. |
 | [Tests](tests/) | Invented fixtures, tiny learning and reconstruction checks; no Git history needed. |
@@ -36,7 +39,6 @@ python3.12 -m venv .venv
 .venv/bin/python -m pip install -e .
 .venv/bin/python -I -B -c "import hebrew_acronyms.models.dictabert_cross_encoder.workflow"
 .venv/bin/python -m pip check
-HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 .venv/bin/python -B -m unittest discover -s tests -v
 ```
 
 Dependencies are declared once in `requirements.txt` through `pyproject.toml`.
@@ -51,6 +53,67 @@ input contracts, length limits, pooling, controlled initialization, one small le
 exercise, strict checkpoint selection, identity-checked reload, prediction failures,
 notebook execution and data-review protections. It requires neither a model cache
 nor Git history. These checks establish engineering behavior, not model quality.
+
+## Run and inspect the local dev study
+
+After the isolated installation above, add the notebook tools to that environment:
+
+```bash
+.venv/bin/python -m pip install jupyterlab ipykernel
+.venv/bin/python -m jupyter lab notebooks/experimental_study.ipynb
+```
+
+Select its kernel. The notebook opens in `mode="preview"`, using invented examples
+without loading models, contacting services, reading research inputs or saving output.
+It contains the detailed setup and explicit input → encoder → LLM → save → inspect flow.
+Use its centralized settings for these values:
+
+| Setting | Value or required input |
+|---|---|
+| `input_path` | Qualified `data/study_v1/encoder_inputs/dev.csv`, expected 62 items; no historical-dev fallback. |
+| `checkpoint` | Ben’s exact weights file under `<project>/artifacts/dictabert/2026-10-03/`; its adjacent `<weights>.json` must be the original. No file is selected automatically. |
+| `snapshot_path` | Explicit local base-model/tokenizer snapshot if relocated; otherwise `None`. Loading verifies identical content and the recorded library identities. |
+| `device` | `"cpu"` by default; choose a supported `"mps"` or `"cuda"` explicitly if needed. |
+| `enable_encoder`, `enable_qwen`, `enable_gemini` | Independent switches, all `False` by default. |
+| `qwen_model`, `ollama_url` | `"qwen2.5:7b"`, `"http://localhost:11434"`; the user provisions the service/model separately. |
+| `gemini_model`, `gemini_generation_config` | Selected `"gemini-3.8-flash"`, `{"thinkingConfig": {"thinkingLevel": "low"}}`. Low thinking is not disabled thinking. |
+| `output_root` | `<project>/artifacts/study-runs`, outside Git; every run gets a fresh ID and directory. |
+| `saved_run`, `saved_run_id` | Exact saved JSON path and run ID when using `mode="reload"`. |
+
+Set `GEMINI_API_KEY` only in the environment inherited by the kernel. Do not put it
+in notebook cells, settings or saved files; no `.env` file is loaded automatically.
+Qwen-only and encoder-only runs need no Gemini key, and Gemini-only runs need no
+Ollama service. Each enabled request has a 120-second timeout and no automatic retries.
+Qwen records server-reported digest evidence; Gemini records the returned `modelVersion`,
+finish reason and usage without claiming digest verification. Model availability and
+account access still require manual validation. See the [official Gemini model page](https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash).
+
+Start with `mode="run"`, `run_kind="validation"`: three dev items for DictaBERT and
+one request per task for each enabled LLM, four LLM requests when both are enabled.
+After success, restart the settings and run all cells with `run_kind="full_dev"` for
+all 62 items per enabled arm, **248 LLM requests** with both providers. Validation and
+full-dev outputs stay separate. `mode="reload"` inspects saved evidence without
+models, services or credentials; older three-arm artifacts remain readable without
+inventing Gemini results.
+
+The source-backed results view shows context, gold, raw answers, candidate mapping,
+decoded selections, failures and disagreements. Selection uses strict uppercase-letter
+parsing and exact trimmed candidate–gold equality. Micro accuracy includes every
+requested item; macro is the unweighted mean of within-`type_id` accuracies. Failures
+and unrun items remain in denominators; disabled systems and partial/subset runs are
+labelled explicitly. Generation remains unscored for human review. These are preliminary
+dev measures, not test results or proof of compatibility with an actual checkpoint.
+
+Focused offline checks use invented fixtures and mocked service responses; they do
+not train or call real models/services:
+
+```bash
+.venv/bin/python -B -m unittest tests.test_experimental_study tests.test_five_arm_study tests.test_study_evaluation tests.test_qwen_study tests.test_gemini_study tests.test_checkpoint_relocation -v
+```
+
+Network and research-file guards exist only in those test processes. The wider
+repository suite also includes the small learning exercise described above; it is
+separate from the study checks.
 
 ## Training appendix
 
@@ -94,12 +157,13 @@ The encoder uses the existing pooling, BCE loss, AdamW and strict development-pa
 checkpoint selection. Defaults in [TrainingConfig](src/hebrew_acronyms/models/dictabert_cross_encoder/training.py)
 are implementation settings, not a finalized research protocol. Checkpoints require a
 JSON manifest and matching model/tokenizer, inputs when supplied, and library identities;
-see [checkpoint details](docs/checkpoints.md). Legacy weight-only files and relocation
-of snapshot paths need separate handling. GPU training and research performance have
+see [checkpoint details](docs/checkpoints.md). Legacy weight-only files are rejected.
+An explicit relocated snapshot is accepted only after content identity verification;
+the original manifest is not rewritten. GPU training and research performance have
 not been verified by the tiny CPU checks.
 
-The shared benchmark, final scoring rules, qualified inputs and final research runs
-remain incomplete. Natural, substituted and AI-authored material must remain
-identifiable; see the data documentation. AI assistance contributed code, checks and
+Qualified dev inputs and preliminary selection scoring are available. Final benchmark
+runs and generation judgment rules remain separate work. Natural, substituted and
+AI-authored material must remain identifiable; see the data documentation. AI assistance contributed code, checks and
 draft prose and does not constitute human annotation or scientific validation.
 Weights, caches, environments, secrets and generated outputs stay outside version control.
