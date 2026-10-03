@@ -26,8 +26,8 @@ The PDF is `paper/build/main.pdf`. The check verifies ACL file hashes, missing
 references/glyphs, overfull boxes and the last page of main text or a labeled main-content table/figure. Inspect
 the rendered PDF as well, especially Hebrew and any new figure/table. The body must
 stay within eight pages, excluding references and appendix. Do not reduce fonts or
-margins to make room. Results and discussion should replace the short planned-results
-structure, using the remaining space.
+margins to make room. Results and discussion should replace the short draft note, using the remaining
+space. There is no planned-display table in the manuscript.
 
 Build outputs are ignored. With no `generated/current.tex`, the paper builds its
 explicit pending-results section. Building never loads a model, calls a service,
@@ -87,8 +87,8 @@ numerical claims.** Updating numbers does not update conclusions. The final-resu
 placeholders must be revised only after the identified test execution and
 interpretation have been checked. Saved dev runs remain diagnostic. Human
 confirmation is still needed for the final model/checkpoint settings, generation
-judgments, evaluation population, baseline
-and uncertainty choices, author details and personal AI reflection.
+judgments, evaluation population, baseline and variability-assessment choices,
+author details and personal AI reflection.
 
 ## Input counts and evidence for the manuscript
 
@@ -128,6 +128,81 @@ outside Git as described in the results package.
 Code links in the manuscript pin the inspected integrated revision `04ec317`,
 including the Colab notebook and adapter. Their targets were checked locally;
 this writing package does not publish commits or assert remote availability.
+
+## Reconstruction and interpretation details
+
+The current train file follows the 3 October release from 2,665 to 2,829 rows.
+The 164 additions include the 126 authored rows released from missing-document
+holds, 10 authored target-boundary corrections, and 28 natural repeated-target
+sentences shortened to retain one occurrence. The qualification manifest still
+identifies the earlier derivative; it is not a manifest for the expanded file.
+The three document-key overlaps listed above are absent when the train file at
+`e520a22` is compared with the current dev file. No exact sentence strings overlap.
+Neither that history nor the overlap count establishes memorization, quantifies
+an effect on accuracy, or establishes anything about test overlap.
+
+Exact acronym strings are disjoint, but morphological families are not. Training
+item `enc-85bf2051e1018c131afe7ba3f8d90feb` stores `מד״ר`, includes the phrase
+`אם אני אבקש מד"ר שגב`, and has gold `ד"ר (מ- קליטי)`. Development includes `בד״ר`.
+The earlier hold of 11 unprefixed `ד״ר` training items is an item-bounded policy;
+it does not establish complete separation of the doctor-abbreviation family.
+Each dev form has one **stored gold label**, not a verified single semantic sense.
+
+The source of the supplied weights is Shaked's explicit attribution to Ben's
+current [Colab notebook](../notebooks/train_dictabert_colab.ipynb) run. This is
+author testimony, not metadata embedded in the checkpoint. The weight SHA-256 is
+`23bbff0324a7ce4d9d4a24a9ebfb87a4f6ac296bf1f1ce1bd25126c09260267f`.
+The inspected notebook is identified at
+`09f815bb8c7658ef6dfa1c0efca19aa6a032bdf0`, SHA-256
+`a57e668d20ba5c5cd8f6bcacd5b52fe8d67288cf1ea9a09cdb67e7108f0b010c`.
+The filename suggests seed 43, while the notebook specifies 42 after model
+initialization. The executed seed, original input snapshot, resolved original
+base-model/tokenizer revision, library versions, training hardware, selected epoch
+and loss are not recovered from the weights.
+
+The [Colab adapter](../src/hebrew_acronyms/models/dictabert_cross_encoder/colab.py)
+strictly loads the full 201-tensor state dictionary, including the scoring head
+and expanded embedding matrix. The saved record has no missing or unexpected
+keys, reports fp16 storage and fp32 CPU inference, and records the local tokenizer
+and configuration identities. It contains checks of encoding tensors for all
+62 dev items and forward logits for three validation items against the reference
+notebook. These support inference reconstruction, not reproduction of training.
+The Colab encoder can exceed its nominal 256-token limit if required tokens alone
+do not fit, whereas the package predictor rejects that case; the saved dev checks
+show no encoding discrepancy on the 62 inspected items.
+The [package training appendix](../notebooks/train_dictabert.ipynb) is a separate
+route, with seed-before-initialization and a manifest-bound loader. It is not the
+reported source of these weights.
+
+The saved comparison preserves separate arm run IDs. DictaBERT has 62 completed
+selections; Qwen has 62 responses in each task. Gemini selection has 13 responses,
+20 service-error items and 29 unattempted items; generation has two service-error
+items and 60 unattempted items. Generation is semantically unjudged. The full-item
+selection denominator is unchanged: on partial runs the score combines service
+coverage with reference matching, and cannot rank linguistic correctness against
+complete runs. The exporter still accepts one designated `full_dev` artifact;
+it does not support test or combine the separate runs into a synthetic run ID.
+
+The [course guidelines](../docs/course/NLP_course_2025b___project_guidelines.pdf),
+Section 3, Methodology (page 4), require relevant baseline comparisons and an
+account of randomness, including seeds, prompts and decoding. The choices of
+baseline and variability assessment remain unresolved. The guidelines do not
+prescribe a particular significance test, confidence interval or seed count.
+No additional experiment is represented as completed in this draft.
+
+The current design uses a smaller natural development collection, includes Knesset
+text, and examines separation of stored acronym forms. These differ from the
+submitted proposal's document-first split and larger target population; they are
+not claims of lecturer approval or completed original commitments.
+
+Annotation provenance retains historical review attributed to Ben and Shaked's
+AI-assisted decisions (42/20 dev labels; 316/6 train labels), while 2,507 train
+labels lack independent verification in preparation. Codex assisted code, checks,
+literature checking, the exporter and manuscript, with assistant reviews during
+earlier drafting. Software checks and PDF inspection are distinct from subsequent
+real model runs. Author contributions and personal reflections must be written
+or confirmed by the authors. This revision uses saved evidence and train/dev only;
+it does not inspect test or run models.
 
 ## Offline verification
 
