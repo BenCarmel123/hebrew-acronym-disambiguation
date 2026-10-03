@@ -54,9 +54,11 @@ it does not start it or download models.
 
 **Gemini:** the selected model is `gemini-3.8-flash` with
 `{"thinkingConfig": {"thinkingLevel": "low"}}`. Low thinking is not disabled thinking.
-Set `GEMINI_API_KEY` in the environment inherited by the notebook kernel before
-launching Jupyter. Keep the key out of notebook cells and settings; `.env` files are
-not loaded automatically. See the [official model settings](https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash).
+Copy `.env.example` to `.env` in the checkout root and set `GEMINI_API_KEY` there.
+The study loads this file when Gemini is enabled, using the notebook's `root`
+setting. Existing environment variables take precedence. Restart the kernel after
+changing the key. Keep `.env` local (Git ignores it); never put keys in notebook
+cells or settings. See the [official model settings](https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash).
 
 The systems can run independently. Requests have a 120-second timeout and no automatic
 retries. Qwen records its server-reported digest; Gemini records the returned
