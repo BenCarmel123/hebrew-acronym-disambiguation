@@ -1,0 +1,23 @@
+\section{Evaluation}
+\label{sec:eval}
+\subsection{Roles of the data splits}
+Training supplies supervised candidate pairs. Development supports checkpoint selection and diagnostics of inputs, services and scoring. It is therefore distinct from an independent test evaluation. Split claims refer to the stored forms and documents inspected in Section~\ref{sec:separation}.
+
+\subsection{Development selection measures}
+The common evaluator scores all three selection systems on the same requested item IDs. A completed LLM answer must be one uppercase letter in the displayed range after surrounding whitespace is removed; ``A.'' fails this strict parser. The letter maps through the saved candidate order. A selection is correct when its candidate exactly matches the stored gold label after trimming, without semantic aliases or quotation normalization.
+
+Let $c_i$ indicate a correct selection, $N$ be the number of requested occurrences, $A$ the set of observed types and $I_a$ the occurrences of type $a$. The implemented summaries are
+\begin{align}
+\mathrm{Micro}&=\frac{1}{N}\sum_{i=1}^{N}c_i,\\
+\mathrm{Macro}&=\frac{1}{|A|}\sum_{a\in A}\frac{1}{|I_a|}\sum_{i\in I_a}c_i.
+\end{align}
+Micro weights occurrences equally; macro weights stored acronym types equally. Missing labels make accuracy unavailable, and missing type metadata makes macro unavailable. Unavailable values are not zero.
+
+For an attempted arm, errors, incomplete responses, parsing failures and unattempted occurrences remain in the requested denominator with $c_i=0$. An entirely unrun arm is unmeasured. Counts distinguish service failures (no completed usable response), format failures (completed but invalid output), valid label mismatches and unattempted items. On a partial run, the all-item score combines service coverage and selection success. It is not a clean estimate of linguistic correctness and does not justify ranking partial Gemini execution against complete runs. Restricting scores to successful requests would answer a different question and does not replace the implemented denominator. Label defects further separate reference matching from semantic correctness.
+
+\subsection{Generation and paired comparison}
+Free responses are saved but remain semantically unjudged. A human judgment protocol must define acceptable paraphrases, attached prefixes, named uses, ambiguity and disagreement. Exact string matching can reject equivalent expansions, while inventory membership alone neither ensures contextual correctness nor covers missing valid answers.
+
+The generation--selection comparison pairs the same occurrences within each LLM under a common correctness criterion. A paired table can distinguish both-correct, selection-only, generation-only and neither-correct outcomes. Missing responses must remain visible, rather than restricting the comparison to successful requests. Such a comparison requires agreed judgments and cannot be inferred from completion counts.
+
+The evaluation requires relevant baselines and an account of randomness in training, prompting and decoding. The baseline and method for assessing variability have not yet been selected. This does not imply a requirement for a particular confidence interval, significance test or number of seeds, and none is reported here. Repeated occurrences share types and documents, which also limits independence assumptions. The \codebase{notebooks/experimental_study.ipynb}{study notebook} and \codebase{src/hebrew_acronyms/models/common/eval.py}{shared evaluator} provide the implementation details.

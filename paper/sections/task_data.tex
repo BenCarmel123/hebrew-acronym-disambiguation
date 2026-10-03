@@ -1,0 +1,62 @@
+\section{Task and Data}
+\label{sec:data}
+\subsection{The unit of prediction}
+An item is a tuple $(a_i,x_i,s_i,r_i,C_i,y_i)$: an acronym type, a sentence, a half-open character span, its exact raw text, a candidate inventory, and a reference expansion. The span identifies one occurrence even when the sentence contains several abbreviations. We preserve $r_i=x_i[s_i]$, including an attached prefix, and mark that span with \texttt{[ACR]} and \texttt{[/ACR]}. The type is a grouping key; it is not substituted for the raw target in the input.
+
+Generation predicts a short expansion from $(x_i,s_i,r_i)$, without candidates or the reference. Selection predicts one member of $C_i$ from the same marked sentence and the supplied inventory. The reference label is used for supervised training and evaluation. Selection includes the reference among its candidates but does not identify which answer is correct. The intended answer is a linguistic expansion appropriate to the occurrence. An entity description or a plausible etymology alone is insufficient. Some named uses require an explicit annotation decision: for example, the current development labels accept \heb{רבי משה בן מימון} for \heb{רמב״ם}, including institutional uses. This is a recorded local convention, not a general rule for all names.
+
+Table~\ref{tab:example} illustrates the interface. It is a constructed explanation, not a dataset item or model output.
+\begin{table}[t]
+\centering\small
+\begin{tabular}{@{}p{0.22\columnwidth}p{0.71\columnwidth}@{}}
+\toprule
+Sentence & \heb{ח״כ נשא נאום במליאה.} \\
+Target & \heb{ח״כ} (the first token) \\
+Generation & A short expansion, e.g.\ \heb{חבר כנסת} \\
+Selection & A letter assigned to one supplied candidate \\
+\bottomrule
+\end{tabular}
+\caption{Illustrative input and answer formats. The sentence means ``A member of parliament gave a speech in the plenum.'' The target is shown separately here for readability; both tasks receive it marked inside the sentence. The example makes no claim about system accuracy.}
+\label{tab:example}
+\end{table}
+
+\subsection{Sources and supervision}
+The retained collection draws on Hebrew Wikipedia and Knesset proceedings. Candidate evidence was collected from Wikipedia abbreviation and disambiguation pages and Wiktionary. Sentence and label sources are distinct: neither natural occurrence nor dictionary membership establishes the correct expansion in context.
+
+Most training examples are \emph{substituted}: a spelled-out expansion in a Wikipedia sentence was replaced with the acronym, and the removed expression supplies a weak label. Natural examples retain an observed acronym; a small \emph{deglossed} subset removes an adjacent explanation. The current release also contains Claude-authored examples. Substitution and authorship supply supervision cheaply but need not reproduce naturally abbreviated text. Stored labels were reused without comprehensive reannotation.
+
+Table~\ref{tab:data} summarizes the available training and development files. The 136 Claude-authored items have no source document and are excluded from the document-key count.
+
+\begin{table}[t]
+\centering\small
+\begin{tabular}{@{}lrr@{}}
+\toprule
+Quantity & Train & Dev \\
+\midrule
+Occurrences & 2,829 & 62 \\
+Acronym types & 434 & 11 \\
+Nonempty document keys & 1,864 & 35 \\
+Sentence--candidate pairs & 12,684 & 331 \\
+\midrule
+Substituted Wikipedia & 2,316 & 0 \\
+Natural Wikipedia & 50 & 0 \\
+Natural Knesset & 319 & 62 \\
+Deglossed Wikipedia & 8 & 0 \\
+Claude-authored & 136 & 0 \\
+\bottomrule
+\end{tabular}
+\caption{Available training and development data. Source and construction categories follow stored metadata. Every item has at least two distinct candidates.}
+\label{tab:data}
+\end{table}
+
+All development items are natural Knesset occurrences. Of their labels, 42 reuse content-matched historical review and 20 reflect AI-assisted author decisions; this is not independent double annotation. Training metadata identifies 2,507 labels without independent verification during preparation, 316 with historical review evidence and six with AI-assisted author decisions. File identities and detailed annotation provenance are provided in the paper's technical documentation.
+
+\subsection{Qualification and separation}
+\label{sec:separation}
+Preparation checks item identity, target boundaries and candidate structure. Targets use a unique bounded match after limited quotation-mark folding or a recorded human span. Each pair-loss item requires at least two distinct candidates and exactly one candidate matching the reference after surrounding whitespace is trimmed. These checks establish structural validity, not semantic correctness.
+
+The available train and dev files have no identical sentence strings or exact acronym forms in common. However, three document keys are shared, involving three training and five development items. The inspected data therefore lack complete document separation. This observation does not measure an effect on model performance or establish overlap with test.
+
+Separation of stored forms also leaves morphological overlap. Training contains \heb{מד״ר} in \mbox{\heb{אם אני אבקש מד״ר שגב}}, while dev contains \heb{בד״ר}; both include a prefix attached to the doctor abbreviation. Excluding the unprefixed \heb{ד״ר} from training does not remove all members of that family. Accordingly, the split does not establish generalization to wholly unseen acronym families.
+
+Each development acronym type has a single stored gold label. This annotation pattern does not establish that all its contexts express the same meaning. The current labels and their known defects limit reliable assessment of within-type sense discrimination.
