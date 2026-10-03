@@ -11,6 +11,7 @@ import hashlib
 import gc
 import inspect
 import json
+import os
 from pathlib import Path
 import platform
 import random
@@ -20,7 +21,48 @@ from importlib.metadata import version
 from hebrew_acronyms.models.common import eval as prompts
 from hebrew_acronyms.models.common.pairs import candidates_for, explicit_span, input_identity, validate_ids, mark_span, load_rows
 
-CONDITIONS = ("dictabert", "generate", "select")
+CONDITIONS = ("dictabert", "generate", "select")  # Historical format 1.
+ARMS = {"dictabert": ("dictabert", "select"),
+        "qwen_generate": ("qwen", "generate"), "qwen_select": ("qwen", "select"),
+        "gemini_generate": ("gemini", "generate"), "gemini_select": ("gemini", "select")}
+
+
+def arm_specs(artifact):
+    """Read format 1 explicitly, without migrating files or inventing Gemini records."""
+    if artifact.get("format_version") == 1:
+        return {"dictabert": ("dictabert", "select"), "generate": ("qwen", "generate"),
+                "select": ("qwen", "select")}
+    if artifact.get("format_version") == 2:
+        return ARMS
+    raise ValueError("Unsupported study artifact format")
+
+
+def llm_runtime(artifact, system):
+    if artifact["format_version"] == 1:
+        return artifact.get("llm_runtime", {}) if system == "qwen" else {}
+    return artifact.get("llm_runtimes", {}).get(system, {})
+
+
+def _set_runtime(artifact, system, runtime):
+    if artifact["format_version"] == 1:
+        if system != "qwen":
+            raise ValueError("Historical runs cannot gain a new system; start a new run")
+        artifact["llm_runtime"] = runtime
+    else:
+        artifact.setdefault("llm_runtimes", {})[system] = runtime
+
+
+def _without_secret(value):
+    """Defense in depth: backend errors and returned metadata must never retain the key."""
+    key = os.environ.get("GEMINI_API_KEY")
+    if isinstance(value, str):
+        return value.replace(key, "[REDACTED]") if key else value
+    if isinstance(value, dict):
+        return {_without_secret(k): _without_secret(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_without_secret(v) for v in value]
+    return value
+
 
 
 def fixture_rows():
@@ -82,7 +124,7 @@ def source_provenance(root, source_revision=None):
     root = Path(root).resolve()
     paths = [Path(__file__), Path(inspect.getfile(prompts))]
     paths += [Path(__file__).parent / "models" / name / "eval.py"
-              for name in ("qwen", "dictabert_cross_encoder")]
+              for name in ("qwen", "gemini", "dictabert_cross_encoder")]
     paths += [Path(__file__).parent / "models/dictabert_cross_encoder/model.py"]
     try:
         head = subprocess.run(["git", "-C", str(root), "rev-parse", "HEAD"],
@@ -101,10 +143,11 @@ def new_artifact(rows, run_id, settings, provenance):
         raise ValueError("A nonempty item set and explicit run ID are required")
     identity = input_identity(rows)
     records = [{"run_id": run_id, "input_sha256": identity["sha256"],
-                "item_id": row["item_id"], "condition": condition, "status": "not_run",
+                "item_id": row["item_id"], "condition": condition,
+                "system": ARMS[condition][0], "task": ARMS[condition][1], "status": "not_run",
                 "score_status": "unscored", "raw_response": None, "error": None}
-               for condition in CONDITIONS for row in rows]
-    return {"format_version": 1, "run_id": run_id, "input_identity": identity,
+               for condition in ARMS for row in rows]
+    return {"format_version": 2, "run_id": run_id, "input_identity": identity,
             "items": deepcopy(rows), "settings": deepcopy(settings),
             "provenance": deepcopy(provenance), "records": records}
 
@@ -128,33 +171,66 @@ def attach_encoder(artifact, predictions, *, origin):
     validate_artifact(artifact, expected_run_id=artifact["run_id"])
 
 
-def collect_responses(artifact, mode, generate_fn, *, on_record=None, limit=None):
-    """Collect raw responses with existing prompts. No parsing, scoring or row skipping.
+def _record_response(artifact, record, system, response):
+    """Attach provider evidence; Gemini versions are reported, never digest-verified."""
+    if isinstance(response, str) and artifact["format_version"] == 1:
+        record.update(status="response_received", raw_response=response)
+        return
+    if not isinstance(response, dict) or not isinstance(response.get("response"), str):
+        raise TypeError("Backend response must contain text and metadata")
+    response = _without_secret(response)
+    record["backend_metadata"] = {key: deepcopy(value) for key, value in response.items() if key != "response"}
+    record.update(status=response.get("status", "response_received"), raw_response=response["response"],
+                  error=response.get("error"))
+    if system == "gemini":
+        record["model_revision"] = response.get("model_version")
+    if record["status"] != "response_received":
+        return
+    runtime = llm_runtime(artifact, system)
+    if system == "qwen":
+        if response.get("identity_status") != "verified":
+            record.update(status="model_identity_error", error=response.get("error") or "Ollama identity was not verified")
+    else:
+        version = response.get("model_version")
+        record["model_revision"] = version
+        if (not isinstance(version, str) or not version.strip()
+                or response.get("requested_model") != record["model"]):
+            record.update(status="model_identity_error", error="Gemini did not report the requested model and a modelVersion")
+        elif runtime.get("model_version") not in (None, version):
+            record.update(status="model_identity_error", error="Gemini modelVersion changed within this run")
+        else:
+            runtime["model_version"] = version
+            runtime["version_evidence"] = "reported_by_generateContent; no digest verification"
 
-    on_record may save after every attempt. Provider exceptions remain records;
-    KeyboardInterrupt propagates, with the interrupted record retained by finally.
-    """
-    if mode not in {"generate", "select"}:
-        raise ValueError("Only generate and select with the sentence are supported")
-    revision = artifact.get("llm_runtime", {}).get("digest") or artifact["settings"].get("qwen_revision")
-    if not artifact["settings"].get("qwen_model") or not revision:
-        raise ValueError("Explicit Qwen model and resolved version/digest are required")
+
+def collect_responses(artifact, mode, generate_fn, *, system="qwen", on_record=None, limit=None):
+    """Collect one identified arm; preserve raw failures and every unattempted item."""
+    if system not in {"qwen", "gemini"} or mode not in {"generate", "select"}:
+        raise ValueError("Only Qwen/Gemini generate/select with the sentence are supported")
+    condition = next((name for name, pair in arm_specs(artifact).items() if pair == (system, mode)), None)
+    if condition is None:
+        raise ValueError("System absent from this historical run; start a new run")
+    runtime = llm_runtime(artifact, system)
+    model = artifact["settings"].get(system + "_model")
+    revision = runtime.get("digest") if system == "qwen" else runtime.get("model_version")
+    if artifact["format_version"] == 1:
+        revision = revision or artifact["settings"].get("qwen_revision")
+        if not revision:
+            raise ValueError("Explicit Qwen model and resolved version/digest are required")
+    if not model or (artifact["format_version"] == 2 and not runtime):
+        raise ValueError("Configure and connect the requested system before collection")
     if limit is not None and (type(limit) is not int or limit < 1):
         raise ValueError("Response limit must be a positive integer or None")
     validate_artifact(artifact, expected_run_id=artifact["run_id"])
-    if any(record["status"] != "not_run" for record in artifact["records"] if record["condition"] == mode):
+    pending = [record for record in artifact["records"] if record["condition"] == condition]
+    if any(record["status"] != "not_run" for record in pending):
         raise ValueError("Responses already exist; start a new run instead of overwriting")
     rng = random.Random(prompts.SHUFFLE_SEED)
     items = {row["item_id"]: row for row in artifact["items"]}
-    pending = [record for record in artifact["records"] if record["condition"] == mode]
     for record in pending[:limit]:
-        if record["status"] != "not_run":
-            raise ValueError("Responses already exist; start a new run instead of overwriting")
         row = items[record["item_id"]]
-        record.update(model=artifact["settings"]["qwen_model"],
-                      model_revision=revision,
-                      sentence=row.get("sentence"), target_raw=row.get("target_raw"),
-                      prompt=None, shown_order=None)
+        record.update(model=model, model_revision=revision, sentence=row.get("sentence"),
+                      target_raw=row.get("target_raw"), prompt=None, shown_order=None)
         try:
             marked_sentence = mark_span(row["sentence"], explicit_span(row))
             record["prompt_sentence"] = marked_sentence
@@ -174,21 +250,11 @@ def collect_responses(artifact, mode, generate_fn, *, on_record=None, limit=None
         else:
             record["status"] = "interrupted"
             try:
-                response = generate_fn(prompt)
-                if isinstance(response, dict):
-                    record["backend_metadata"] = {key: deepcopy(value) for key, value in response.items() if key != "response"}
-                    raw = response.get("response")
-                    if not isinstance(raw, str):
-                        raise TypeError("Backend response must contain text")
-                    record.update(status="response_received", raw_response=raw)
-                    if response.get("identity_status") != "verified":
-                        record.update(status="model_identity_error", error=response.get("error"))
-                elif isinstance(response, str):
-                    record.update(status="response_received", raw_response=response)
-                else:
-                    raise TypeError("Backend response must be text or a metadata-bearing response")
+                _record_response(artifact, record, system, generate_fn(prompt))
             except Exception as error:
-                record.update(status="service_error", error=f"{type(error).__name__}: {error}")
+                # Gemini exceptions may embed credential-bearing requests. Never stringify them.
+                message = "Gemini request failed; inspect configuration/service availability" if system == "gemini" else f"{type(error).__name__}: {error}"
+                record.update(status="service_error", error=_without_secret(message))
             finally:
                 if on_record is not None:
                     on_record(artifact)
@@ -199,7 +265,7 @@ def collect_responses(artifact, mode, generate_fn, *, on_record=None, limit=None
 
 
 def validate_artifact(artifact, *, expected_run_id, rows=None):
-    if not isinstance(artifact, dict) or artifact.get("format_version") != 1:
+    if not isinstance(artifact, dict) or artifact.get("format_version") not in {1, 2}:
         raise ValueError("Expected an identity-bound study artifact, not a legacy prediction list/CSV")
     if not expected_run_id or artifact.get("run_id") != expected_run_id:
         raise ValueError("Saved run ID differs from the requested run")
@@ -222,15 +288,39 @@ def validate_artifact(artifact, *, expected_run_id, rows=None):
             raise ValueError("A full-dev label requires the complete original input identity")
         if cohort.get("kind") == "validation" and cohort["available_items"] == len(artifact["items"]):
             raise ValueError("Validation must remain a subset of the qualified dev input")
-    runtime = artifact.get("llm_runtime")
-    if runtime is not None and (runtime.get("model") != artifact["settings"].get("qwen_model") or not runtime.get("digest")):
-        raise ValueError("Runtime LLM identity disagrees with run settings")
-    expected = {(condition, item_id) for condition in CONDITIONS for item_id in identity["item_ids"]}
+    specs = arm_specs(artifact)
+    for system in {system for system, task in specs.values()} - {"dictabert"}:
+        runtime = llm_runtime(artifact, system)
+        if runtime:
+            model_key = "model" if system == "qwen" else "requested_model"
+            if runtime.get(model_key) != artifact["settings"].get(system + "_model"):
+                raise ValueError("Runtime LLM identity disagrees with run settings")
+            if system == "gemini":
+                settings = artifact["settings"]
+                expected_request = {"generationConfig": settings.get("gemini_generation_config"),
+                                    "timeout_seconds": settings.get("request_timeout"), "max_attempts": 1}
+                if runtime.get("request_settings") != expected_request:
+                    raise ValueError("Gemini runtime settings disagree with the recorded run")
+            if system == "qwen" and not runtime.get("digest") and not runtime.get("connection_error"):
+                raise ValueError("Qwen runtime requires its resolved digest or explicit connection failure")
+            if system == "qwen" and artifact["format_version"] == 2 and not runtime.get("connection_error"):
+                for setting, evidence in (("qwen_options", "options"), ("ollama_url", "base_url"),
+                                          ("request_timeout", "timeout_seconds")):
+                    if setting in artifact["settings"]:
+                        expected_value = artifact["settings"][setting]
+                        if setting == "ollama_url":
+                            expected_value = expected_value.rstrip("/")
+                        if runtime.get(evidence) != expected_value:
+                            raise ValueError("Qwen runtime settings disagree with the recorded run")
+    expected = {(condition, item_id) for condition in specs for item_id in identity["item_ids"]}
     actual = [(record["condition"], record["item_id"]) for record in artifact["records"]]
     if len(actual) != len(set(actual)) or set(actual) != expected:
         raise ValueError("Every condition must retain exactly one record per item")
     items = {row["item_id"]: row for row in artifact["items"]}
     for record in artifact["records"]:
+        system, task = specs[record["condition"]]
+        if artifact["format_version"] == 2 and (record.get("system"), record.get("task")) != (system, task):
+            raise ValueError("Mixed system/task identity")
         if record["run_id"] != expected_run_id or record["input_sha256"] != identity["sha256"]:
             raise ValueError("Mixed run/input record identity")
         if record.get("score_status") != "unscored" or not record.get("status"):
@@ -253,30 +343,43 @@ def validate_artifact(artifact, *, expected_run_id, rows=None):
                         or not isinstance(scores, list)
                         or [score.get("candidate") for score in scores] != candidates):
                     raise ValueError("Encoder prediction disagrees with the original candidate inventory")
-        if record["condition"] in {"generate", "select"} and record["status"] != "not_run":
-            if record["status"] not in {"invalid_input", "interrupted", "service_error", "response_received", "model_identity_error"}:
+        if system in {"qwen", "gemini"} and record["status"] != "not_run":
+            if record["status"] not in {"invalid_input", "interrupted", "service_error", "response_received", "model_identity_error", "blocked", "missing_response", "incomplete_response"}:
                 raise ValueError("Unknown LLM status")
             if record["status"] in {"response_received", "model_identity_error"} and not isinstance(record.get("raw_response"), str):
                 raise ValueError("Received LLM response must retain raw text")
-            if (record.get("model") != artifact["settings"].get("qwen_model") or
-                    record.get("model_revision") != (artifact.get("llm_runtime", {}).get("digest") or artifact["settings"].get("qwen_revision"))):
+            runtime = llm_runtime(artifact, system)
+            if record.get("model") != artifact["settings"].get(system + "_model"):
                 raise ValueError("Mixed LLM model/version settings")
             evidence = record.get("backend_metadata")
-            if record["status"] == "response_received" and evidence is not None:
-                digest = record["model_revision"]
-                request = evidence.get("request_settings", {})
-                if (evidence.get("identity_status") != "verified"
-                        or any(evidence.get(key) != digest for key in ("expected_digest", "digest_before", "digest_after"))
-                        or evidence.get("model") != record["model"] or request.get("model") != record["model"]
-                        or (runtime is not None and request.get("options") != runtime.get("options"))):
-                    raise ValueError("Backend response evidence differs from the bound model/digest/settings")
+            if system == "qwen":
+                revision = runtime.get("digest") or artifact["settings"].get("qwen_revision")
+                if record.get("model_revision") != revision:
+                    raise ValueError("Mixed LLM model/version settings")
+                if record["status"] == "response_received" and evidence is not None:
+                    request = evidence.get("request_settings", {})
+                    if (evidence.get("identity_status") != "verified" or not revision
+                            or any(evidence.get(key) != revision for key in ("expected_digest", "digest_before", "digest_after"))
+                            or evidence.get("model") != record["model"] or request.get("model") != record["model"]
+                            or (runtime and request.get("options") != runtime.get("options"))):
+                        raise ValueError("Backend response evidence differs from the bound model/digest/settings")
+            elif evidence is not None:
+                if evidence.get("requested_model") != record["model"] or evidence.get("request_settings") != runtime.get("request_settings"):
+                    raise ValueError("Gemini response settings differ from the bound request")
+                if record["status"] == "response_received" and (not record.get("model_revision")
+                        or record["model_revision"] != runtime.get("model_version")
+                        or record["model_revision"] != evidence.get("model_version")
+                        or evidence.get("finish_reason") != "STOP"):
+                    raise ValueError("Gemini response version/completion differs from its evidence")
+            if artifact["format_version"] == 2 and record["status"] == "response_received" and not evidence:
+                raise ValueError("New LLM responses require provider evidence")
             row = items[record["item_id"]]
             if record.get("sentence") != row.get("sentence") or record.get("target_raw") != row.get("target_raw"):
                 raise ValueError("LLM input differs from the shared item")
-            if record["condition"] == "generate" and record.get("shown_order") is not None:
+            if task == "generate" and record.get("shown_order") is not None:
                 raise ValueError("Generation must not receive candidates")
             shown = record.get("shown_order")
-            if record["condition"] == "select" and record["status"] != "invalid_input":
+            if task == "select" and record["status"] != "invalid_input":
                 if not isinstance(shown, list) or not 1 <= len(shown) <= 26 or len(set(shown)) != len(shown):
                     raise ValueError("Attempted selection requires its complete displayed letter mapping")
             if shown is not None and Counter(shown) != Counter(candidates_for(row)):
@@ -289,6 +392,17 @@ def validate_artifact(artifact, *, expected_run_id, rows=None):
                 raise ValueError("Stored prompt hash differs from the saved prompt")
             if "prompt_sentence" in record and record["prompt_sentence"] != mark_span(row["sentence"], explicit_span(row)):
                 raise ValueError("Stored marked sentence differs from the identified occurrence")
+    if artifact["format_version"] == 2:
+        for row in artifact["items"]:
+            for task in ("generate", "select"):
+                attempts = [record for record in artifact["records"] if record["item_id"] == row["item_id"]
+                            and record["system"] != "dictabert" and record["task"] == task and record.get("prompt") is not None]
+                if len(attempts) == 2 and any(attempts[0].get(key) != attempts[1].get(key)
+                                              for key in ("prompt", "prompt_sentence", "shown_order")):
+                    raise ValueError("Providers must share the same prompt and displayed candidate order")
+        key = os.environ.get("GEMINI_API_KEY")
+        if key and key in json.dumps(artifact, ensure_ascii=False):
+            raise ValueError("A secret was found in the artifact; keep the API key only in the environment")
     origins = [record["encoder_origin"] for record in artifact["records"]
                if record["condition"] == "dictabert" and record["status"] != "not_run"]
     if origins and any(origin != origins[0] for origin in origins):
@@ -343,47 +457,57 @@ def inspect_results(artifact):
     return inspection
 
 
-def display_tables(artifact):
-    """Readable per-item table plus derived metrics; generation stays for manual review."""
+def display_tables(artifact, *, max_items=10, start=0):
+    """Bounded, stacked item panels: inspect another page with start/max_items."""
     from html import escape
-    inspection = inspect_results(artifact)
-    columns = [("item_id", "Item"), ("type_id", "Type"), ("sentence", "Original sentence"),
-               ("target_raw", "Target"), ("span", "Span"), ("gold", "Gold"),
-               ("encoder_prediction", "DictaBERT"), ("encoder_status", "Encoder status"),
-               ("generation_raw", "Generation · manual review"), ("generation_status", "Generation status"),
-               ("selection_raw", "Selection raw"), ("letter_mapping", "Displayed letters"),
-               ("selection_decoded", "Decoded choice"), ("selection_status", "Choice status"), ("failures", "Failures")]
-    table = '<div style="overflow-x:auto"><table style="border-collapse:collapse;font-size:13px"><thead><tr>'
-    table += "".join(f"<th style='padding:8px;border:1px solid #ddd'>{label}</th>" for _, label in columns)
-    table += "</tr></thead><tbody>"
-    for item in inspection["items"]:
-        table += "<tr>"
-        for key, _ in columns:
-            value = item[key]
-            if isinstance(value, dict):
-                value = "\n".join(f"{label}: {text}" for label, text in value.items())
-            text = "—" if value is None or value == "" else str(value)
-            table += f"<td style='padding:8px;border:1px solid #ddd;min-width:90px;white-space:pre-wrap'>{escape(text)}</td>"
-        table += "</tr>"
-    table += "</tbody></table></div>"
-    scope = inspection["cohort"]
-    heading = f"<h3>{escape(scope['kind'])}: {scope['requested_items']} requested / {scope.get('available_items', 'unknown')} available items</h3>"
+    if type(start) is not int or start < 0 or type(max_items) is not int or not 1 <= max_items <= 62:
+        raise ValueError("Use start >= 0 and max_items between 1 and 62")
+    result = inspect_results(artifact)
+    def text(value):
+        return escape("—" if value is None or value == "" else str(value))
+    scope = result["cohort"]
+    html = '<section style="max-width:100%;overflow-wrap:anywhere;font-size:14px">'
+    html += f"<h3>{text(scope['kind'])}: {scope['requested_items']} requested / {text(scope.get('available_items'))} available</h3>"
     if not scope.get("full_dev"):
-        heading += "<p><strong>This is not a full-dev result.</strong></p>"
-    metrics_table = "<table><tr><th>System</th><th>Micro</th><th>Macro by type</th><th>Attempted / requested</th><th>Valid predictions</th><th>Unfinished</th></tr>"
-    for metric in inspection["metrics"]:
-        micro, macro = metric["micro_accuracy"], metric["macro_accuracy"]
-        metrics_table += (f"<tr><td>{metric['condition']}</td><td>{f'{micro:.3f}' if micro is not None else 'unavailable'}</td>"
-                          f"<td>{f'{macro:.3f}' if macro is not None else 'unavailable'}</td>"
-                          f"<td>{metric['n_attempted']} / {metric['n_items']}</td><td>{metric['n_valid_predictions']}</td>"
-                          f"<td>{metric['partial']}</td></tr>")
-    metrics_table += "</table><p>Preliminary dev selection accuracy; failures and unrun items stay in the denominator. Generation is unscored manual review.</p>"
-    warnings = "".join(f"<p>{escape(warning)}</p>" for metric in inspection["metrics"] for warning in metric["warnings"])
-    disagreements = "<h3>Disagreements between valid selections</h3><ul>"
-    for item in inspection["disagreements"]:
-        disagreements += f"<li>{escape(item['item_id'])}: DictaBERT = {escape(item['encoder_prediction'])}; Qwen = {escape(item['selection_decoded'])}</li>"
-    disagreements += "</ul>" if inspection["disagreements"] else "<li>None among items with two valid selections; failures remain in the item table.</li></ul>"
-    return heading + metrics_table + warnings + table + disagreements, inspection
+        html += "<p><strong>This is not a full-dev result.</strong></p>"
+    html += "<table><tr><th>System · selection</th><th>State</th><th>Micro</th><th>Macro</th><th>Items</th><th>Attempted</th><th>Failures</th></tr>"
+    for metric in result["metrics"]:
+        values = [metric["system"], metric["execution_status"],
+                  *[f"{metric[k]:.3f}" if metric[k] is not None else "not measured" if metric["execution_status"] == "not_run" else "unavailable" for k in ("micro_accuracy", "macro_accuracy")],
+                  metric["n_items"], metric["n_attempted"], metric["n_failures"]]
+        html += "<tr>" + "".join(f"<td style='padding:6px'>{text(value)}</td>" for value in values) + "</tr>"
+    html += "</table><p>Preliminary dev selection accuracy. Failures and unrun items remain in the denominator of an attempted system. An entirely unrun system is not measured. Generation requires manual review.</p>"
+    for metric in result["metrics"]:
+        html += "".join(f"<p>{text(warning)}</p>" for warning in metric["warnings"])
+    stop = min(start + max_items, len(result["items"]))
+    html += f"<p>Showing items {min(start + 1, stop)}–{stop} of {len(result['items'])}. Use start/max_items for another page; all items remain in results.</p>"
+    for item in result["items"][start:stop]:
+        html += f"<details style='border:1px solid #ddd;padding:10px;margin:8px 0'><summary>{text(item['item_id'])} · {text(item['target_raw'])}" + (" · disagreement" if item["disagreement"] else "") + "</summary>"
+        for label, value in (("Type", item["type_id"]), ("Original sentence", item["sentence"]),
+                             ("Marked target", item["marked_sentence"]), ("Span", item["span"]),
+                             ("Gold", item["gold"]), ("Candidates", item["candidates"])):
+            html += f"<p><strong>{label}:</strong> <span dir='auto'>{text(value)}</span></p>"
+        for system, data in item["systems"].items():
+            html += f"<h4>{text(system)}</h4>"
+            labels = [("Decoded selection", "selection_decoded"), ("Selection state", "selection_status")]
+            if system != "dictabert":
+                mapping = " | ".join(f"{letter}: {candidate}" for letter, candidate in data["letter_mapping"].items())
+                html += f"<p><strong>Displayed letters:</strong> <span dir='auto'>{text(mapping)}</span></p>"
+                labels += [("Selection raw", "selection_raw"), ("Generation raw · manual review", "generation_raw"),
+                           ("Generation state", "generation_status")]
+            labels += [("Selection failure", "selection_error"), ("Generation failure", "generation_error")]
+            for label, key in labels:
+                if key.endswith("error") and not data.get(key):
+                    continue
+                value = data.get(key)
+                if isinstance(value, str) and len(value) > 1500:
+                    html += f"<p><strong>{label}:</strong> {text(value[:1500])}…</p><details><summary>Complete raw text</summary><pre style='white-space:pre-wrap'>{text(value)}</pre></details>"
+                else:
+                    html += f"<p><strong>{label}:</strong> <span dir='auto' style='white-space:pre-wrap'>{text(value)}</span></p>"
+        html += "</details>"
+    html += f"<h3>Disagreements between valid selections: {len(result['disagreements'])}</h3>"
+    html += "<p>" + (", ".join(text(item["item_id"]) for item in result["disagreements"]) or "None among valid selections; failures remain in each item.") + "</p></section>"
+    return html, result
 
 
 def read_study_inputs(settings):
@@ -420,7 +544,7 @@ def prepare_study(rows, cohort, settings):
         return load_artifact(settings["saved_run"], expected_run_id=settings["saved_run_id"], rows=rows)
     output_dir = Path(settings["output_root"]) / settings["run_id"]
     check_readiness(settings["root"], settings["input_path"], settings.get("checkpoint"), output_dir,
-                    run=settings["mode"] == "run", encoder=settings["enable_encoder"], llm=settings["enable_llm"],
+                    run=settings["mode"] == "run", encoder=settings["enable_encoder"], llm=settings["enable_qwen"],
                     model=settings.get("qwen_model"), revision=None, saved_encoder=settings.get("saved_encoder"))
     stored = {key: str(value) if isinstance(value, Path) else deepcopy(value) for key, value in settings.items()}
     stored.update(selection_shuffle_seed=prompts.SHUFFLE_SEED, prompt_scope="exact_marked_occurrence_with_sentence",
@@ -479,16 +603,47 @@ def predict_encoder(artifact, rows, *, checkpoint, snapshot_path=None, device="c
     return predictions
 
 
+def _check_unstarted(artifact, system):
+    specs = arm_specs(artifact)
+    if any(record["status"] != "not_run" for record in artifact["records"]
+           if specs[record["condition"]][0] == system):
+        raise ValueError("Responses already exist; start a new run")
+
+
 def connect_qwen(artifact):
-    """Resolve local Qwen identity/settings explicitly and bind one callable for both modes."""
+    """Resolve Qwen once; a connection failure becomes records without blocking Gemini."""
     from functools import partial
     from hebrew_acronyms.models.qwen.eval import inspect_ollama, ollama_response
+    _check_unstarted(artifact, "qwen")
     settings = artifact["settings"]
-    if any(record["status"] != "not_run" for record in artifact["records"] if record["condition"] in {"generate", "select"}):
-        raise ValueError("Qwen responses already exist; start a new run")
-    runtime = inspect_ollama(settings["qwen_model"], base_url=settings["ollama_url"],
-                             timeout=settings["request_timeout"], options=settings["qwen_options"])
-    artifact["llm_runtime"] = runtime
+    try:
+        runtime = inspect_ollama(settings["qwen_model"], base_url=settings["ollama_url"],
+                                 timeout=settings["request_timeout"], options=settings["qwen_options"])
+    except Exception as error:
+        message = _without_secret(f"Ollama connection failed ({type(error).__name__}); check service, installed tag and timeout")
+        runtime = {"model": settings["qwen_model"], "digest": None, "connection_error": message}
+        _set_runtime(artifact, "qwen", runtime)
+        save_study(artifact)
+        return lambda prompt: {"response": "", "status": "service_error", "error": message}
+    _set_runtime(artifact, "qwen", runtime)
     save_study(artifact)
     return partial(ollama_response, model=runtime["model"], expected_digest=runtime["digest"],
                    base_url=runtime["base_url"], timeout=runtime["timeout_seconds"], options=deepcopy(runtime["options"]))
+
+
+def connect_gemini(artifact):
+    """Bind explicit Gemini settings. No network request or API key enters the artifact."""
+    from functools import partial
+    from hebrew_acronyms.models.gemini.eval import gemini_response, validate_gemini_settings
+    _check_unstarted(artifact, "gemini")
+    settings = artifact["settings"]
+    if not settings.get("gemini_model"):
+        raise ValueError("Set an explicit gemini_model before enabling Gemini")
+    config = validate_gemini_settings(settings["gemini_model"], settings["request_timeout"], settings["gemini_generation_config"])
+    runtime = {"requested_model": settings["gemini_model"], "model_version": None,
+               "version_evidence": "not yet reported", "request_settings": {
+                   "generationConfig": config, "timeout_seconds": settings["request_timeout"], "max_attempts": 1}}
+    _set_runtime(artifact, "gemini", runtime)
+    save_study(artifact)
+    return partial(gemini_response, model=runtime["requested_model"], timeout=settings["request_timeout"],
+                   generation_config=deepcopy(settings["gemini_generation_config"]))

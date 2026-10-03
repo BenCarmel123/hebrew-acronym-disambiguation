@@ -8,7 +8,7 @@ import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
-from tests.run_experimental_study import ROOT, guard, predictions
+from tests.run_experimental_study import ROOT, guard, predictions, legacy_artifact
 
 
 class StudyTests(unittest.TestCase):
@@ -22,7 +22,7 @@ class StudyTests(unittest.TestCase):
         self.rows = self.study.fixture_rows()
         self.settings = {"qwen_model": "invented-qwen-tag", "qwen_revision": "invented-immutable-version"}
         self.origin = {"weights_sha256": "a" * 64, "manifest_sha256": "b" * 64}
-        self.artifact = self.study.new_artifact(self.rows, "run-one", self.settings, {"fixture": True})
+        self.artifact = legacy_artifact(self.rows, "run-one", self.settings, {"fixture": True})
 
     def test_all_notebook_cells_preview_mocked_run_reload_and_saved_encoder(self):
         result = subprocess.run([sys.executable, "-B", "-m", "tests.run_experimental_study"],
@@ -49,7 +49,7 @@ class StudyTests(unittest.TestCase):
     def test_generation_needs_no_candidates_or_gold(self):
         for row in self.rows:
             row.pop("candidates"); row.pop("gold_expansion")
-        artifact = self.study.new_artifact(self.rows, "no-gold", self.settings, {})
+        artifact = legacy_artifact(self.rows, "no-gold", self.settings, {})
         backend = Mock(return_value="unscored expansion")
         self.study.collect_responses(artifact, "generate", backend)
         self.assertEqual(backend.call_count, 2)
@@ -57,7 +57,7 @@ class StudyTests(unittest.TestCase):
     def test_failures_and_invalid_inputs_retain_every_record(self):
         self.rows[0]["span_start"] = 0
         self.rows[1]["candidates"] = "|".join(f"candidate-{i}" for i in range(27))
-        artifact = self.study.new_artifact(self.rows, "bad-inputs", self.settings, {})
+        artifact = legacy_artifact(self.rows, "bad-inputs", self.settings, {})
         backend = Mock(return_value="never")
         self.study.collect_responses(artifact, "select", backend)
         backend.assert_not_called()
@@ -86,7 +86,7 @@ class StudyTests(unittest.TestCase):
         invalid = [source[:1], [source[0], source[0]], source + [dict(source[0], item_id="foreign")]]
         for records in invalid:
             with self.subTest(records=records), self.assertRaises(ValueError):
-                fresh = self.study.new_artifact(self.rows, "fresh", self.settings, {})
+                fresh = legacy_artifact(self.rows, "fresh", self.settings, {})
                 self.study.attach_encoder(fresh, records, origin=self.origin)
 
     def test_encoder_failures_and_inventory_validation(self):
@@ -143,7 +143,7 @@ class StudyTests(unittest.TestCase):
             self.study.attach_encoder(self.artifact, predictions(self.rows), origin=self.origin)
             self.study.save_artifact(self.artifact, folder)
             saved, origin = self.study.saved_encoder_predictions(path, expected_run_id="run-one", rows=self.rows)
-            new = self.study.new_artifact(self.rows, "run-two", self.settings, {})
+            new = legacy_artifact(self.rows, "run-two", self.settings, {})
             self.study.attach_encoder(new, saved, origin=origin)
             self.assertEqual(new["records"][0]["encoder_origin"]["reused_from"]["source_run_id"], "run-one")
             path.write_text(json.dumps(predictions(self.rows)))
@@ -177,7 +177,7 @@ class StudyTests(unittest.TestCase):
             (ROOT / "data" / "never-open.csv").read_text()
         with patch("sys.addaudithook") as hook:
             self.study.fixture_rows()
-            self.study.new_artifact(self.rows, "id", self.settings, {})
+            legacy_artifact(self.rows, "id", self.settings, {})
         hook.assert_not_called()
 
     def test_qwen_callable_binds_resolved_model_digest_and_request_settings(self):
@@ -220,7 +220,7 @@ class StudyTests(unittest.TestCase):
         sentence = "א״ב וגם א״ב"
         rows = [dict(self.rows[0], item_id="first", sentence=sentence, target_raw="א״ב", span_start=0, span_end=3),
                 dict(self.rows[0], item_id="second", sentence=sentence, target_raw="א״ב", span_start=8, span_end=11)]
-        artifact = self.study.new_artifact(rows, "two-occurrences", self.settings, {})
+        artifact = legacy_artifact(rows, "two-occurrences", self.settings, {})
         self.study.collect_responses(artifact, "generate", lambda prompt: "raw")
         self.study.collect_responses(artifact, "select", lambda prompt: "A")
         generated = [record for record in artifact["records"] if record["condition"] == "generate"]
@@ -258,7 +258,7 @@ class StudyTests(unittest.TestCase):
         bad["records"][2]["backend_metadata"]["digest_after"] = "other-digest"
         with self.assertRaisesRegex(ValueError, "Backend response evidence"):
             self.study.validate_artifact(bad, expected_run_id="run-one")
-        new = self.study.new_artifact(self.rows, "identity-failed", self.settings, {})
+        new = legacy_artifact(self.rows, "identity-failed", self.settings, {})
         new["llm_runtime"] = deepcopy(self.artifact["llm_runtime"])
         failed = dict(result, identity_status="unverified", digest_after="changed", error="changed digest")
         self.study.collect_responses(new, "select", lambda prompt: failed)
