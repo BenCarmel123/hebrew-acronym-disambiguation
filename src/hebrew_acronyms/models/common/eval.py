@@ -39,16 +39,16 @@ def build_select_prompt(acronym: str, sentence: str, shuffled_candidates: list[s
 
 
 def parse_letter_choice(response: str, n_candidates: int) -> int | None:
-    """First A/B/C... in the response -> its 0-based index, or None if none found."""
-    valid_letters = string.ascii_uppercase[:n_candidates]
-    for ch in response.strip().upper():
-        if ch in valid_letters:
-            return valid_letters.index(ch)
-    return None
+    """Accept only one uppercase in-range letter after trimming boundary whitespace."""
+    if not isinstance(response, str) or not 1 <= n_candidates <= 26:
+        return None
+    answer = response.strip()
+    letters = string.ascii_uppercase[:n_candidates]
+    return letters.index(answer) if len(answer) == 1 and answer in letters else None
 
 
 def is_correct(response: str, gold: str) -> bool:
-    """Loose match: gold's text appears in the model's response, quote-folded."""
+    """Legacy substring score, retained for historical callers only; not study scoring."""
     return _normalise(gold) in _normalise(response)
 
 
@@ -134,3 +134,106 @@ def write_details_csv(path: str, details: list[dict]) -> None:
             row["candidates"] = " | ".join(row["candidates"])
             row["shown_order"] = " | ".join(row["shown_order"]) if row["shown_order"] else ""
             writer.writerow(row)
+
+
+def summarize_selection(rows: list[dict], records: list[dict], condition: str) -> dict:
+    """Preliminary dev accuracy over every requested ID, including failures/unrun.
+
+    Derive fresh results without rewriting raw artifacts. Missing type_id makes
+    macro unavailable; missing gold makes both accuracies unavailable. No alias,
+    case or quote folding is applied. Generation is never scored here.
+    """
+    from collections import Counter, defaultdict
+    from hebrew_acronyms.models.common.pairs import validate_ids
+    if condition not in {"dictabert", "select"}:
+        raise ValueError("Automatic dev accuracy is defined only for selection systems")
+    validate_ids(rows)
+    selected_records = [record for record in records if record.get("condition", condition) == condition]
+    validate_ids(selected_records)
+    by_id = {record["item_id"]: record for record in selected_records}
+    if set(by_id) != {row["item_id"] for row in rows}:
+        raise ValueError("Scoring requires exactly one record per requested item; do not drop failures")
+    details, types = [], defaultdict(list)
+    missing_gold, missing_type = [], []
+    for row in rows:
+        record = by_id[row["item_id"]]
+        selected, index = None, None
+        status = record["status"]
+        if condition == "dictabert" and status == "ok":
+            selected = record.get("selected_candidate")
+            index = record.get("selected_index")
+        elif condition == "select" and status == "response_received":
+            shown = record.get("shown_order")
+            index = parse_letter_choice(record.get("raw_response"), len(shown) if isinstance(shown, list) else 0)
+            if index is None:
+                status = "parse_error"
+            else:
+                selected = shown[index]
+                status = "ok"
+        gold = row.get("gold_expansion")
+        if not isinstance(gold, str) or not gold.strip():
+            missing_gold.append(row["item_id"])
+            correct = None
+        else:
+            correct = status == "ok" and isinstance(selected, str) and selected.strip() == gold.strip()
+        type_id = row.get("type_id")
+        if not isinstance(type_id, str) or not type_id.strip():
+            missing_type.append(row["item_id"])
+        else:
+            types[type_id].append(correct)
+        details.append({"item_id": row["item_id"], "type_id": type_id,
+                        "status": status, "raw_status": record["status"],
+                        "selected_candidate": selected, "selected_index": index,
+                        "correct": correct, "error": record.get("error")})
+    n = len(rows)
+    per_type = [{"type_id": key, "n_items": len(values),
+                 "accuracy": sum(values) / len(values) if None not in values else None}
+                for key, values in sorted(types.items())]
+    warnings = []
+    if missing_gold:
+        warnings.append("Accuracy unavailable: missing gold_expansion for " + ", ".join(missing_gold))
+    if missing_type:
+        warnings.append("Macro unavailable: missing type_id for " + ", ".join(missing_type))
+    return {"condition": condition, "n_items": n,
+            "n_attempted": sum(record["status"] != "not_run" for record in selected_records),
+            "n_valid_predictions": sum(detail["status"] == "ok" for detail in details),
+            "partial": any(detail["raw_status"] in {"not_run", "interrupted"} for detail in details),
+            "micro_accuracy": sum(detail["correct"] for detail in details) / n if n and not missing_gold else None,
+            "macro_accuracy": sum(group["accuracy"] for group in per_type) / len(per_type)
+                if per_type and not missing_gold and not missing_type else None,
+            "by_type": per_type, "status_counts": dict(Counter(detail["status"] for detail in details)),
+            "warnings": warnings, "details": details}
+
+
+def inspect_predictions(rows: list[dict], records: list[dict]) -> dict:
+    """Join context, gold, raw answers, letter mappings and decoded dev selections."""
+    encoder = summarize_selection(rows, records, "dictabert")
+    selection = summarize_selection(rows, records, "select")
+    raw = {(record["condition"], record["item_id"]): record for record in records}
+    encoder_by_id = {detail["item_id"]: detail for detail in encoder["details"]}
+    selection_by_id = {detail["item_id"]: detail for detail in selection["details"]}
+    items, disagreements = [], []
+    for row in rows:
+        item_id = row["item_id"]
+        enc, sel = encoder_by_id[item_id], selection_by_id[item_id]
+        generation, select = raw[("generate", item_id)], raw[("select", item_id)]
+        both_valid = enc["status"] == sel["status"] == "ok"
+        disagree = both_valid and enc["selected_candidate"].strip() != sel["selected_candidate"].strip()
+        item = {"item_id": item_id, "type_id": row.get("type_id"), "sentence": row.get("sentence"),
+                "target_raw": row.get("target_raw"), "span": [row.get("span_start"), row.get("span_end")],
+                "gold": row.get("gold_expansion"), "encoder_prediction": enc["selected_candidate"],
+                "encoder_status": enc["status"], "encoder_correct": enc["correct"],
+                "generation_raw": generation.get("raw_response"), "generation_status": generation["status"],
+                "generation_score_status": "manual_review_unscored", "selection_raw": select.get("raw_response"),
+                "letter_mapping": dict(zip(string.ascii_uppercase, select.get("shown_order") or [])),
+                "selection_decoded": sel["selected_candidate"], "selection_status": sel["status"],
+                "selection_correct": sel["correct"], "disagreement": disagree,
+                "failures": {condition: raw[(condition, item_id)].get("error") for condition in
+                             ("dictabert", "generate", "select") if raw[(condition, item_id)].get("error")}}
+        if sel["status"] == "parse_error":
+            item["failures"]["select"] = "Expected a single uppercase letter in the displayed range"
+        items.append(item)
+        if disagree:
+            disagreements.append(item)
+    return {"items": items, "metrics": [encoder, selection], "disagreements": disagreements,
+            "generation_score_status": "manual_review_unscored"}
