@@ -39,6 +39,8 @@ def runtime(model, *, base_url, timeout, options):
 def response(prompt, *, model, expected_digest, base_url, timeout, options):
     return {"response": "אור בוקר" if "פירוש:" in prompt else "A", "model": model,
             "expected_digest": expected_digest, "identity_status": "verified",
+            "status": "response_received", "completion_status": "complete",
+            "response_metadata": {"done": True, "done_reason": "stop"},
             "digest_before": expected_digest, "digest_after": expected_digest,
             "request_settings": {"model": model, "options": options, "stream": False}}
 
@@ -63,6 +65,11 @@ def execute(controls=None, *, qwen_failure=False, gemini_failure=False):
     namespace = {"__name__": "__main__"}
     notebook = json.loads((ROOT / "notebooks/experimental_study.ipynb").read_text())
     display_module = SimpleNamespace(HTML=lambda value: value, display=lambda value: None)
+    def fake_load(checkpoint, **kwargs):
+        metadata = json.loads(Path(str(checkpoint) + ".json").read_text())
+        assert kwargs["expected_inputs"] == metadata["inputs"]
+        return object(), SimpleNamespace(checkpoint_metadata=metadata), 1, 2
+
     def gemini_http(*args, **kwargs):
         if gemini_failure:
             raise gemini_eval.requests.Timeout("invented secret must not leak")
@@ -76,7 +83,7 @@ def execute(controls=None, *, qwen_failure=False, gemini_failure=False):
           patch.dict(os.environ),
           patch.object(model, "inspect_checkpoint", autospec=True, return_value={"fixture": True}) as inspect,
           patch.object(model, "load_finetuned", autospec=True,
-                       return_value=(object(), SimpleNamespace(checkpoint_metadata={"fixture": True}), 1, 2)) as load,
+                       side_effect=fake_load) as load,
           patch.object(encoder_eval, "evaluate", autospec=True, side_effect=lambda rows, *a: predictions(rows)) as evaluate,
           patch.object(qwen_eval, "inspect_ollama", autospec=True,
                        side_effect=RuntimeError("fixture unavailable") if qwen_failure else runtime) as inspect_llm,
@@ -110,9 +117,10 @@ def execute(controls=None, *, qwen_failure=False, gemini_failure=False):
         else:
             gemini_post.assert_not_called()
         if mode == "run" and settings["enable_encoder"]:
-            inspect.assert_called_once();load.assert_called_once();evaluate.assert_called_once()
+            load.assert_called_once();evaluate.assert_called_once()
         else:
-            inspect.assert_not_called();load.assert_not_called();evaluate.assert_not_called()
+            load.assert_not_called();evaluate.assert_not_called()
+        inspect.assert_not_called()
     return namespace
 
 
@@ -131,8 +139,15 @@ def main():
             writer = csv.DictWriter(stream, fieldnames=rows[0]);writer.writeheader();writer.writerows(rows)
         checkpoint = folder / "invented.pt"
         checkpoint.write_text("not weights; mocked load")
-        Path(str(checkpoint) + ".json").write_text("{}")
-        controls = dict(mode="run", input_path=input_path, expected_dev_items=4, validation_items=3,
+        train_path = folder / "invented-train.csv"
+        with train_path.open("w", newline="") as stream:
+            writer = csv.DictWriter(stream, fieldnames=rows[0]);writer.writeheader()
+            writer.writerows([dict(row, item_id="train-" + row["item_id"]) for row in rows])
+        metadata = {"inputs": {"train": study.input_identity(study.load_rows(train_path)),
+                               "dev": study.input_identity(study.load_rows(input_path))},
+                    "training_config": {"epochs": 2}, "selection": {"epoch": 1}}
+        Path(str(checkpoint) + ".json").write_text(json.dumps(metadata))
+        controls = dict(mode="run", train_path=train_path, input_path=input_path, expected_dev_items=4, validation_items=3,
                         enable_encoder=True, enable_qwen=True, enable_gemini=True, checkpoint=checkpoint, device="cpu",
                         output_root=folder, run_id="validation-one", run_kind="validation")
         validation = execute(controls)

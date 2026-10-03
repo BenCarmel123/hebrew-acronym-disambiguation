@@ -80,7 +80,7 @@ def fixture_rows():
 
 
 def check_readiness(root, input_path, checkpoint, output_dir, *, run, encoder, llm,
-                    model, revision, saved_encoder=None):
+                    model, saved_encoder=None):
     """Check paths and installed interfaces locally; never read research inputs or call a service."""
     from hebrew_acronyms.models.dictabert_cross_encoder.model import load_finetuned
     from hebrew_acronyms.models.dictabert_cross_encoder.eval import evaluate
@@ -182,6 +182,8 @@ def _record_response(artifact, record, system, response):
     record["backend_metadata"] = {key: deepcopy(value) for key, value in response.items() if key != "response"}
     record.update(status=response.get("status", "response_received"), raw_response=response["response"],
                   error=response.get("error"))
+    if system == "qwen" and response.get("completion_status") == "incomplete":
+        record["status"] = "incomplete_response"
     if system == "gemini":
         record["model_revision"] = response.get("model_version")
     if record["status"] != "response_received":
@@ -356,6 +358,11 @@ def validate_artifact(artifact, *, expected_run_id, rows=None):
                 revision = runtime.get("digest") or artifact["settings"].get("qwen_revision")
                 if record.get("model_revision") != revision:
                     raise ValueError("Mixed LLM model/version settings")
+                if evidence is not None and "completion_status" in evidence and record["status"] == "response_received":
+                    completion = evidence.get("response_metadata", {})
+                    if (evidence["completion_status"] != "complete" or completion.get("done") is not True
+                            or completion.get("done_reason") != "stop"):
+                        raise ValueError("Qwen response is not a confirmed complete answer")
                 if record["status"] == "response_received" and evidence is not None:
                     request = evidence.get("request_settings", {})
                     if (evidence.get("identity_status") != "verified" or not revision
@@ -545,7 +552,7 @@ def prepare_study(rows, cohort, settings):
     output_dir = Path(settings["output_root"]) / settings["run_id"]
     check_readiness(settings["root"], settings["input_path"], settings.get("checkpoint"), output_dir,
                     run=settings["mode"] == "run", encoder=settings["enable_encoder"], llm=settings["enable_qwen"],
-                    model=settings.get("qwen_model"), revision=None, saved_encoder=settings.get("saved_encoder"))
+                    model=settings.get("qwen_model"), saved_encoder=settings.get("saved_encoder"))
     stored = {key: str(value) if isinstance(value, Path) else deepcopy(value) for key, value in settings.items()}
     stored.update(selection_shuffle_seed=prompts.SHUFFLE_SEED, prompt_scope="exact_marked_occurrence_with_sentence",
                   scoring="derived preliminary dev selection accuracy; generation manual review")
@@ -562,9 +569,58 @@ def save_study(artifact):
     return save_artifact(artifact, Path(settings["output_root"]) / artifact["run_id"])
 
 
+def current_encoder_inputs(artifact, rows):
+    """Read qualified train/full dev only for an explicit encoder run."""
+    settings = artifact["settings"]
+    if settings.get("mode") != "run":
+        raise ValueError("Encoder input verification requires mode='run'")
+    identities = {}
+    for split, setting in (("train", "train_path"), ("dev", "input_path")):
+        if not settings.get(setting):
+            raise ValueError(f"Set {setting} to the current qualified {split} CSV")
+        source_rows = load_rows(Path(settings[setting]).expanduser())
+        validate_ids(source_rows)
+        identities[split] = input_identity(source_rows)
+        if split == "dev":
+            if input_identity(source_rows[:len(rows)]) != input_identity(rows):
+                raise ValueError("Prediction rows differ from the current qualified dev input")
+            if artifact.get("cohort", {}).get("full_input_identity") != identities["dev"]:
+                raise ValueError("Qualified dev changed since this run was prepared; start a new run")
+    return identities
+
+
+def check_checkpoint_inputs(metadata, expected_inputs):
+    """Compare independently computed identities without changing the sidecar."""
+    stored = metadata.get("inputs") if isinstance(metadata, dict) else None
+    if not isinstance(stored, dict):
+        raise ValueError("Checkpoint lacks original train/dev identities; obtain the original JSON")
+    for split in ("train", "dev"):
+        if split not in stored:
+            raise ValueError(f"Checkpoint lacks the original {split} identity")
+        if stored[split] != expected_inputs[split]:
+            raise ValueError(f"Checkpoint {split} input differs from the current qualified {split} data")
+    if stored != expected_inputs:
+        raise ValueError("Checkpoint input metadata differs from the train/dev contract")
+
+
+def checkpoint_report(artifact):
+    """Return full checkpoint metadata and a compact display summary."""
+    records = [record for record in artifact["records"] if record["condition"] == "dictabert"]
+    origin = next((record.get("encoder_origin") for record in records if record.get("encoder_origin")), None)
+    if not origin:
+        return None, {"state": "not run"}
+    metadata = origin.get("checkpoint_metadata", {})
+    inputs = metadata.get("inputs", {})
+    return metadata, {"training_config": metadata.get("training_config"),
+            "selected_epoch": metadata.get("selection", {}).get("epoch"),
+            "train_items": len(inputs["train"]["item_ids"]) if inputs.get("train", {}).get("item_ids") is not None else None,
+            "dev_items": len(inputs["dev"]["item_ids"]) if inputs.get("dev", {}).get("item_ids") is not None else None,
+            "input_match": origin.get("input_match", "not checked for this historical run")}
+
+
 def predict_encoder(artifact, rows, *, checkpoint, snapshot_path=None, device="cpu", saved_path=None, saved_run_id=None):
     """Load/evaluate/release the encoder using original model APIs; no training."""
-    from hebrew_acronyms.models.dictabert_cross_encoder.model import load_finetuned, file_digest
+    from hebrew_acronyms.models.dictabert_cross_encoder.model import load_finetuned, file_digest, metadata_path
     from hebrew_acronyms.models.dictabert_cross_encoder.eval import evaluate
     from hebrew_acronyms.models.dictabert_cross_encoder.workflow import enable_offline
     validate_artifact(artifact, expected_run_id=artifact["run_id"], rows=rows)
@@ -576,12 +632,19 @@ def predict_encoder(artifact, rows, *, checkpoint, snapshot_path=None, device="c
             raise ValueError(f"Encoder setting {key} differs from the recorded run; start a new run")
     if any(record["status"] != "not_run" for record in artifact["records"] if record["condition"] == "dictabert"):
         raise ValueError("Encoder predictions already exist; start a new run")
+    expected_inputs = current_encoder_inputs(artifact, rows)
     if saved_path is not None:
         predictions, origin = saved_encoder_predictions(saved_path, expected_run_id=saved_run_id, rows=rows)
+        check_checkpoint_inputs(origin.get("checkpoint_metadata"), expected_inputs)
     else:
         checkpoint = Path(checkpoint).expanduser().resolve()
+        sidecar = metadata_path(checkpoint)
+        if not sidecar.is_file():
+            raise ValueError("Checkpoint metadata is required; obtain Ben's original JSON")
+        check_checkpoint_inputs(json.loads(sidecar.read_text(encoding="utf-8")), expected_inputs)
         enable_offline()
-        tokenizer, model, opened, closed = load_finetuned(str(checkpoint), device=device, snapshot_path=snapshot_path)
+        tokenizer, model, opened, closed = load_finetuned(
+            str(checkpoint), device=device, snapshot_path=snapshot_path, expected_inputs=expected_inputs)
         try:
             predictions = evaluate(rows, tokenizer, model, opened, closed, device)
             origin = {"checkpoint": str(Path(checkpoint).resolve()), "weights_sha256": file_digest(checkpoint),
@@ -598,6 +661,8 @@ def predict_encoder(artifact, rows, *, checkpoint, snapshot_path=None, device="c
             elif device == "mps":
                 import torch
                 torch.mps.empty_cache()
+    origin["input_match"] = "matched current qualified train and full dev"
+    origin["expected_inputs"] = expected_inputs
     attach_encoder(artifact, predictions, origin=origin)
     save_study(artifact)
     return predictions

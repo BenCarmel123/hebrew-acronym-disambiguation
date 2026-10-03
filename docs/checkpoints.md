@@ -1,40 +1,47 @@
 # Checkpoints
 
-Weight files are local and ignored by Git. The [training appendix](../notebooks/train_dictabert.ipynb)
-defaults to invented-input inference and writes no checkpoint. Training requires explicit inputs,
-a cached DictaBERT snapshot and a new output path; see [setup](../README.md#training-appendix).
-Historical weights, full training and GPU execution have not been reproduced.
+Use the [main study notebook](../notebooks/experimental_study.ipynb) for checkpoint
+inspection and dev prediction. Local installation and service setup are in the
+[README](../README.md#local-setup). The [training appendix](../notebooks/train_dictabert.ipynb)
+remains separate; checkpoint loading does not train the model.
 
-The shared [checkpoint loader](../src/hebrew_acronyms/models/dictabert_cross_encoder/model.py) adds `[ACR]` and `[/ACR]`
-and resizes embeddings before loading the saved state. Pooling is selected through
-`TrainingConfig.pooling`: `cls` uses the pair summary, `marker` the opening marker,
-`span_mean` the target subwords, and `concat` combines summary and span vectors.
-Initialization seeds Python and PyTorch before encoder, marker embeddings and scoring-head
-initialization. Controlled CPU initialization and tiny-model inference roundtrips are
-tested; this is not a claim of GPU determinism or research-run reproducibility.
+Each checkpoint consists of a weights file and its original `<checkpoint>.json`, which records:
 
-Each new checkpoint has a required `<checkpoint>.json` sidecar containing:
+- Training settings, initialization seed, pooling/dropout and library versions.
+- Model identifier/revision or local snapshot hashes, plus tokenizer and marker identities.
+- Ordered train/dev item IDs and hashes of the complete supplied rows.
+- Selected epoch, development pair loss, selection rule and weights SHA-256.
 
-- Training configuration, initialization seed, pooling/dropout and library versions.
-- Model identifier/revision or local snapshot file hashes; tokenizer vocabulary,
-  tokenization backend and marker/special-token identities.
-- Ordered train/dev item IDs and hashes of complete supplied rows, preserving order.
-- The selected epoch and development pair loss, selection rule, and weight SHA-256.
+The [loader](../src/hebrew_acronyms/models/dictabert_cross_encoder/model.py) restores
+saved settings, adds `[ACR]` and `[/ACR]`, resizes embeddings and verifies weights,
+model, tokenizer and library identities. `snapshot_path` can explicitly relocate a
+snapshot whose complete local file hashes match the recorded source; the original
+JSON remains unchanged. Missing sidecars, weight-only legacy files and incompatible
+artifacts are rejected. Loading restores inference weights, not optimizer state.
 
-Keep weights, sidecar, exact local snapshot and original inputs together. The loader
-reconstructs from saved settings and verifies weight, source, tokenizer and library
-identities. Optional expected input identities/configuration detect caller mismatches.
-The item predictor uses the restored length limit and rejects conflicting overrides.
-Missing sidecars, changed dependencies and legacy weight-only checkpoints fail
-explicitly. Relocating a snapshot requires separately handled path metadata; no broad
-legacy migration is included. Checkpoints restore inference weights, not optimizer
-state for interrupted-run continuation. Selection still requires strictly lower dev
-pair loss; no checkpoint or metric policy is approved for research by these tests.
+In the main study, `train_path` and `input_path` identify the qualified train and full
+dev files. Before prediction, their independently computed `input_identity` values
+are compared with the manifest's `inputs` and passed to `load_finetuned` as
+`expected_inputs`. The same comparison precedes reuse of saved encoder predictions.
+A three-item validation run therefore checks the full 62-item dev identity, not the
+three-item subset. Reloading an existing study result uses its saved contents and
+does not reread train/dev files. The notebook's compact checkpoint summary reports
+training settings, selected epoch, input counts and match status; full metadata is
+retained in the result file.
 
-The explicit tiny sanity check reuses invented rows as train and dev to test learning.
-Its 180-epoch setting is engineering-only; the ordinary default remains one epoch.
-This engineering check produces only temporary weights. Environment-check examples
-include the required IDs and exact target spans. Benchmark aggregation is not implemented.
+Pooling options remain `cls` (pair summary), `marker` (opening marker), `span_mean`
+(target subwords) and `concat` (summary plus span). Initialization seeds Python and
+PyTorch before constructing the encoder, marker embeddings and scoring head.
+Checkpoint selection still requires strictly lower development pair loss. The tiny
+engineering sanity check reuses invented train/dev rows for 180 epochs; its temporary
+weights and learning behavior are separate from research training.
+
+[Shared evaluation](../src/hebrew_acronyms/models/common/eval.py) now aggregates
+preliminary dev selection accuracy: micro over requested items and unweighted macro
+across `type_id` groups, with failures retained in the denominators. Generation
+answers remain for manual review. Fixtures cover loading, input matching, snapshot
+relocation and scoring; actual supplied checkpoints and live-service performance
+require a manual validation run.
 
 ## Shaked's earlier Colab run — separate implementation
 

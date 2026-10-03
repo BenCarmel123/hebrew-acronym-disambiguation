@@ -154,7 +154,7 @@ class StudyTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             folder = Path(directory); input_path = folder / "invented.csv"; input_path.write_text("fixture")
             arguments = dict(root=ROOT, input_path=input_path, checkpoint=None, output_dir=folder / "new",
-                             run=True, encoder=True, llm=False, model=None, revision=None)
+                             run=True, encoder=True, llm=False, model=None)
             with self.assertRaises(FileNotFoundError):
                 self.study.check_readiness(**arguments)
             checkpoint = folder / "fixture.pt";checkpoint.write_text("fixture")
