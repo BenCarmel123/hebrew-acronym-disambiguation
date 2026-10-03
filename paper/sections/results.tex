@@ -1,6 +1,59 @@
 \section{Results and Discussion}
 \label{sec:results}
+
+\subsection{Held-out test results}
+\label{sec:test-results}
+
+Table~\ref{tab:test-results} reports the single held-out evaluation on the
+frozen, type-disjoint natural test population (\texttt{data/splits/test\_items.csv},
+395 items), run once on 3 October 2026. Baselines, both DictaBERT arms and
+both LLMs (generate and select, one request per item) were scored under an
+identical item universe and the shared exact-match scorer; per-item records
+are retained under \texttt{results/\{dictabert,dictabertx,qwen,gemini\}/}.
+
+\begin{table}[t]
+\centering\small
+\begin{tabular}{lrr}
+\toprule
+Arm & Accuracy & Invalid rate \\
+\midrule
+Random & 23.4\% & -- \\
+Most frequent & 38.2\% & -- \\
+Most mined & 48.9\% & -- \\
+Oracle & 100.0\% & -- \\
+DictaBERT (untrained) & 65.1\% & -- \\
+DictaBERT (fine-tuned) & 72.4\% & -- \\
+Qwen 2.5 7B (generate) & 6.8\% & 92.7\% \\
+Qwen 2.5 7B (select) & 59.5\% & 0.8\% \\
+Gemini (generate) & 53.2\% & 44.3\% \\
+Gemini (select) & 93.7\% & 0.5\% \\
+\bottomrule
+\end{tabular}
+\caption{Held-out test accuracy (395 items). ``Invalid rate'' is the share of
+free-generation responses matching no candidate string; selection responses
+are constrained to the inventory by construction.}
+\label{tab:test-results}
+\end{table}
+
+Free generation fails as scored for both LLMs: the overwhelming majority of
+generated responses never produce the candidate's exact text, whether because
+the model answers with a close paraphrase, over-explains instead of returning
+a short phrase, or -- for Qwen specifically -- produces garbled,
+mixed-script output unrelated to the prompt. Restricting the same models to
+select from the fixed inventory closes most of that gap (Qwen: 6.8\% to
+59.5\%; Gemini: 53.2\% to 93.7\%), directly answering whether a
+general-purpose LLM already solves this task from context alone: not under
+free generation, but yes once given the same candidate-constrained scaffold
+the trained encoder uses.
+
+The fine-tuned encoder (72.4\%) clearly exceeds both baselines and its own
+untrained zero-shot variant, and clearly exceeds unconstrained LLM generation
+for both LLMs -- a real, defensible result for task-specific fine-tuning over
+naive prompting. It does not exceed Gemini under selection (93.7\%), the
+strongest arm overall.
+
 \ifpaperresults
+\subsection{Preliminary development results}
 \begin{table*}[t]
 \centering\small
 \PaperResultsTable
@@ -13,6 +66,4 @@
 \caption{Preliminary development selection accuracy for run \PaperRunID. Micro divides by all requested items; macro weights types equally. Partial arms are labeled, and failed requests remain in the denominator.}
 \label{fig:selection-results}
 \end{figure*}
-\else
-\emph{Draft note: final test results and discussion have not yet been incorporated.}
 \fi
