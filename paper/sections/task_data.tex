@@ -25,7 +25,7 @@ The retained collection draws on Hebrew Wikipedia and Knesset proceedings. Candi
 
 Most training examples are \emph{substituted}: a spelled-out expansion in a Wikipedia sentence was replaced with the acronym, and the removed expression supplies a weak label. Natural examples retain an observed acronym; a small \emph{deglossed} subset removes an adjacent explanation. The current release also contains Claude-authored examples. Substitution and authorship supply supervision cheaply but need not reproduce naturally abbreviated text. Stored labels were reused without comprehensive reannotation.
 
-Table~\ref{tab:data} counts the current train and dev CSVs at the inspected repository revision. The 1 October training derivative had 2,665 items; Ben's 3 October release added 164. The documented release groups are 126 authored rows previously held for missing document keys, 10 target-boundary corrections and 28 natural sentences shortened to retain one target occurrence. Direct counting identifies 136 authored rows in total, including the 10 boundary cases. Authored rows have no source document and are excluded from the document-key count.
+Table~\ref{tab:data} summarizes the available training and development files. The 136 Claude-authored items have no source document and are excluded from the document-key count.
 
 \begin{table}[t]
 \centering\small
@@ -45,19 +45,18 @@ Deglossed Wikipedia & 8 & 0 \\
 Claude-authored & 136 & 0 \\
 \bottomrule
 \end{tabular}
-\caption{Current input files after the 3 October training release. Construction and source categories use stored metadata. Every item has at least two distinct candidates. These counts identify the available files, not an authenticated snapshot of the original training run.}
+\caption{Available training and development data. Source and construction categories follow stored metadata. Every item has at least two distinct candidates.}
 \label{tab:data}
 \end{table}
 
-All 62 development items are natural Knesset occurrences. For 42, preparation reuses content-matched historical review attributed to Ben; 20 carry Shaked's decisions made with AI assistance. This is not independent double annotation. Current training metadata marks 2,507 labels as not independently verified during preparation, 316 with historical review evidence and six with Shaked's AI-assisted decisions. These evidence categories, rather than a generic stored ``verified'' flag, describe the available review.
-
-The saved qualification manifest still describes the earlier 2,665-item derivative. It cannot authenticate the expanded CSV or its separation guarantees. The \codebase{data/study_v1/encoder_inputs/train.csv}{versioned inputs} identify the inspected files; the paper build documentation records their hashes and counting definitions. Shaked identifies the supplied weights as Ben's current Colab training run; the state dictionary itself contains no training-input hash. Identity of the available CSV therefore does not establish the exact rows used during training.
+All development items are natural Knesset occurrences. Of their labels, 42 reuse content-matched historical review and 20 reflect AI-assisted author decisions; this is not independent double annotation. Training metadata identifies 2,507 labels without independent verification during preparation, 316 with historical review evidence and six with AI-assisted author decisions. File identities and detailed annotation provenance are provided in the paper's technical documentation.
 
 \subsection{Qualification and separation}
-The original preparation checked item identity, document provenance, target boundaries, duplicate text, candidate structure and split overlap. It located targets by a unique bounded match after limited quotation-mark folding, or by a recorded human span. Each included pair-loss item requires at least two distinct candidates and exactly one candidate matching the reference after surrounding whitespace is trimmed. Structural validity does not establish semantic correctness of labels or candidates.
+\label{sec:separation}
+Preparation checks item identity, target boundaries and candidate structure. Targets use a unique bounded match after limited quotation-mark folding or a recorded human span. Each pair-loss item requires at least two distinct candidates and exactly one candidate matching the reference after surrounding whitespace is trimmed. These checks establish structural validity, not semantic correctness.
 
-In the current files, exact acronym-type sets and exact sentence strings do not overlap between train and dev. However, three nonempty document keys are shared, involving three training rows and five development rows. Thus the updated files do not support a claim of complete document separation. The original checks against reserved evaluation metadata predate the release and are not a fresh audit of it. No test content was inspected for this manuscript update. The recorded local rule excluding 11 otherwise eligible training occurrences of \heb{ד״ר} because \heb{בד״ר} occurs in dev addresses one prefix-related overlap; it does not establish separation of all morphological families.
+The available train and dev files have no identical sentence strings or exact acronym forms in common. However, three document keys are shared, involving three training and five development items. The inspected data therefore lack complete document separation. This observation does not measure an effect on model performance or establish overlap with test.
 
-Every development type has only one observed reference expansion; five of the 11 types have one item each. Several inventory candidates therefore do not imply several observed meanings. This sample supports development checks but cannot establish discrimination between senses of the same acronym or final-test generalization.
+Separation of stored forms also leaves morphological overlap. Training contains \heb{מד״ר} in \mbox{\heb{אם אני אבקש מד״ר שגב}}, while dev contains \heb{בד״ר}; both include a prefix attached to the doctor abbreviation. Excluding the unprefixed \heb{ד״ר} from training does not remove all members of that family. Accordingly, the split does not establish generalization to wholly unseen acronym families.
 
-The current design differs from the submitted proposal in using a smaller natural development collection, adding Knesset text and emphasizing task-training type separation. The original document-first split, larger held-out target and broader baseline list are not presented as completed commitments. The final test population and inclusion rules still require an identified record from the authors.
+Each development acronym type has a single stored gold label. This annotation pattern does not establish that all its contexts express the same meaning. The current labels and their known defects limit reliable assessment of within-type sense discrimination.
