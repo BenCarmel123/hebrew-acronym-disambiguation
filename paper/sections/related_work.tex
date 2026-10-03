@@ -1,0 +1,57 @@
+\section{Related Work}
+\label{sec:related-work}
+
+Hebrew acronym interpretation has an established research history. HAADS addresses
+abbreviation disambiguation in Hebrew and Aramaic Jewish Law documents
+\citep{hacohenkerner2010haads}. For Modern Hebrew,
+\citet{jacobs2020acronyms} develop an acronym dictionary from unannotated text and
+enrich it with contextual information for disambiguation. Their approach also
+addresses cases in which an expansion is absent from the acronym's document.
+These studies establish that both collecting possible expansions and choosing
+among them are substantive problems. Our study starts with an identified target
+occurrence and an existing candidate inventory. It therefore evaluates expansion
+and selection under that input contract, rather than end-to-end acronym detection
+or dictionary construction. The quality and coverage of the supplied inventory
+remain part of the conditions under which a selection score can be interpreted.
+
+A related distinction concerns what an evaluation split measures.
+\citet{chen2023gladis} introduce GLADIS, an English acronym benchmark covering
+general, scientific, and biomedical domains. Its task splits keep training acronym
+types out of validation and test. Their AcroBERT model jointly encodes a context
+and a candidate expansion, using a triplet objective to distinguish matching
+from nonmatching pairs. This provides a precedent for scoring candidate text and
+transferring across task-training types. Our DictaBERT ranker uses pairwise binary
+classification, so it is not a reproduction of AcroBERT's training procedure.
+
+Data construction also affects this comparison. GLADIS builds its general and
+biomedical evaluation sets by replacing annotated entity long forms with acronyms,
+while repartitioning an existing acronym dataset for the scientific domain
+\citep{chen2023gladis}. Replacement creates a labeled example without requiring a
+naturally occurring acronym mention. However, the sentence was originally written
+with the full expression. For our study, this distinction motivates retaining the
+construction history of each example and distinguishing largely substituted
+training material from natural development occurrences. It does not establish that
+one source is necessarily easier, since the acronym and expansion distributions
+also differ.
+
+Generation introduces a separate evaluation problem: the answer may express the
+right expansion without matching the reference string.
+\citet{agrawal2022large} prompt an LLM to expand abbreviations in clinical snippets
+without showing answer choices. They then map its output to the candidate with
+the greatest contiguous character overlap. Their design separates the information
+available to the generator from the inventory available to the evaluator. It also
+shows why a reported generation score depends on the answer resolver. We do not
+assume that this English clinical matching rule is appropriate for Hebrew, where
+acceptable wording and the distinction between expanding a name and identifying
+its referent require explicit treatment.
+
+The same concern appears in word sense disambiguation.
+\citet{meconi2025large} study selection among supplied definitions and separately
+ask LLMs to generate definitions, explanations, and examples without a predefined
+answer list. Their generation study uses expert judgments rather than treating
+literal agreement with a dictionary definition as sufficient. Word definitions
+and acronym expansions are different outputs, but the methodological lesson is
+relevant: the two response formats require a stated basis for comparison. Our
+selection metrics are implemented, while a final human judgment protocol for
+free expansions remains to be completed.
+
