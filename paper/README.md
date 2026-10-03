@@ -1,5 +1,9 @@
 # Paper: source, build and result updates
 
+The reviewed, compiled snapshot is [draft.pdf](draft.pdf), checked into Git so it
+can be opened without a local TeX build. It is a working draft, not a submission.
+The LaTeX files below remain the authoritative source.
+
 `main.tex` and `sections/*.tex` are the single maintained manuscript. The previous
 Markdown version is preserved at `9a14416:paper/manuscript.md`; its current file is
 only a pointer. This draft describes verified development execution and its
@@ -29,7 +33,10 @@ stay within eight pages, excluding references and appendix. Do not reduce fonts 
 margins to make room. Results and discussion should replace the short draft note, using the remaining
 space. There is no planned-display table in the manuscript.
 
-Build outputs are ignored. With no `generated/current.tex`, the paper builds its
+Build outputs under `build/` are ignored; `draft.pdf` is the explicitly published
+snapshot. After a successful build and visual review, refresh it with
+`cp paper/build/main.pdf paper/draft.pdf` from the repository root and commit it
+together with the source changes. With no `generated/current.tex`, the paper builds its
 explicit pending-results section. Building never loads a model, calls a service,
 opens a research split or regenerates data. The existing multi-file ACL project is
 built with its own TeX toolchain; the source remains editable in a normal editor.
