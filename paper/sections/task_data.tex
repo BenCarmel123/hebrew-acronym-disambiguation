@@ -1,0 +1,58 @@
+\section{Task and Data}
+\label{sec:data}
+\subsection{The unit of prediction}
+An item is a tuple $(a_i,x_i,s_i,r_i,C_i,y_i)$: an acronym type, a sentence, a half-open character span, its exact raw text, a candidate inventory, and a reference expansion. The span identifies one occurrence even when the sentence contains several abbreviations. We preserve $r_i=x_i[s_i]$, including an attached prefix, and mark that span with \texttt{[ACR]} and \texttt{[/ACR]}. The type is a grouping key; it is not substituted for the raw target in the input.
+
+Generation predicts a short expansion from $(x_i,s_i,r_i)$, without candidates or the reference. Selection predicts one member of $C_i$ from the same marked sentence and the supplied inventory. The reference label is used for supervised training and evaluation. Selection includes the reference among its candidates but does not identify which answer is correct. The intended answer is a linguistic expansion appropriate to the occurrence. An entity description or a plausible etymology alone is insufficient. Some named uses require an explicit annotation decision: for example, the current development labels accept \heb{רבי משה בן מימון} for \heb{רמב״ם}, including institutional uses. This is a recorded local convention, not a general rule for all names.
+
+Table~\ref{tab:example} illustrates the interface. It is a constructed explanation, not a dataset item or model output.
+\begin{table}[t]
+\centering\small
+\begin{tabular}{@{}p{0.22\columnwidth}p{0.71\columnwidth}@{}}
+\toprule
+Sentence & \heb{ח״כ נשא נאום במליאה.} \\
+Target & \heb{ח״כ} (the first token) \\
+Generation & A short expansion, e.g.\ \heb{חבר כנסת} \\
+Selection & A letter assigned to one supplied candidate \\
+\bottomrule
+\end{tabular}
+\caption{Illustrative input and answer formats. The sentence means ``A member of parliament gave a speech in the plenum.'' The target is shown separately here for readability; both tasks receive it marked inside the sentence. The example makes no claim about system accuracy.}
+\label{tab:example}
+\end{table}
+
+\subsection{Sources and supervision}
+The retained collection draws on Hebrew Wikipedia and Knesset proceedings. Candidate evidence was collected from Wikipedia abbreviation and disambiguation pages and Wiktionary. Sentence and label sources are distinct: neither natural occurrence nor dictionary membership establishes the correct expansion in context.
+
+The qualified training set combines three construction methods. Most examples are \emph{substituted}: a spelled-out expansion in a Wikipedia sentence was replaced with the acronym, and the removed expression supplies a weak label. Natural examples retain an observed acronym. A small \emph{deglossed} subset removes an adjacent explanation from an observed occurrence. Substitution supplies supervision cheaply but can yield awkward morphology or contexts unlike naturally abbreviated text. The saved labels were authorized for reuse without comprehensive reannotation.
+
+Table~\ref{tab:data} summarizes the current derivatives, rather than the larger historical exports. All 62 development items are natural Knesset occurrences. For 42, the preparation reuses content-matched historical review attributed to Ben; 20 carry Shaked's decisions made with AI assistance. This is not independent double annotation. Of the training labels, 2,368 were not independently verified in preparation, 291 have historical review evidence, and six have Shaked's AI-assisted decisions. No authored examples survive into these qualified inputs. 
+
+\begin{table}[t]
+\centering\small
+\begin{tabular}{@{}lrr@{}}
+\toprule
+Quantity & Train & Dev \\
+\midrule
+Occurrences & 2,665 & 62 \\
+Acronym types & 432 & 11 \\
+Document keys & 1,847 & 35 \\
+Sentence--candidate pairs & 12,020 & 331 \\
+\midrule
+Substituted Wikipedia & 2,316 & 0 \\
+Natural Wikipedia & 47 & 0 \\
+Natural Knesset & 294 & 62 \\
+Deglossed Wikipedia & 8 & 0 \\
+\bottomrule
+\end{tabular}
+\caption{Qualified training and development inputs. Counts describe prepared data, not completed experiments. Every included item has at least two distinct candidates.}
+\label{tab:data}
+\end{table}
+
+\subsection{Qualification and separation}
+Preparation starts from saved exports and recorded decisions. It checks item identity, document provenance, target boundaries, duplicate text, candidate structure and split overlap. A target is located by a unique bounded match after limited quotation-mark folding, or by a recorded human span. Ambiguous boundaries and repeated matches are held for review rather than resolved by selecting the first occurrence. Each included pair-loss item has at least two distinct candidates and exactly one candidate matching the reference after trimming surrounding whitespace. Candidate lists remain the stored per-item lists, with only explicitly approved corrections; a new globally verified dictionary is not assumed.
+
+Of 3,115 historical training rows, 2,665 are included, 448 are held and two have recorded exclusions. Reasons for holding rows can overlap and are not additive. The historical development set is retained only as reference; the current development set uses the separately qualified natural pool. Exact type and document checks block training overlap with development and reserved evaluation metadata. Text-duplicate checks cover training and authorized development content; duplicate text against the final test population has not been assessed. In addition, an approved local rule holds all 11 otherwise eligible training occurrences of \heb{ד״ר} because \heb{בד״ר} occurs in development. This handles one identified prefix-related overlap without imposing general prefix normalization. Incomplete document identifiers and unmodeled type families still limit the separation guarantee.
+
+Every development type has only one observed reference expansion; five types have one item each. Having several inventory candidates therefore does not imply observing several meanings. The set can support development checks, but high accuracy on it would not show that a system distinguishes different senses of the same acronym through context. It is not the final test set.
+
+The current design differs from the submitted proposal in using a smaller natural development collection, adding Knesset text and making task-training type separation central. The original document-first split, larger held-out target and broader baseline list are not presented as completed commitments. The final evaluation set and its inclusion rules remain open. The qualified-input manifest and dataset documentation preserve the construction evidence; Appendix-level implementation detail is provided by the repository and notebooks (Section~\ref{sec:companion}).

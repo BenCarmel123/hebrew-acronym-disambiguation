@@ -21,7 +21,8 @@ causal effect of model size or context. No final research results are reported.
 | [Local checks](docs/pipelines.md) | Environment check and explicit data validation; no combined model runner. |
 | [Tests](tests/) | Invented fixtures, tiny learning and reconstruction checks; no Git history needed. |
 
-The [manuscript](paper/manuscript.md), [bibliography](paper/references.bib) and
+The [LaTeX manuscript](paper/main.tex), [paper build/export instructions](paper/README.md),
+[bibliography](paper/references.bib) and
 [course sources](docs/course/README.md) describe the research context. The ID-named PDF
 is the submitted proposal; the other PDF is an earlier draft. The [data inventory](data/README.md)
 and [dataset card](data/mined/DATASET_CARD.md) preserve source and construction details.
@@ -158,4 +159,6 @@ Qualified dev inputs and preliminary selection scoring are available. Final benc
 runs and generation judgment rules remain separate work. Natural, substituted and
 AI-authored material must remain identifiable; see the data documentation. AI assistance
 contributed code, checks and draft prose, not human annotation or scientific validation.
-Weights, caches, environments, secrets and generated outputs stay outside version control.
+Weights, caches, environments, secrets and raw run outputs stay outside version control.
+The explicitly selected paper run may publish small derived PDF figures, TeX tables
+and provenance manifests under `paper/generated/`; preview and fixtures cannot do so.

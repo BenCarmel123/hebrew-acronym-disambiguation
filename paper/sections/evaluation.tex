@@ -1,0 +1,26 @@
+\section{Evaluation}
+\label{sec:eval}
+\subsection{Implemented selection measures}
+The current evaluator scores DictaBERT, Qwen selection and Gemini selection over the same requested item IDs. A completed LLM response is valid only if it is one uppercase letter within the displayed range after surrounding whitespace is removed. Text such as ``A.'' fails this parser even if its intended answer appears clear. The letter is mapped through the saved displayed order. For all three systems, correctness then requires exact equality between the selected candidate and the reference after trimming; no semantic aliases or quotation normalization are introduced at scoring time.
+
+Let $c_i$ be one for a correct selection and zero otherwise, $N$ the number of requested occurrences and $I_a$ the occurrences of type $a$, and $A$ the observed types. The implemented summaries are
+\begin{align}
+\mathrm{Micro}&=\frac{1}{N}\sum_{i=1}^{N}c_i,\\
+\mathrm{Macro}&=\frac{1}{|A|}\sum_{a\in A}\frac{1}{|I_a|}\sum_{i\in I_a}c_i.
+\end{align}
+Micro weights occurrences equally, whereas macro gives each observed type equal weight. Both are useful with the uneven development distribution. Missing reference labels make accuracy unavailable; missing type metadata makes macro unavailable. An unavailable value is not zero.
+
+For an attempted selection arm, errors, incomplete responses, parsing failures and unrun occurrences remain in the requested denominator and are not correct. An entirely unrun arm is unmeasured. A partially executed arm can therefore have a preliminary score, but it must be identified as partial and reported with attempted and valid counts. Status counts separate service and formatting failures from valid but incorrect choices. Comparisons restricted to valid answers would answer a different question and cannot replace this denominator.
+
+\subsection{Free responses and paired analysis}
+Generation outputs are saved for inspection and are not automatically scored by the current study. A final human judgment protocol has not yet been adopted. Exact string equality would reject some linguistically equivalent phrasings; inventory membership alone would accept a wrong candidate for the context and reject a potentially valid missing expansion. The protocol must therefore specify which variations preserve the intended expansion, how attached prefixes and named uses are handled, and how ambiguity and disagreement are resolved. The local development label decisions do not settle these general rules.
+
+After that protocol is fixed and judgments are available, the central analysis will pair generation and selection by occurrence within each LLM. A small agreement table can separate items both answer correctly, items helped by selection and items answered correctly only in generation. The discussion should inspect representative errors, including valid alternatives absent from the inventory, incorrect offered candidates and answers that identify an entity without expanding its name. These are analysis questions, not categories already annotated.
+
+The final study also needs an explicitly chosen uncertainty procedure and a record of training and prompting variability. Repeated occurrences share types and documents, so treating all observations as independent can overstate precision. No confidence interval, significance test or repeated-seed finding is claimed here. The present exporter reports existing selection summaries and leaves unjudged generation unavailable; it does not silently implement a new evaluation protocol.
+
+\subsection{Technical companion and traceability}
+\label{sec:companion}
+The \codebase{notebooks/experimental_study.ipynb}{main study notebook} provides the implementation companion: Sections 1--2 cover inputs and the encoder, Sections 3--6 the LLM arms, and Sections 7--8 saved outputs and results. The \codebase{notebooks/train_dictabert.ipynb}{training notebook} covers pair construction and fitting. Full prompts, installation and loading details belong there. Stable links to the inspected snapshot also identify the \codebase{src/hebrew_acronyms/models/common/eval.py}{shared evaluator}, \codebase{src/hebrew_acronyms/models/dictabert_cross_encoder/training.py}{training module} and \codebase{data/study_v1/encoder_inputs/manifest.json}{qualified-input manifest}.
+
+Paper artifacts are derived from one explicitly designated saved run, with its input identity and failure counts preserved. Rebuilding requires no model calls. Replacing the run still requires human revision of the abstract, interpretation and conclusions.

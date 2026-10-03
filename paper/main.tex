@@ -1,0 +1,37 @@
+\documentclass[11pt]{article}
+\usepackage[preprint]{acl_template/acl}
+\usepackage{fontspec}
+\setmainfont{Times New Roman}
+\setsansfont{Arial}
+\setmonofont{Menlo}[Scale=0.83]
+\usepackage{microtype}
+\usepackage{booktabs,graphicx,amsmath,array}
+\usepackage{polyglossia}
+\setdefaultlanguage{english}
+\setotherlanguage{hebrew}
+\newfontfamily\hebrewfont[Script=Hebrew]{Times New Roman}
+\newcommand{\heb}[1]{\texthebrew{#1}}
+\newcommand{\repo}[2]{\href{https://github.com/BenCarmel123/hebrew-acronym-disambiguation/blob/paper-draft/#1}{#2}}
+\newcommand{\codebase}[2]{\href{https://github.com/BenCarmel123/hebrew-acronym-disambiguation/blob/9a14416/#1}{#2}}
+\newif\ifpaperresults
+\IfFileExists{generated/current.tex}{\input{generated/current.tex}\paperresultstrue}{\paperresultsfalse}
+\title{Hebrew Acronym Expansion in Context:\\Free Generation and Candidate Selection}
+\author{Ben Carmel \quad Yair Ben David \quad Shaked Schnarch \\
+Tel Aviv University \\
+\small NLP course project --- working draft, 3 October 2026}
+\begin{document}
+\maketitle
+\begin{abstract}
+A language model can interpret an acronym in a sentence by generating an expansion or by choosing from a supplied inventory. We study this distinction for Hebrew using the same marked occurrences in five systems: a fine-tuned DictaBERT candidate ranker, and generation and selection configurations of Qwen and Gemini. The comparison changes both candidate access and answer format; it does not isolate either factor. We describe the implemented methods and qualified inputs: 2,665 training items and 62 natural development items. The development set contains 11 acronym types with one observed reference meaning per type, which limits what it can establish about contextual disambiguation. Selection has an implemented common evaluator; free responses await a final human judgment protocol. This draft presents the research design and its limitations. Verified experimental results and conclusions are not yet available.
+\end{abstract}
+\input{sections/introduction}
+\input{sections/related_work}
+\input{sections/task_data}
+\input{sections/methods}
+\input{sections/evaluation}
+\input{sections/results}
+\input{sections/limitations}
+\input{sections/disclosure}
+\label{bodyend}
+\bibliography{references}
+\end{document}
