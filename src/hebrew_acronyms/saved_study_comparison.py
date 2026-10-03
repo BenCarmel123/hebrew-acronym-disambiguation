@@ -107,7 +107,10 @@ code{overflow-wrap:anywhere} .muted{color:#526476;font-size:13px}</style>
                 mapping=' | '.join(f'{chr(65+j)}: {c}' for j,c in enumerate(r.get('shown_order') or []))
                 html += f'<p class="muted">{t(mapping)}</p>'
             html += '</td><td>'+t(d.get('status',r['status']))
-            if d: html += ' · '+('matches gold' if d.get('correct') else 'does not match gold')
+            if d and d.get('status') == 'ok':
+                html += ' · '+('matches gold' if d.get('correct') else 'does not match gold')
+            elif d:
+                html += ' · no valid prediction; included in denominator'
             if r.get('error'): html += '<p>'+t(r['error'])+'</p>'
             html += '</td></tr>'
         html += '</table><p class="muted">Human review: pending. Resolve label and candidate inventory with Ben; do not infer truth from model agreement.</p></details>'
