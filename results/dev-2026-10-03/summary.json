@@ -1,0 +1,145 @@
+{
+  "status": "preliminary development analysis; existing labels have known defects",
+  "input_identity": {
+    "item_ids": [
+      "enc-00c06e3cf22c4625150e96935b1ef3b4",
+      "enc-027c9b1c6a69af0ed5c08e3004a7beeb",
+      "enc-0446fff2442c7a48e676a38de8f99f7d",
+      "enc-0467a2ecef2089f2d5f73d90a3d8867f",
+      "enc-0d2b2c5e019376e117917609872026d6",
+      "enc-1040a01e549368d59564391613fcdb10",
+      "enc-144b09ddcc94fa7e29066aaca01f5d0e",
+      "enc-22d0e5f1e7a81aa1d4b179d8a1bd55e6",
+      "enc-32f250e1b75d5ae68d0b9107defd423f",
+      "enc-36c2221625fa480e2ebd836e87b19bfd",
+      "enc-38ed0d485929ae7c3e4b945af6783d57",
+      "enc-39b67651aaeb470a23668605381c9a64",
+      "enc-3eb40031a85bca87830adefba3b9b432",
+      "enc-412bc4010801d0f174f315bcb6b49555",
+      "enc-4262fbd2bad3f94677e8381e27f9ba84",
+      "enc-4357ce40592761b47e6ab99dd750b488",
+      "enc-4adf3fe1ddb6d0a5545d76502dbc33cf",
+      "enc-4b602d63bf8f7b984efbc1804eab4c22",
+      "enc-567471a4e8434c6a6beb61ebc04ce764",
+      "enc-5de7f1de0643829dee3e2f89a5c3d961",
+      "enc-601bd351ad3db067b63a859a6320c556",
+      "enc-69fa02aa2cf88a373e2f319fee15b571",
+      "enc-6a5c5c70867d826e853e292581d2b821",
+      "enc-715b45d9ae754d831c81c7e1496a163d",
+      "enc-73ed2da155b891b95861f67deb04b9f8",
+      "enc-74cbcf3eae2c41abdc2e5ef7f0d12087",
+      "enc-794fada352a40d72789a101c67b1c121",
+      "enc-86b468144fb0cfc3c4e839e3dad93356",
+      "enc-8a6dba4973fdb2d284b8c9b7f7d6113c",
+      "enc-8ad89c6000d574f88520c6e088346cf2",
+      "enc-8c2df41264d40f8683cff5183814940c",
+      "enc-8ebdde79a7b24951b0a0312f861b3305",
+      "enc-8ef8af68cc64fa3c43dfb59e3e86c91b",
+      "enc-8f5e34772c0c389531c02cc8f6ac4da8",
+      "enc-8f6d3cfc90ef4288f487f7d217c4061f",
+      "enc-8f9e31867eeaa11885b6d467200b7688",
+      "enc-92b720a801ced70b765ebac18f419cbb",
+      "enc-950869bfb134a2d8d6fe3c6162baafbd",
+      "enc-9f5c25038fc40edd258e513501ade1e9",
+      "enc-a32c550494343f1518fb9fb5d39b3fae",
+      "enc-a4d8b0d3bae5b09510dc054fe6ee1ac0",
+      "enc-a70cf7712feca5a39e57f39e30697b07",
+      "enc-a8b765928821f75270f0af03a8762dd5",
+      "enc-a91032896163299d7d2fd85f81e557cf",
+      "enc-a96c9e5e4badfa8f0a73809f0f2b6fad",
+      "enc-ae7d78a0f5b5a79f8369b3c31559990d",
+      "enc-b42d1b71a7fae87f20d3255a282b3fcf",
+      "enc-bba235d3e96e5bb1a300bc200a99995b",
+      "enc-bcdaf4736173dd967454e643f5e8cc66",
+      "enc-c341e8fee0b54144f486886ca0da80b4",
+      "enc-c40e82ab3bf78230588ab2b7f8332f7c",
+      "enc-d056ff78445547195fe9777a607a1d8a",
+      "enc-d64873c8b27702f3c1941aaa558fbcbf",
+      "enc-e51832cf9c9a3b74a3ffc74ece04fff9",
+      "enc-e57724464cf3f3236d91cb736a9f2fa5",
+      "enc-e5b247ab179b90c24592a528dd21d080",
+      "enc-e6599b0bcf96f9eba85ee1db144d9629",
+      "enc-f228fd6e1737b95e7c49d2d51d1e7493",
+      "enc-f943fdf16e00d779299bc315e83d2c82",
+      "enc-f9f45ac4356900622152f455393e0f62",
+      "enc-f9f7e2d078a5c73f9d55ab3bb76661a6",
+      "enc-fa2caa75c097d30065f9f9efab2a3d21"
+    ],
+    "sha256": "591027d828969d41b488f16e41f3ba9c04637981dd9cde8dc5e12cc48bd18729"
+  },
+  "sources": [
+    {
+      "run_id": "2026-10-03-qwen-full_dev-c6ffe670",
+      "file": "study.json",
+      "sha256": "22cbc44e36d0613be84c3c65b6791fc3cea89208a6e96a7ddea29287830de8b8"
+    },
+    {
+      "run_id": "2026-10-03-gemini-full_dev-resumed-9c71f4a2",
+      "file": "study.json",
+      "sha256": "1469ad4a285d641b8eaaea29b715a520b254489930f8c561ae667590b6f98c0d"
+    },
+    {
+      "run_id": "2026-10-03-dictabert-full_dev-16f98320",
+      "file": "study.json",
+      "sha256": "03adb56739376f5e1170a37b12610e780742b095b07638cfdae624df28f5f256"
+    }
+  ],
+  "arm_run_ids": {
+    "qwen_generate": "2026-10-03-qwen-full_dev-c6ffe670",
+    "qwen_select": "2026-10-03-qwen-full_dev-c6ffe670",
+    "gemini_generate": "2026-10-03-gemini-full_dev-resumed-9c71f4a2",
+    "gemini_select": "2026-10-03-gemini-full_dev-resumed-9c71f4a2",
+    "dictabert": "2026-10-03-dictabert-full_dev-16f98320"
+  },
+  "selection_metrics_complete_arms": {
+    "dictabert": {
+      "correct": 41,
+      "n_items": 62,
+      "micro": 0.6612903225806451,
+      "macro": 0.7098484848484848
+    },
+    "qwen_select": {
+      "correct": 38,
+      "n_items": 62,
+      "micro": 0.6129032258064516,
+      "macro": 0.8091565000655909
+    }
+  },
+  "arm_status_counts": {
+    "qwen_generate": {
+      "response_received": 62
+    },
+    "qwen_select": {
+      "response_received": 62
+    },
+    "gemini_generate": {
+      "service_error": 2,
+      "not_run": 60
+    },
+    "gemini_select": {
+      "response_received": 13,
+      "service_error": 20,
+      "not_run": 29
+    },
+    "dictabert": {
+      "ok": 62
+    }
+  },
+  "gemini_service_summary": {
+    "http_attempts": 83,
+    "http_status_counts": {
+      "429": 63,
+      "200": 13,
+      "503": 7
+    },
+    "planned_item_requests": 124,
+    "attempted_item_requests": 35,
+    "remaining_unattempted": 89,
+    "blocking_evidence": "Persistent HTTP 429 after cooldown and later recovery probes; no Retry-After supplied. Earlier failures included 503. Exact quota/reset unavailable.",
+    "generation_semantic_score": null
+  },
+  "generation_semantic_score": null,
+  "checkpoint_sha256": "23bbff0324a7ce4d9d4a24a9ebfb87a4f6ac296bf1f1ce1bd25126c09260267f",
+  "code_revision_reviewed": "31f20c55e5cb9b0bce32e71bde6560f91ea13514",
+  "comparison_sha256": "d493df6e2460cc4399c0e2a85bf4c4485f0d062741c4dc7f76eccf7427f6ab09"
+}

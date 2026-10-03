@@ -1,24 +1,28 @@
 # Hebrew Acronym Disambiguation
 
-A TAU NLP course project comparing free expansion of Hebrew acronyms with selection
-from a candidate inventory. The planned study compares the same LLM with and without
-context in both formats, alongside a task-trained Hebrew encoder. Detailed data and
-evaluation choices remain open; no final results exist for this study.
+A TAU NLP course project comparing five arms: trained DictaBERT candidate selection,
+Qwen free expansion and selection, and Gemini free expansion and selection. All arms
+use the sentence and the same identified target occurrence. The two LLMs receive the
+same prompt per task and the same displayed candidates for selection; generation
+receives neither candidates nor gold. This compares systems, without isolating the
+causal effect of model size or context. No final research results are reported.
 
 ## Code and reading map
 
 | Location | Purpose |
 |---|---|
 | [Training appendix](notebooks/train_dictabert.ipynb) | Explicit inputs, candidate pairs, DictaBERT initialization or loading, optional training and item predictions. Start here to inspect executable model code. |
-| [Methods and analysis](notebooks/experimental_study.ipynb) | Study design, source documentation and analysis outline; not a completed experiment. |
+| [Main dev study](notebooks/experimental_study.ipynb) | Runnable local preview, saved-result inspection, manual validation and full-dev prediction across five arms; no training. |
 | [Cross-encoder source](src/hebrew_acronyms/models/dictabert_cross_encoder/) | `encoding.py`: length-bounded inputs; `model.py`: scoring and checkpoints; `training.py`: optimization; `eval.py`: item records; `workflow.py`: small local setup helpers. |
 | [Input contract](src/hebrew_acronyms/models/common/pairs.py) | Exact target spans, IDs, candidate pairs and input identities. |
-| [Other models](src/hebrew_acronyms/models/) | Baselines, encoder similarity and LLM components; their historical scoring rules are not yet unified. |
+| [Shared study evaluation](src/hebrew_acronyms/models/common/eval.py) | Strict letter parsing, preliminary selection micro/macro accuracy and item inspection. Historical scoring functions remain separate from the current study. |
+| [LLM backends](src/hebrew_acronyms/models/) | Qwen via local Ollama and Gemini via its API, with bounded requests and response provenance; other retained model code is historical context. |
 | [Data preparation](docs/data_processing.md) | Source collection, review application and split-construction functions and commands. |
 | [Local checks](docs/pipelines.md) | Environment check and explicit data validation; no combined model runner. |
 | [Tests](tests/) | Invented fixtures, tiny learning and reconstruction checks; no Git history needed. |
 
-The [manuscript](paper/manuscript.md), [bibliography](paper/references.bib) and
+The [LaTeX manuscript](paper/main.tex), [paper build/export instructions](paper/README.md),
+[bibliography](paper/references.bib) and
 [course sources](docs/course/README.md) describe the research context. The ID-named PDF
 is the submitted proposal; the other PDF is an earlier draft. The [data inventory](data/README.md)
 and [dataset card](data/mined/DATASET_CARD.md) preserve source and construction details.
@@ -27,30 +31,86 @@ refer to earlier inputs and include unresolved score discrepancies. They are not
 results for the current study. Earlier work also exists in `ShakedSchnarch/nlp-hw-team`;
 its checkpoints and implementation are not interchangeable with this repository.
 
-## Install and check
+<a id="install-and-check"></a>
 
-From the repository root:
+## Local setup
+
+From this checkout, create an isolated environment and open the main notebook:
 
 ```bash
 python3.12 -m venv .venv
-.venv/bin/python -m pip install -e .
-.venv/bin/python -I -B -c "import hebrew_acronyms.models.dictabert_cross_encoder.workflow"
+.venv/bin/python -m pip install -e . jupyterlab ipykernel
 .venv/bin/python -m pip check
-HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 .venv/bin/python -B -m unittest discover -s tests -v
+.venv/bin/python -m jupyter lab notebooks/experimental_study.ipynb
 ```
 
-Dependencies are declared once in `requirements.txt` through `pyproject.toml`.
-Selected versions are pinned; the complete transitive environment is not locked.
-If an editable installation fails to import in a fresh interpreter, create a clean
-external environment and install the package there. When reusing already installed
-local dependencies, `pip install --no-index --no-deps --no-build-isolation -e .` avoids
-downloads. Do not use `sys.path` or `PYTHONPATH` overrides to hide installation failures.
+Select the `.venv` kernel. Project dependencies are pinned in `requirements.txt`
+through `pyproject.toml`; the complete transitive environment is not locked. The
+checkpoint also records the required model, tokenizer and library versions. For
+installation troubleshooting, use a fresh environment rather than import-path overrides.
 
-The essential suite runs on temporary invented data and tiny CPU models. It checks
-input contracts, length limits, pooling, controlled initialization, one small learning
-exercise, strict checkpoint selection, identity-checked reload, prediction failures,
-notebook execution and data-review protections. It requires neither a model cache
-nor Git history. These checks establish engineering behavior, not model quality.
+**Qwen:** provision `qwen2.5:7b` in local Ollama, then check `ollama list` and
+`curl http://localhost:11434/api/tags`. The notebook connects to the existing service;
+it does not start it or download models.
+
+**Gemini:** the selected model is `gemini-3.8-flash` with
+`{"thinkingConfig": {"thinkingLevel": "low"}}`. Low thinking is not disabled thinking.
+Copy `.env.example` to `.env` in the checkout root and set `GEMINI_API_KEY` there.
+The study loads this file when Gemini is enabled, using the notebook's `root`
+setting. Existing environment variables take precedence. Restart the kernel after
+changing the key. Keep `.env` local (Git ignores it); never put keys in notebook
+cells or settings. See the [official model settings](https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash).
+
+The systems can run independently. The basic notebook request has a 120-second timeout
+and no automatic retries. The explicit `resume_gemini_study` runner below bounds
+transient retries and saves each attempt. Qwen records its server-reported digest;
+Gemini records the returned
+`modelVersion`. Partial answers are retained and marked incomplete. Checkpoints and
+live services still need the manual validation below.
+
+## Configure and run
+
+The [main notebook](notebooks/experimental_study.ipynb) follows inputs → encoder →
+LLMs → results. Its centralized settings include:
+
+| Setting | Value or required input |
+|---|---|
+| `train_path` | Qualified `data/study_v1/encoder_inputs/train.csv`, used to check the checkpoint's training inputs. |
+| `input_path` | Qualified `data/study_v1/encoder_inputs/dev.csv`, containing all 62 dev items. |
+| `checkpoint` | Exact checkpoint path. Default `checkpoint_format="manifest"` requires the original adjacent JSON; the explicit Colab route below accepts an authorized complete state dictionary. |
+| `snapshot_path` | A content-identical local base-model/tokenizer snapshot if relocated; otherwise `None`. |
+| `device` | `"cpu"` by default; set a supported `"mps"` or `"cuda"` explicitly if needed. |
+| `enable_encoder`, `enable_qwen`, `enable_gemini` | Independent switches, initially `False`. |
+| `output_root` | `<project>/artifacts/study-runs`; each run creates a fresh directory outside Git. |
+| `saved_run`, `saved_run_id` | Exact result JSON path and run ID for reload. |
+
+For manifest-bound encoder prediction or saved-prediction reuse, the study compares the complete
+qualified train/dev rows with the checkpoint's recorded inputs. Validation checks
+against the full dev file, even though it predicts only three items. The compact
+checkpoint summary shows training settings, selected epoch, train/dev counts and
+match status; full metadata stays in the saved result. See [checkpoint details](docs/checkpoints.md).
+
+- **Preview:** leave `mode="preview"` for invented examples with no model calls or research reads.
+- **Validation:** set `mode="run"`, `run_kind="validation"` and enable the desired systems. DictaBERT predicts three items; each LLM sends one generation and one selection request, four requests with both enabled.
+- **Full dev:** after manual validation succeeds, rerun from fresh settings with `run_kind="full_dev"`. All 62 items are requested per enabled arm: **248 LLM requests** with both providers.
+- **Reload:** set `mode="reload"`, `saved_run` and `saved_run_id`. Inspection needs no models, services, credentials or original research files. Older three-arm results remain readable as three-arm results.
+
+The notebook defines the scoring rules and interpretation limits beside the results.
+Expand an item to inspect its context, candidate mapping, answers and failure details.
+To reuse encoder predictions in a new run, set `enable_encoder=False`, `saved_encoder`
+to the source `study.json`, and `saved_encoder_run_id` to its run ID. Keep the current
+train/dev paths: reuse must pass the same input comparison as fresh prediction.
+
+## Offline study checks
+
+These checks use invented inputs and mocked responses, without training or live services:
+
+```bash
+.venv/bin/python -B -m unittest tests.test_experimental_study tests.test_five_arm_study tests.test_study_evaluation tests.test_qwen_study tests.test_gemini_study tests.test_checkpoint_relocation tests.test_encoder_study_inputs -v
+```
+
+Network and research-file guards apply only inside the test processes. The wider
+repository suite separately includes tiny-model learning tests.
 
 ## Training appendix
 
@@ -92,14 +152,51 @@ candidates are retained or the input fails explicitly. No aliases or metrics are
 
 The encoder uses the existing pooling, BCE loss, AdamW and strict development-pair-loss
 checkpoint selection. Defaults in [TrainingConfig](src/hebrew_acronyms/models/dictabert_cross_encoder/training.py)
-are implementation settings, not a finalized research protocol. Checkpoints require a
+are implementation settings, not a finalized research protocol. The default loader requires a
 JSON manifest and matching model/tokenizer, inputs when supplied, and library identities;
-see [checkpoint details](docs/checkpoints.md). Legacy weight-only files and relocation
-of snapshot paths need separate handling. GPU training and research performance have
+see [checkpoint details](docs/checkpoints.md). Unspecified weight-only files are rejected.
+The explicitly selected Colab adapter below is a separate, provenance-labelled exception.
+An explicit relocated snapshot is accepted only after content identity verification;
+the original manifest is not rewritten. GPU training and research performance have
 not been verified by the tiny CPU checks.
 
-The shared benchmark, final scoring rules, qualified inputs and final research runs
-remain incomplete. Natural, substituted and AI-authored material must remain
-identifiable; see the data documentation. AI assistance contributed code, checks and
-draft prose and does not constitute human annotation or scientific validation.
-Weights, caches, environments, secrets and generated outputs stay outside version control.
+Qualified dev inputs and preliminary selection scoring are available. Final benchmark
+runs and generation judgment rules remain separate work. Natural, substituted and
+AI-authored material must remain identifiable; see the data documentation. AI assistance
+contributed code, checks and draft prose, not human annotation or scientific validation.
+Weights, caches, environments, secrets and raw run outputs stay outside version control.
+The explicitly selected paper run may publish small derived PDF figures, TeX tables
+and provenance manifests under `paper/generated/`; preview and fixtures cannot do so.
+
+## Separate runs and Colab checkpoints
+
+The main notebook accepts `checkpoint_format="colab_state_dict"`, an explicit
+`checkpoint_sha256`, local `snapshot_path`, and the supplied `checkpoint_attestation`.
+The [Colab adapter](src/hebrew_acronyms/models/dictabert_cross_encoder/colab.py)
+reconstructs CLS pooling, length 256, `[ACR]`/`[/ACR]`, and the original pair encoding
+from the inspected Colab notebook. It verifies the exact checkpoint hash and strictly
+loads every encoder and head tensor, validates three items, then predicts the remaining
+cohort. Original training seed, library versions and exact training-row identity remain
+unknown unless separately evidenced. Reconstruction evidence is not an original manifest.
+
+To run or resume Gemini with the exact prompts and candidate orders from a saved Qwen
+full-dev source (explicit service authorization is required):
+
+```bash
+python -m hebrew_acronyms.resume_gemini_study --root . \
+  --source /path/to/qwen/study.json --source-run-id EXACT_QWEN_RUN_ID \
+  --output-root /path/outside/repository --run-id NEW_GEMINI_RUN_ID
+```
+
+The same command resumes unattempted items, never resends completed responses, and
+retains ambiguous interrupted requests for inspection. Each HTTP request is saved
+separately; transient failures permit at most three attempts per item with Retry-After
+and backoff. Five consecutive failed items stop collection with remaining items marked
+unrun. Resume after service recovery; existing terminal failure records are preserved.
+
+The notebook's final comparison cell accepts `(study.json path, original run ID)`
+entries for independently saved runs. It checks complete input identity and prompt
+agreement, retains original arm run IDs, and displays all 62 items without model or
+network calls. Selection includes service/format failures in its denominator; generation
+remains semantically unscored. Review gold labels and candidate inventories with Ben,
+including institutional uses, before interpreting these diagnostic development scores.
