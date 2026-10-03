@@ -1,6 +1,9 @@
 \section{Results and Discussion}
 \label{sec:results}
-No research run has yet been verified for inclusion. Historical scores and engineering fixtures are excluded. The final comparison will report each arm's evaluated population, attempted and valid counts, and available micro and macro accuracy. Generation scores will remain unavailable until judgments under an approved protocol exist.
+The saved development comparison contains 62 completed DictaBERT selections and 62 responses for each Qwen task. Gemini selection contains 13 responses, 20 service-error items and 29 unattempted items; generation contains two service-error items and 60 unattempted items. These are execution counts, not final-test findings. Qwen generation remains semantically unjudged, and the partial Gemini subset cannot support a complete-system accuracy comparison. The development scores and item-level diagnostics remain in the companion results package.
+
+\paragraph{Final results pending.}
+The final comparison requires the test population, run identities, coverage and judgments to be confirmed. Historical scores and software fixtures are not substitutes for those results.
 
 \ifpaperresults
 \begin{table*}[t]
@@ -23,13 +26,13 @@ No research run has yet been verified for inclusion. Historical scores and engin
 Planned display & Question it will address \\
 \midrule
 Main results & What is each arm's accuracy and completion status on the same items? \\
-Selection plot & How do micro and macro accuracy differ across selection systems? \\
+By-type results & Are aggregate differences concentrated in a few acronym types? \\
 Paired analysis & Which occurrences change correctness between generation and selection? \\
 \bottomrule
 \end{tabular}
-\caption{Reserved results structure. No numerical entries are inferred from pending runs.}
+\caption{Reserved results structure. The displays await verified test records and agreed evaluation rules.}
 \label{tab:planned-results}
 \end{table}
 \fi
 
-The discussion will distinguish semantic mistakes from output-format and service failures, relate disagreements to inventory coverage, and examine whether aggregate performance is concentrated in a few types. It will interpret the paired contrasts in light of the response-format difference and the limited sense diversity of development data. There is presently no empirical conclusion about the preferred formulation or relative system performance.
+The discussion will distinguish semantic mistakes from output-format and service failures, relate disagreements to inventory coverage, and examine whether aggregate performance is concentrated in a few types. It will interpret the paired contrasts in light of the response-format difference and the limited sense diversity of development data. No conclusion about the preferred formulation or final system ranking is drawn from the development diagnostics.

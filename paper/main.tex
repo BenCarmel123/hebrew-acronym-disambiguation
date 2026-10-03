@@ -11,8 +11,8 @@
 \setotherlanguage{hebrew}
 \newfontfamily\hebrewfont[Script=Hebrew]{Times New Roman}
 \newcommand{\heb}[1]{\texthebrew{#1}}
-\newcommand{\repo}[2]{\href{https://github.com/BenCarmel123/hebrew-acronym-disambiguation/blob/paper-draft/#1}{#2}}
-\newcommand{\codebase}[2]{\href{https://github.com/BenCarmel123/hebrew-acronym-disambiguation/blob/9a14416/#1}{#2}}
+\newcommand{\repo}[2]{\href{https://github.com/BenCarmel123/hebrew-acronym-disambiguation/blob/04ec31754421e4a96d6b66122cb0a2fca428471d/#1}{#2}}
+\newcommand{\codebase}[2]{\href{https://github.com/BenCarmel123/hebrew-acronym-disambiguation/blob/04ec31754421e4a96d6b66122cb0a2fca428471d/#1}{#2}}
 \newif\ifpaperresults
 \IfFileExists{generated/current.tex}{\input{generated/current.tex}\paperresultstrue}{\paperresultsfalse}
 \title{Hebrew Acronym Expansion in Context:\\Free Generation and Candidate Selection}
@@ -22,7 +22,7 @@ Tel Aviv University \\
 \begin{document}
 \maketitle
 \begin{abstract}
-A language model can interpret an acronym in a sentence by generating an expansion or by choosing from a supplied inventory. We study this distinction for Hebrew using the same marked occurrences in five systems: a fine-tuned DictaBERT candidate ranker, and generation and selection configurations of Qwen and Gemini. The comparison changes both candidate access and answer format; it does not isolate either factor. We describe the implemented methods and qualified inputs: 2,665 training items and 62 natural development items. The development set contains 11 acronym types with one observed reference meaning per type, which limits what it can establish about contextual disambiguation. Selection has an implemented common evaluator; free responses await a final human judgment protocol. This draft presents the research design and its limitations. Verified experimental results and conclusions are not yet available.
+A language model can interpret an acronym in a sentence by generating an expansion or by choosing from a supplied inventory. We study this distinction for Hebrew using the same marked occurrences in five systems: a fine-tuned DictaBERT candidate ranker, and generation and selection configurations of Qwen and Gemini. The comparison changes both candidate access and answer format; it does not isolate either factor. The current input files contain 2,829 training items and 62 natural development items, with substituted, natural and AI-authored training material kept identifiable. The development set contains 11 acronym types with one observed reference meaning per type, which limits what it can establish about contextual disambiguation. Selection has an implemented common evaluator; free responses await a final human judgment protocol. Saved development runs document complete DictaBERT selection and both Qwen tasks, with partial Gemini coverage. They support diagnosis, not final evaluation. This draft presents the methods and observed development limitations; final test results and conclusions remain pending.
 \end{abstract}
 \input{sections/introduction}
 \input{sections/related_work}
