@@ -147,6 +147,8 @@ def predict_colab_study(artifact, *, checkpoint, snapshot_path, expected_sha256,
 
     validate_artifact(artifact, expected_run_id=artifact["run_id"])
     settings = artifact["settings"]
+    if settings.get("saved_encoder") is not None:
+        raise ValueError("Colab saved predictions must use reload or saved-run comparison, not fresh inference")
     if settings.get("checkpoint_format") != "colab_state_dict":
         raise ValueError("Explicit checkpoint_format='colab_state_dict' is required")
     for key, value in {"checkpoint": checkpoint, "snapshot_path": snapshot_path,
