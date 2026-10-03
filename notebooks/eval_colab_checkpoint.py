@@ -7,6 +7,9 @@ src/hebrew_acronyms/models/dictabert_cross_encoder eval.py refuses files like th
 same small CrossEncoder architecture directly and loads the plain state_dict, so you
 don't need a sidecar to get a number out.
 
+The checkpoint is saved in fp16 (half the download size); this script casts it
+back to fp32 on load before inference.
+
 Usage (from the repo root, with the project installed — see README's "Install and
 check" — or just plain `python3 -m pip install torch transformers` in any venv):
 
@@ -191,6 +194,11 @@ def main() -> None:
 
     model = CrossEncoder(encoder, hidden=encoder.config.hidden_size, pooling=a.pooling).to(device)
     state = torch.load(a.checkpoint, map_location=device, weights_only=True)
+    # train_dictabert_colab.ipynb saves checkpoints in fp16 to halve the download
+    # size; cast back to fp32 here since fp16 matmul isn't well supported on
+    # CPU/MPS and training itself stayed fp32 throughout, so this only restores
+    # precision for inference, it doesn't change what the model learned.
+    state = {k: v.float() if v.is_floating_point() else v for k, v in state.items()}
     model.load_state_dict(state, strict=True)
     model.eval()
 
