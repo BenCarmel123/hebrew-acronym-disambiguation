@@ -12,3 +12,6 @@ tokenizers==0.22.2
 safetensors==0.8.0
 numpy==2.5.3
 regex==2026.9.10
+
+# Vector PDF plots for the paper exporter; no model execution.
+matplotlib==3.10.8
