@@ -87,6 +87,15 @@ class ColabCheckpointTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'nonfinite'):
             self.load()
 
+    def test_saved_colab_request_does_not_trigger_fresh_model_load(self):
+        from hebrew_acronyms.experimental_study import predict_colab_study
+        with patch.object(colab, 'load_colab_finetuned') as load:
+            with self.assertRaisesRegex(ValueError, 'reload or saved-run comparison'):
+                predict_colab_study({'settings': {'saved_encoder': 'existing-study.json'}},
+                                   checkpoint=self.checkpoint, snapshot_path=self.root,
+                                   expected_sha256='0' * 64)
+            load.assert_not_called()
+
     def test_hash_mismatch_precedes_model_access(self):
         with patch.object(colab.AutoModel, 'from_config') as construct:
             with self.assertRaisesRegex(ValueError, 'authorized SHA'):

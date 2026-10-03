@@ -735,6 +735,8 @@ def connect_gemini(artifact):
 
 def predict_colab_study(artifact, *, checkpoint, snapshot_path, expected_sha256, device="cpu"):
     """Import the explicit Colab model adapter only for an authorized inference call."""
+    if artifact["settings"].get("saved_encoder") is not None:
+        raise ValueError("Colab saved predictions must use reload or saved-run comparison, not fresh inference")
     from hebrew_acronyms.models.dictabert_cross_encoder.colab import predict_colab_study as predict
     return predict(artifact, checkpoint=checkpoint, snapshot_path=snapshot_path,
                    expected_sha256=expected_sha256, device=device)
