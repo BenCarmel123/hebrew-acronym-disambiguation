@@ -699,9 +699,11 @@ def connect_qwen(artifact):
 def connect_gemini(artifact):
     """Bind explicit Gemini settings. No network request or API key enters the artifact."""
     from functools import partial
+    from dotenv import load_dotenv
     from hebrew_acronyms.models.gemini.eval import gemini_response, validate_gemini_settings
     _check_unstarted(artifact, "gemini")
     settings = artifact["settings"]
+    load_dotenv(Path(settings["root"]) / ".env", override=False, interpolate=False)
     if not settings.get("gemini_model"):
         raise ValueError("Set an explicit gemini_model before enabling Gemini")
     config = validate_gemini_settings(settings["gemini_model"], settings["request_timeout"], settings["gemini_generation_config"])
