@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from collections import Counter, defaultdict
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import hashlib
 import importlib.metadata
 import json
@@ -288,16 +288,58 @@ def _call(system, prompt):
     return request(prompt, model=system["model"], **system["settings"])
 
 
-def run_evaluation(output_dir, *, code_revision, max_new_calls=None, responders=None, sleep=time.sleep):
-    """Execute or resume, retrying only explicit transient failures within saved caps.
+def _retry_delay(response, ordinal):
+    value = response.get("retry_after")
+    if type(value) in {int, float} and math.isfinite(value) and value >= 0:
+        return value
+    return min(60, 2 ** ordinal)
 
-    Injected responders are restricted to fixture runs. Return a derived summary;
-    raw response dictionaries (including usage) remain in the durable journal.
-    KeyboardInterrupt/SystemExit leave an ambiguous start and propagate.
+
+def _provider_states(identity, starts, finishes):
+    """Reconstruct circuit state solely from saved outcomes, including on resume."""
+    systems = {system["name"]: system for system in identity["systems"]}
+    states = {}
+    for attempt_id, started in starts.items():
+        finished = finishes.get(attempt_id)
+        if finished is None:
+            continue
+        provider = systems[started["system"]]["provider"]
+        if states.get(provider, {}).get("blocked"):
+            continue  # An account block cannot be cleared by another item's success.
+        response = finished["response"]
+        if response.get("provider_blocked") is True:
+            states[provider] = {"blocked": True, "reason": "provider_blocked", "not_before_utc": None}
+        elif finished.get("provider_not_before_utc"):
+            states[provider] = {"blocked": False, "reason": finished["provider_pause_reason"],
+                                "not_before_utc": finished["provider_not_before_utc"]}
+        else:
+            states.pop(provider, None)
+    return states
+
+
+def _remaining_wait(state):
+    if not state or not state.get("not_before_utc"):
+        return 0
+    return max(0, (datetime.fromisoformat(state["not_before_utc"]) - datetime.now(timezone.utc)).total_seconds())
+
+
+def run_evaluation(output_dir, *, code_revision, max_new_calls=None, responders=None,
+                   sleep=time.sleep, max_total_cost_usd=None):
+    """Resume with bounded retries, persistent provider circuits and saved spending.
+
+    ``max_total_cost_usd`` may tighten the saved budget for a shared notebook
+    allowance; it never replaces or subtracts spending already in this journal.
+    Account blocks remain blocked in this identified run. Transient exhaustion
+    pauses its provider for at least 60 seconds; a long Retry-After is never slept
+    through here. Other providers can continue. Injected responders are fixtures
+    only. KeyboardInterrupt/SystemExit leave an ambiguous start and propagate.
     """
     directory = Path(output_dir).resolve()
     if max_new_calls is not None:
         _positive(max_new_calls, "max_new_calls", True)
+    if max_total_cost_usd is not None and (type(max_total_cost_usd) not in {int, float}
+            or not math.isfinite(max_total_cost_usd) or max_total_cost_usd < 0):
+        raise ValueError("max_total_cost_usd must be finite and nonnegative")
     with _lock(directory):
         manifest = _load_manifest(directory)
         identity = manifest["identity"]
@@ -314,15 +356,22 @@ def run_evaluation(output_dir, *, code_revision, max_new_calls=None, responders=
         for attempt_id, start in starts.items():
             by_key[start["key"]].append((start, finishes.get(attempt_id)))
         systems = {system["name"]: system for system in identity["systems"]}
+        provider_states = _provider_states(identity, starts, finishes)
+        paused_providers = set()
         call_count, new_calls = len(starts), 0
         charged_or_reserved = sum(_attempt_cost(identity, systems[start["system"]],
                                    finishes[attempt_id]["response"] if attempt_id in finishes else None)
                                   for attempt_id, start in starts.items())
+        ceilings = [value for value in (identity["budget_usd"], max_total_cost_usd) if value is not None]
+        budget_ceiling = min(ceilings) if ceilings else None
+        if max_total_cost_usd is not None and identity["reserve_per_call_usd"] is None:
+            raise ValueError("A runtime budget ceiling requires saved per-call reserves")
         paths = list(directory.glob("attempts*.jsonl"))
         log_path = directory / ("attempts.jsonl" if not paths else f"attempts-{len(paths):06d}.jsonl")
         stop_reason = None
         with log_path.open("x", encoding="utf-8") as stream:
             for request in identity["requests"]:
+                provider = systems[request["system"]]["provider"]
                 previous = by_key[request["key"]]
                 while len(previous) < identity["max_attempts"]:
                     if previous:
@@ -332,25 +381,22 @@ def run_evaluation(output_dir, *, code_revision, max_new_calls=None, responders=
                         response = finished["response"]
                         if response.get("status") != "service_error" or not response.get("retryable"):
                             break
+                    state = provider_states.get(provider, {})
+                    wait = _remaining_wait(state)
+                    if state.get("blocked") or provider in paused_providers:
+                        break
+                    if wait > 60 or (wait > 0 and state.get("reason") == "retry_exhausted"):
+                        paused_providers.add(provider)
+                        break
                     if call_count >= identity["max_calls"] or (max_new_calls is not None and new_calls >= max_new_calls):
                         stop_reason = "call_limit"
                         break
                     reserve = _reserve(identity, request["system"])
-                    if identity["budget_usd"] is not None and charged_or_reserved + reserve > identity["budget_usd"] + 1e-12:
+                    if budget_ceiling is not None and charged_or_reserved + reserve > budget_ceiling + 1e-12:
                         stop_reason = "budget_reserve_limit"
                         break
-                    if previous:
-                        retry_after = previous[-1][1]["response"].get("retry_after")
-                        try:
-                            delay = float(retry_after)
-                            if not math.isfinite(delay):
-                                raise ValueError
-                        except (TypeError, ValueError):
-                            delay = min(60, 2 ** len(previous))
-                        if delay > 60:
-                            stop_reason = "retry_after_exceeds_wait_limit"
-                            break
-                        sleep(max(0, delay))
+                    if wait:
+                        sleep(wait)  # At most 60 seconds; the saved deadline survives interruption.
                     attempt_id = f"{manifest['run_id']}:{request['key']}:{len(previous) + 1}"
                     common = {"run_id": manifest["run_id"], "identity_sha256": manifest["identity_sha256"],
                               "key": request["key"], "attempt_id": attempt_id}
@@ -372,13 +418,29 @@ def run_evaluation(output_dir, *, code_revision, max_new_calls=None, responders=
                         result = {"status": "service_error", "response": "", "retryable": False,
                                   "error": f"Adapter raised {type(error).__name__}; details omitted", "usage_metadata": None}
                     finished = dict(common, event="finished", at_utc=_now(), elapsed_seconds=time.monotonic() - began, response=result)
+                    if result.get("status") == "service_error" and result.get("retryable") and not result.get("provider_blocked"):
+                        delay = _retry_delay(result, len(previous) + 1)
+                        exhausted = len(previous) + 1 >= identity["max_attempts"]
+                        if exhausted:
+                            delay = max(60, delay)
+                            paused_providers.add(provider)
+                        finished["provider_pause_reason"] = "retry_exhausted" if exhausted else "retry_after"
+                        try:
+                            deadline = datetime.now(timezone.utc) + timedelta(seconds=delay)
+                        except OverflowError:
+                            deadline = datetime.max.replace(tzinfo=timezone.utc)
+                        finished["provider_not_before_utc"] = deadline.isoformat()
                     _append(stream, finished)
+                    starts[attempt_id], finishes[attempt_id] = started, finished
                     previous.append((started, finished))
+                    provider_states = _provider_states(identity, starts, finishes)
                     charged_or_reserved += _attempt_cost(identity, systems[request["system"]], result)
                 if stop_reason:
                     break
         summary = summarize_evaluation(directory)
-        summary["stop_reason"] = stop_reason
+        summary["stop_reason"] = stop_reason or ("provider_paused" if any(
+            state.get("blocked") or _remaining_wait(state) for state in provider_states.values()) else None)
+        summary["effective_budget_usd"] = budget_ceiling
         _atomic_json(directory / "summary.json", summary)
         return summary
 
@@ -434,6 +496,7 @@ def summarize_evaluation(output_dir):
         by_key[start["key"]].append((start, finishes.get(attempt_id)))
     systems = {system["name"]: system for system in identity["systems"]}
     rows = {row["item_id"]: row for row in identity["rows"]}
+    provider_states = _provider_states(identity, starts, finishes)
     usage = {name: {"input_tokens": 0, "output_tokens": 0, "thinking_tokens": 0, "cached_input_tokens": 0,
                     "attempts_with_usage": 0, "attempts_without_usage": 0} for name in systems}
     for attempt_id, started in starts.items():
@@ -461,10 +524,14 @@ def summarize_evaluation(output_dir):
             else:
                 correct = scoring.is_correct(raw, row["gold_expansion"].strip())
                 valid = scoring.is_valid(raw, candidates_for(row))
-        retry_pending = bool(last and status == "service_error" and response.get("retryable") and len(attempts) < identity["max_attempts"])
+        state = provider_states.get(systems[request["system"]]["provider"], {})
+        withheld = state.get("blocked") or _remaining_wait(state) > 0
+        retry_pending = bool(last and status == "service_error" and response.get("retryable")
+                             and not state.get("blocked") and len(attempts) < identity["max_attempts"])
         records.append(dict(request, status=status, response=raw, selected_candidate=selected,
                             correct=correct, valid=valid, attempts=len(attempts), retry_pending=retry_pending,
-                            error=response.get("error"), response_metadata=response))
+                            error=response.get("error"), response_metadata=response,
+                            not_run_reason=state.get("reason") if status == "not_run" and withheld else None))
     groups = []
     for system in systems:
         for task in TASKS:
@@ -482,6 +549,7 @@ def summarize_evaluation(output_dir):
             "n_ambiguous": sum(record["status"] == "ambiguous" for record in records),
             "n_incomplete": sum(record["status"] not in {"response_received", "not_run"} for record in records),
             "n_identity_unverified": sum(record["response_metadata"].get("identity_status") == "unverified" for record in records),
+            "provider_states": provider_states,
             "truncated_journal_tails": tails, "usage": usage, "by_system_task": groups, "records": records,
             "unknown_usage_reserve_usd": {
                 name: sum(_reserve(identity, name) for attempt_id, start in starts.items()
