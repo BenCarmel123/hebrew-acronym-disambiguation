@@ -90,3 +90,21 @@ The recorded first run's dev losses were 0.42/0.53/0.54 and train losses
 Earlier claims that pooling made no difference, that seed 42 guaranteed repeatability,
 or that a 4.5-point observed range defined a general noise floor are not established
 by these records and are not adopted as current findings.
+
+## Identified test inference
+
+`test_encoder_inputs.qualify_test` retains strict target qualification by default.
+The explicitly selected `legacy_first_occurrence` policy instead uses the existing
+`models.common.pairs.find_span`: first quote-normalized acronym occurrence, with
+attached letters outside the marked span. Shaked authorized this deterministic
+choice on 2026-10-09 after the unresolved target positions were reported. It is
+not a human annotation and does not establish the provenance of the historical
+`results/dictabertx/test_details.csv` predictions.
+
+`test_encoder_inference.run_encoder_test` verifies a one-to-one, ordered mapping
+to all 395 original test rows, preserving every source field. It loads the approved
+local checkpoint with the existing strict Colab loader, validates three predictions,
+and then records all test selection predictions incrementally. It does not train,
+download weights, or perform generation. Exact candidate accuracy retains all
+395 items in the denominator; raw scores, failures, checkpoint reconstruction and
+source identities are saved together. An existing run directory is never overwritten.
