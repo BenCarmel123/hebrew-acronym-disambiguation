@@ -4,6 +4,15 @@
 \subsection{Held-out test results}
 \label{sec:test-results}
 
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/generate_vs_select.pdf}
+\caption{Accuracy under free generation versus candidate selection, for each
+LLM, on the held-out test set. Both models answer far more reliably once
+shown the same fixed candidate inventory the trained encoder uses.}
+\label{fig:generate-vs-select}
+\end{figure}
+
 Table~\ref{tab:test-results} reports the single held-out evaluation on the
 frozen, type-disjoint natural test population (\texttt{data/splits/test\_items.csv},
 395 items), run once on 3 October 2026. Baselines, both DictaBERT arms and
