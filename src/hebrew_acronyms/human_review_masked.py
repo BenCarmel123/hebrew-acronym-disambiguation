@@ -11,6 +11,7 @@ import os
 from pathlib import Path
 import secrets
 import threading
+import unicodedata
 
 from .human_review_server import ReviewStore, atomic_json, now
 from .human_review_short import LABELS, MODELS, PROTOCOL as PREVIOUS_PROTOCOL, digest
@@ -25,6 +26,9 @@ LIMITATIONS = ('בדיקה איכותנית אבחונית עם ייחוס מו�
 
 
 class MaskedStore:
+    protocol = PROTOCOL
+    limitations = LIMITATIONS
+
     def __init__(self, dataset, path, previous_short_bundle, previous_short_history=''):
         self.dataset = copy.deepcopy(dataset)
         self.plan = self.dataset['short_plan']
@@ -53,7 +57,7 @@ class MaskedStore:
                 order = list(answers)
                 secrets.SystemRandom().shuffle(order)
                 presentation[item_id] = [{'answer_id': aid, 'token': secrets.token_hex(16)} for aid in order]
-            self.state = {'protocol_version': PROTOCOL, 'plan_id': self.plan['plan_id'],
+            self.state = {'protocol_version': self.protocol, 'plan_id': self.plan['plan_id'],
                           'source_identity': dataset.get('source_identity', dataset['dataset_id']),
                           'provenance': copy.deepcopy(dataset['provenance']), 'revision': 0,
                           'reviewer': previous.get('reviewer', 'מתייג מקומי'), 'records': {}, 'backup_secret': secrets.token_hex(32),
@@ -146,7 +150,7 @@ class MaskedStore:
         return evidence
 
     def validate(self, state):
-        if state.get('protocol_version') != PROTOCOL or state.get('plan_id') != self.plan['plan_id']:
+        if state.get('protocol_version') != self.protocol or state.get('plan_id') != self.plan['plan_id']:
             raise ValueError('Masked protocol or sampling plan mismatch')
         if (ReviewStore.manifest(state.get('provenance')) != ReviewStore.manifest(self.dataset['provenance'])
                 or state.get('source_identity') != self.dataset.get('source_identity', self.dataset['dataset_id'])):
@@ -224,12 +228,12 @@ class MaskedStore:
 
     def snapshot(self):
         with self.lock:
-            return {'protocol_version': PROTOCOL, 'plan_id': self.plan['plan_id'], 'revision': self.state['revision'],
+            return {'protocol_version': self.protocol, 'plan_id': self.plan['plan_id'], 'revision': self.state['revision'],
                     'queue': copy.deepcopy(self.plan['queue']), 'records': self.public_records(self.state['records']),
                     'counts': self.counts(), 'reviewer': self.state['reviewer'], 'revealed': self.state['revealed'],
                     'exposed': self.state['revealed'], 'prior_exposure': any(self.prior_evidence(i)['status'] != 'before_reveal' for i in self.plan['queue'])}
 
-    def public_item(self, item_id):
+    def public_item(self, item_id, include_all=False):
         i = self.items[item_id]
         return {'id': item_id, 'sentence': i['sentence'], 'acronym': i['acronym'], 'gold': i['gold'],
                 'target_spans': i.get('target_spans', []), 'prior_reused': bool(self.state['records'].get(item_id, {}).get('prior_reused')),
@@ -247,7 +251,7 @@ class MaskedStore:
         if self.state.get('pre_reveal_snapshot') and candidate.get('pre_reveal_snapshot') != self.state['pre_reveal_snapshot']:
             raise ValueError('Pre-reveal snapshot is immutable')
         event = {'time': now(), 'action': action, 'item_id': item_id, 'revision': candidate['revision'],
-                 'protocol_version': PROTOCOL, 'record': candidate['records'].get(item_id),
+                 'protocol_version': self.protocol, 'record': candidate['records'].get(item_id),
                  'reveal_event': candidate['reveal_events'][-1:] if action == 'reveal' else []}
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with self.path.with_suffix('.history.jsonl').open('a', encoding='utf-8') as out:
@@ -281,7 +285,7 @@ class MaskedStore:
                 raise ValueError('Unknown masked-route item')
             r = candidate['records'].setdefault(item_id, self.blank())
             if action == 'open':
-                r['exposure'].setdefault('reference_and_generation', {'at': now(), 'protocol': PROTOCOL,
+                r['exposure'].setdefault('reference_and_generation', {'at': now(), 'protocol': self.protocol,
                                   'independent_attempt': False, 'phase': self.phase(item_id)})
             elif action == 'details':
                 if 'reference_and_generation' not in r['exposure']:
@@ -309,7 +313,7 @@ class MaskedStore:
                     j.setdefault('label_updated_at', None); j.setdefault('tags_updated_at', None)
                     if label != old.get('label', ''):
                         j.update(label_phase=self.phase(item_id), label_updated_at=now(), annotator=self.state['reviewer'],
-                                 origin=PROTOCOL, exposure_evidence=self.current_evidence(item_id))
+                                 origin=self.protocol, exposure_evidence=self.current_evidence(item_id))
                     if selected != old.get('tags', []):
                         j.update(tags_phase=self.phase(item_id), tags_updated_at=now(), tags_exposure_evidence=self.current_evidence(item_id))
                     j.update(label=label, tags=selected, tag_status='marked' if selected else 'not_marked')
@@ -330,7 +334,7 @@ class MaskedStore:
 
     def case(self, item_id, masked=True):
         r = self.state['records'][item_id]
-        public = self.public_item(item_id)
+        public = self.public_item(item_id, include_all=True)
         public_j = self.public_records({item_id: r})[item_id]['judgments']
         answers = []
         for slot, shown in zip(self.state['presentation'][item_id], public['answers']):
@@ -361,11 +365,11 @@ class MaskedStore:
                 raise ValueError('Explicit reveal required before full results')
             cases = [self.case(i, masked) for i in self.plan['queue'] if i in self.state['records']]
             tag_counts = Counter(t for r in self.state['records'].values() for j in r['judgments'].values() for t in j.get('tags', []))
-            result = {'protocol_version': PROTOCOL, 'masked': bool(masked), 'counts': self.counts(), 'cases': cases,
+            result = {'protocol_version': self.protocol, 'masked': bool(masked), 'counts': self.counts(), 'cases': cases,
                       'examples': [c for c in cases if c['example']], 'suspicions': [c for c in cases if c['suspect']],
                       'unresolved': [c for c in cases if any(a['label'] == 'unsure' for a in c['answers'])],
                       'tagged': [c for c in cases if any(a['tags'] for a in c['answers'])],
-                      'tag_counts': dict(tag_counts), 'limitations': LIMITATIONS,
+                      'tag_counts': dict(tag_counts), 'limitations': self.limitations,
                       'incomplete_ids': [i for i in self.plan['queue'] if self.completion(self.state['records'].get(i, {}))['status'] != 'complete']}
             if not masked:
                 reviewed = [c for c in cases if c['completion']['judged_answers']]
@@ -407,7 +411,7 @@ class MaskedStore:
         with self.lock:
             if revision != self.state['revision']:
                 raise ValueError('State changed before restore')
-            if (bundle.get('protocol_version') != PROTOCOL or bundle.get('plan_id') != self.state['plan_id']
+            if (bundle.get('protocol_version') != self.protocol or bundle.get('plan_id') != self.state['plan_id']
                     or bundle.get('queue') != self.plan['queue'] or bundle.get('masked') is not True):
                 raise ValueError('Masked backup protocol or queue mismatch')
             unsigned = copy.deepcopy(bundle)
@@ -445,7 +449,7 @@ class MaskedStore:
                      'equivalent': 'ניסוח חלופי שקול', 'extra_text': 'טקסט עודף / סותר'}
         phase_names = {'prior_protocol': 'פרוטוקול קודם', 'before_reveal': 'לפני חשיפה',
                        'after_reveal': 'לאחר חשיפה מתועדת', 'unknown': 'מצב החשיפה אינו ידוע'}
-        lines = ['# סיכום מוסתר' if masked else '# סיכום לאחר חשיפה', '', LIMITATIONS, '',
+        lines = ['# סיכום מוסתר' if masked else '# סיכום לאחר חשיפה', '', self.limitations, '',
                  f"{summary['counts']['complete_items']} פריטים הושלמו; {summary['counts']['judged_answers']} תשובות סומנו.", '']
         if not masked:
             from .human_review_short import GROUPS
@@ -480,3 +484,452 @@ class MaskedStore:
                 lines += ['', 'שלב עריכת הפריט האחרונה: ' + phase_names[case['edit_phase']] + '; מועד: ' + str(case.get('updated_at'))]
             lines.append('')
         return '\n'.join(lines)
+
+
+CONTINUATION_PROTOCOL = 'qualitative-generation-v3'
+FILTER_VERSION = 'generation-filter-v1'
+QUOTE_EQUIVALENTS = str.maketrans({'׳': "'", '‘': "'", '’': "'", '״': '"', '“': '"', '”': '"'})
+
+
+def technical_normalize(text):
+    """Only NFC, whitespace collapse and equivalent quote forms; preserve all other text."""
+    return ' '.join(unicodedata.normalize('NFC', text).translate(QUOTE_EQUIVALENTS).split())
+
+
+def contains_foreign_letters(text):
+    return any(unicodedata.category(c).startswith('L') and 'HEBREW' not in unicodedata.name(c, '') for c in text)
+
+
+def mechanical_status(answer, gold):
+    """A work-queue filter, never an assertion of human correctness or a rescore."""
+    raw = answer.get('raw')
+    explicit_failure = answer.get('status') in {'missing_record', 'empty_answer', 'technical_failure', 'request_failed', 'api_error'}
+    if raw is None or not isinstance(raw, str) or not raw.strip() or answer.get('missing') is True or explicit_failure:
+        return 'missing', 'empty_or_explicit_source_failure'
+    if isinstance(gold, str) and raw.strip() == gold.strip():
+        return 'exacttrim', 'whole_response_trim_equal'
+    if isinstance(gold, str) and technical_normalize(raw) == technical_normalize(gold):
+        return 'technical', 'whole_response_nfc_whitespace_quote_equal'
+    return 'pending', None
+
+
+class ContinuationStore(MaskedStore):
+    """The same reviewer with answer-level continuation; the original study snapshot is immutable."""
+    protocol = CONTINUATION_PROTOCOL
+    limitations = ('תור המשך לכיסוי תשובות היצירה שלא הוצאו לפי כללים מפורשים, ולא מדגם אקראי. '
+                   'המדגם ההיסטורי ושיפוטיו נשמרו בנפרד. סינון מכני אינו אישור אנושי ואינו משנה ציון. '
+                   'הייחוס מוצג ועשוי להיות שגוי; חשיפות קודמות נשמרות וסגנון עשוי לרמוז לזהות. '
+                   'אין לערבב אישורים אנושיים וסינון מכני בחישוב דיוק אנושי. תגית אינה הסבר סיבתי לפער.')
+    views = {'all', 'foreign', 'unsure', 'suspicions', 'filtered'}
+
+    def __init__(self, dataset, path, previous_v2_bundle, previous_v2_history=''):
+        self.dataset = copy.deepcopy(dataset)
+        self.plan = self.dataset['continuation_plan']
+        self.path = Path(path)
+        self.lock = threading.RLock()
+        self.items = {i['id']: i for i in dataset['items']}
+        if set(self.plan['queue']) != set(self.items) or len(self.plan['queue']) != len(self.items):
+            raise ValueError('Continuation queue must cover every source item exactly once')
+        self.answers = {item_id: {a['id']: a for a in self.items[item_id]['answers']
+                                 if a['system_id'] in {m + '_generate' for m in MODELS}} for item_id in self.plan['queue']}
+        if any(len(a) != 2 for a in self.answers.values()):
+            raise ValueError('Exactly two generation answers required per item')
+        self._view = 'all'
+        if self.path.exists():
+            self.state = json.loads(self.path.read_text(encoding='utf-8'))
+            self.validate(self.state)
+            return
+        previous = copy.deepcopy(previous_v2_bundle)
+        if previous.get('protocol_version') != PROTOCOL or previous.get('plan_id') != dataset['short_plan']['plan_id']:
+            raise ValueError('Previous masked study mismatch')
+        if (ReviewStore.manifest(previous.get('provenance')) != ReviewStore.manifest(dataset['provenance'])
+                or previous.get('source_identity') != dataset.get('source_identity', dataset['dataset_id'])):
+            raise ValueError('Previous source identity mismatch')
+        # Preserve existing judgments, notes, tags and presentations exactly; extend only the working route.
+        state = copy.deepcopy(previous)
+        state.update(protocol_version=self.protocol, plan_id=self.plan['plan_id'], revision=0,
+                     previous_v2_snapshot=previous, previous_v2_history=previous_v2_history,
+                     previous_v2_sha256=digest(previous), previous_v2_history_sha256=hashlib.sha256(previous_v2_history.encode()).hexdigest(),
+                     historical_plan=copy.deepcopy(dataset['short_plan']), continuation_plan=copy.deepcopy(self.plan),
+                     filter_version=FILTER_VERSION, restored_answers={}, continuation_events=[],
+                     historical_revealed=bool(previous.get('revealed')), revealed=False, reveal_events=[],
+                     pre_reveal_snapshot=None, summary_exposures=[], backup_secret=secrets.token_hex(32))
+        state.pop('pre_reveal_sha256', None)
+        for item_id, answers in self.answers.items():
+            if item_id in state['presentation']:
+                continue
+            order = list(answers); secrets.SystemRandom().shuffle(order)
+            state['presentation'][item_id] = [{'answer_id': aid, 'token': secrets.token_hex(16)} for aid in order]
+        self.state = state
+        state['inventory'] = self.make_inventory(state)
+        state['initial_counts'] = self.counts()
+        self.validate(state)
+        atomic_json(self.path, state)
+
+    def prior_evidence(self, item_id, state=None, at=None, historical=False):
+        state = state or self.state
+        evidence = super().prior_evidence(item_id, state, at, historical)
+        previous = state.get('previous_v2_snapshot', {})
+        events = copy.deepcopy(previous.get('reveal_events', []))
+        events += [e for e in previous.get('summary_exposures', []) if e.get('masked') is False]
+        evidence['previous_v2_reveal_events'] = events
+        evidence['previous_v2_revealed'] = bool(previous.get('revealed'))
+        if previous.get('revealed') or events:
+            evidence['status'] = 'after_reveal'
+        return evidence
+
+    def validate(self, state):
+        super().validate(state)
+        if (digest(state['previous_v2_snapshot']) != state['previous_v2_sha256']
+                or hashlib.sha256(state['previous_v2_history'].encode()).hexdigest() != state['previous_v2_history_sha256']):
+            raise ValueError('Historical v2 study changed')
+        if state.get('historical_plan') != self.dataset['short_plan'] or state.get('continuation_plan') != self.plan:
+            raise ValueError('Historical or continuation plan mismatch')
+        if state.get('filter_version') != FILTER_VERSION or state.get('inventory') != self.make_inventory(state):
+            raise ValueError('Continuation inventory mismatch')
+
+    def make_inventory(self, state):
+        inventory = {}
+        for item_id, answers in self.answers.items():
+            judgments = state['records'].get(item_id, {}).get('judgments', {})
+            inventory[item_id] = {}
+            for aid, answer in answers.items():
+                automatic, rule = mechanical_status(answer, self.items[item_id].get('gold'))
+                human = judgments.get(aid, {}).get('label') in LABELS
+                restored = aid in state.get('restored_answers', {}).get(item_id, {})
+                status = 'human' if human else ('pending' if restored else automatic)
+                inventory[item_id][aid] = {'status': status, 'filter_rule': rule if automatic != 'pending' else None,
+                    'rules_version': FILTER_VERSION, 'mechanical_status': automatic, 'restored': restored,
+                    'foreign_letters': contains_foreign_letters(answer.get('raw') or ''),
+                    'original_answer': copy.deepcopy(answer), 'gold': self.items[item_id].get('gold'),
+                    'source': self.items[item_id].get('source')}
+        return inventory
+
+    def selected_ids(self, item_id, view, state=None):
+        state = state or self.state
+        inventory = state['inventory'][item_id]
+        judgments = state['records'].get(item_id, {}).get('judgments', {})
+        if view == 'suspicions':
+            return set(inventory) if state['records'].get(item_id, {}).get('suspect') else set()
+        if view == 'unsure':
+            return {aid for aid in inventory if judgments.get(aid, {}).get('label') == 'unsure'}
+        if view == 'filtered':
+            return {aid for aid, entry in inventory.items() if entry['status'] in {'exacttrim', 'technical', 'missing'}}
+        return {aid for aid, entry in inventory.items() if entry['status'] == 'pending' and (view != 'foreign' or entry['foreign_letters'])}
+
+    def groups(self, item_id, view='all', state=None):
+        state = state or self.state
+        selected = self.selected_ids(item_id, view, state)
+        slots = [slot for slot in state['presentation'][item_id] if slot['answer_id'] in selected]
+        if len(slots) == 2:
+            first, second = [slot['answer_id'] for slot in slots]
+            a, b = [self.answers[item_id][aid].get('raw') for aid in (first, second)]
+            js = state['records'].get(item_id, {}).get('judgments', {})
+            shared = js.get(first, {}).get('decision_id') and js.get(first, {}).get('decision_id') == js.get(second, {}).get('decision_id')
+            both_pending = all(state['inventory'][item_id][aid]['status'] == 'pending' for aid in (first, second))
+            if isinstance(a, str) and a == b and (both_pending or shared):
+                return [slots]
+        return [[slot] for slot in slots]
+
+    def queues(self):
+        return {view: [i for i in self.plan['queue'] if self.selected_ids(i, view)] for view in self.views}
+
+    def counts(self, records=None):
+        inventory = self.state['inventory']
+        statuses = Counter(entry['status'] for answers in inventory.values() for entry in answers.values())
+        pending = statuses['pending']
+        decisions = sum(len(self.groups(i)) for i in self.plan['queue'])
+        base = super().counts(records)
+        base.update(source_answers=sum(statuses.values()), human_answers=statuses['human'],
+                    exacttrim_answers=statuses['exacttrim'], technical_answers=statuses['technical'], missing_answers=statuses['missing'],
+                    pending_answers=pending, pending_decisions=decisions, duplicate_savings=pending - decisions,
+                    foreign_pending_answers=sum(e['foreign_letters'] and e['status'] == 'pending' for a in inventory.values() for e in a.values()),
+                    foreign_total_answers=sum(e['foreign_letters'] for a in inventory.values() for e in a.values()),
+                    unsure_answers=sum(j.get('label') == 'unsure' for r in self.state['records'].values() for j in r['judgments'].values()),
+                    pending_items=sum(bool(self.selected_ids(i, 'all')) for i in self.plan['queue']))
+        historical_answers = 0
+        decisions = set()
+        continuation_decisions = set()
+        for item_id, record in self.state['records'].items():
+            for aid, judgment in record['judgments'].items():
+                if judgment.get('label') not in LABELS:
+                    continue
+                old = self.state['previous_v2_snapshot']['records'].get(item_id, {}).get('judgments', {}).get(aid, {})
+                inherited = old.get('label') == judgment.get('label') and old.get('label_updated_at') == judgment.get('label_updated_at')
+                historical_answers += inherited
+                key = (item_id, judgment.get('decision_id') or aid)
+                decisions.add(key)
+                if not inherited:
+                    continuation_decisions.add(key)
+        base.update(judged_answers=statuses['human'], historical_human_answers=historical_answers,
+                    continuation_human_answers=statuses['human'] - historical_answers,
+                    human_decisions=len(decisions), continuation_human_decisions=len(continuation_decisions))
+        return base
+
+    def snapshot(self):
+        with self.lock:
+            result = super().snapshot()
+            result.update(queues=self.queues(), queue=self.queues()['all'], rules_version=FILTER_VERSION,
+                          historical_revealed=self.state['historical_revealed'],
+                          prior_exposure=result['prior_exposure'] or self.state['historical_revealed'],
+                          initial_counts=copy.deepcopy(self.state['initial_counts']))
+            return result
+
+    def public_records(self, records):
+        result = super().public_records(records)
+        historical = self.state['previous_v2_snapshot']['records']
+        for item_id, r in records.items():
+            for slot in self.state['presentation'][item_id]:
+                aid, token = slot['answer_id'], slot['token']
+                j = r['judgments'].get(aid, {})
+                old = historical.get(item_id, {}).get('judgments', {}).get(aid, {})
+                inherited = bool(j.get('label') in LABELS and old.get('label') == j.get('label')
+                                 and old.get('label_updated_at') == j.get('label_updated_at'))
+                result[item_id]['judgments'][token].update(
+                    human_origin='historical' if inherited else 'continuation' if j.get('label') in LABELS else None,
+                    decision_id=j.get('decision_id'), occurrence_count=j.get('occurrence_count', 1),
+                    label_exposure_status=(j.get('exposure_evidence') or {}).get('status'),
+                    tags_exposure_status=(j.get('tags_exposure_evidence') or {}).get('status'))
+        return result
+
+    def export(self, masked=True):
+        with self.lock:
+            result = super().export(masked)
+            if not masked:
+                return result
+            ledger = {}
+            public_records = self.public_records(self.state['records'])
+            for item_id, slots in self.state['presentation'].items():
+                ledger[item_id] = {}
+                for slot in slots:
+                    entry = self.state['inventory'][item_id][slot['answer_id']]
+                    human = public_records.get(item_id, {}).get('judgments', {}).get(slot['token'], {})
+                    ledger[item_id][slot['token']] = {
+                        'review_status': entry['status'], 'filter_rule': entry['filter_rule'], 'rules_version': FILTER_VERSION,
+                        'original_text': self.answers[item_id][slot['answer_id']].get('raw'), 'gold': self.items[item_id].get('gold'),
+                        'restored': entry['restored'], 'foreign_letters': entry['foreign_letters'],
+                        'human_origin': human.get('human_origin'), 'decision_id': human.get('decision_id'),
+                        'occurrence_count': human.get('occurrence_count', 1)}
+            result.update(answer_ledger=ledger, source_identity=self.state['source_identity'])
+            result.pop('backup_mac', None)
+            result['backup_mac'] = hmac.new(self.state['backup_secret'].encode(), digest(result).encode(), hashlib.sha256).hexdigest()
+            return result
+
+    def restore_masked(self, bundle, revision):
+        with self.lock:
+            if revision != self.state['revision']:
+                raise ValueError('State changed before restore')
+            unsigned = copy.deepcopy(bundle)
+            signature = unsigned.pop('backup_mac', '')
+            expected = hmac.new(self.state['backup_secret'].encode(), digest(unsigned).encode(), hashlib.sha256).hexdigest()
+            if not hmac.compare_digest(signature, expected):
+                raise ValueError('Masked backup signature mismatch')
+            if (bundle.get('protocol_version') != self.protocol or bundle.get('plan_id') != self.plan['plan_id']
+                    or bundle.get('source_identity') != self.state['source_identity'] or bundle.get('masked') is not True
+                    or set(bundle.get('answer_ledger', {})) != set(self.answers)):
+                raise ValueError('Masked continuation backup mismatch')
+            candidate = copy.deepcopy(self.state)
+            for item_id, entries in bundle['answer_ledger'].items():
+                mapping = {s['token']: s['answer_id'] for s in self.state['presentation'][item_id]}
+                if set(entries) != set(mapping):
+                    raise ValueError('Backup random handles do not match this store')
+                for token, entry in entries.items():
+                    if entry.get('restored'):
+                        candidate['restored_answers'].setdefault(item_id, {}).setdefault(mapping[token], {'at': now(), 'reason': 'restore_masked_backup', 'rules_version': FILTER_VERSION})
+                public = bundle.get('records', {}).get(item_id)
+                if public is None:
+                    continue
+                if set(public.get('judgments', {})) != set(mapping):
+                    raise ValueError('Backup judgment mapping mismatch')
+                r = candidate['records'].setdefault(item_id, self.blank())
+                for token, supplied in public['judgments'].items():
+                    aid = mapping[token]
+                    j = r['judgments'].setdefault(aid, {})
+                    current_judgment = copy.deepcopy(j)
+                    historical_judgment = self.state['previous_v2_snapshot']['records'].get(item_id, {}).get('judgments', {}).get(aid, {})
+                    j.update({key: copy.deepcopy(supplied.get(key)) for key in (
+                        'label', 'tags', 'tag_status', 'label_phase', 'tags_phase', 'label_updated_at', 'tags_updated_at',
+                        'decision_id', 'occurrence_count')})
+                    for evidence_key, fields, status_key in (
+                            ('exposure_evidence', ('label', 'label_phase', 'label_updated_at'), 'label_exposure_status'),
+                            ('tags_exposure_evidence', ('tags', 'tags_phase', 'tags_updated_at'), 'tags_exposure_status')):
+                        matching = next((source for source in (current_judgment, historical_judgment)
+                                         if source and all(source.get(key) == supplied.get(key) for key in fields)), None)
+                        if matching is not None:
+                            if evidence_key in matching:
+                                j[evidence_key] = copy.deepcopy(matching[evidence_key])
+                            else:
+                                j.pop(evidence_key, None)
+                        else:
+                            if evidence_key in current_judgment:
+                                j.setdefault('evidence_before_restores', []).append({
+                                    'at': now(), 'field': evidence_key,
+                                    'evidence': copy.deepcopy(current_judgment[evidence_key])})
+                            j[evidence_key] = {'status': supplied.get(status_key), 'restored_from_masked_backup': True}
+                    j['restored_at'] = now()
+                for aid, j in r['judgments'].items():
+                    if j.get('decision_id'):
+                        j['applied_to_original_answers'] = [slot['answer_id'] for slot in self.state['presentation'][item_id] if r['judgments'].get(slot['answer_id'], {}).get('decision_id') == j['decision_id']]
+                for key in ('note', 'suspect', 'example'):
+                    r[key] = copy.deepcopy(public[key])
+                r.update(edit_phase=self.phase(item_id), updated_at=now(), restored_at=now())
+            candidate['inventory'] = self.make_inventory(candidate)
+            self.validate(candidate)
+            atomic_json(self.path.with_name(self.path.name + '.before-restore-' + secrets.token_hex(6) + '.json'), self.state)
+            return self.commit(candidate, 'restore_masked')
+
+    def public_item(self, item_id, include_all=False):
+        item = super().public_item(item_id, include_all=True)
+        if include_all:
+            return item
+        by_token = {a['id']: a for a in item['answers']}
+        answers = []
+        for slots in self.groups(item_id, self._view):
+            representative = slots[0]
+            answer = copy.deepcopy(by_token[representative['token']])
+            entry = self.state['inventory'][item_id][representative['answer_id']]
+            answer.update(occurrence_count=len(slots), review_status=entry['status'], foreign_letters=entry['foreign_letters'])
+            if entry['status'] in {'exacttrim', 'technical', 'missing'}:
+                answer.update(filter_rule=entry['filter_rule'], rules_version=FILTER_VERSION)
+            answers.append(answer)
+        item.update(answers=answers, view=self._view)
+        return item
+
+    def commit(self, candidate, action, item_id=None):
+        if candidate['previous_v2_snapshot'] != self.state['previous_v2_snapshot'] or candidate['previous_v2_history'] != self.state['previous_v2_history']:
+            raise ValueError('Previous study archive is immutable')
+        if action == 'save':
+            for slots in getattr(self, '_decision_groups', {}).values():
+                aids = [slot['answer_id'] for slot in slots]
+                judgments = candidate['records'][item_id]['judgments']
+                if all(judgments.get(aid, {}).get('label') in LABELS for aid in aids):
+                    previous_ids = {self.state['records'].get(item_id, {}).get('judgments', {}).get(aid, {}).get('decision_id') for aid in aids}
+                    decision_id = next(iter(previous_ids)) if len(previous_ids) == 1 and None not in previous_ids else secrets.token_hex(16)
+                    for aid in aids:
+                        judgments[aid].update(decision_id=decision_id, occurrence_count=len(aids),
+                                             applied_to_original_answers=aids, decision_origin='single_judgment_exact_same_item_duplicates')
+        candidate['inventory'] = self.make_inventory(candidate)
+        candidate['continuation_events'].append({'action': action, 'item_id': item_id, 'at': now()})
+        return super().commit(candidate, action, item_id)
+
+    def transact(self, action, payload):
+        with self.lock:
+            if payload.get('revision') != self.state['revision']:
+                raise ValueError('חלון אחר שינה את העבודה. יש לטעון מחדש לפני שמירה.')
+            view = payload.get('view', 'all')
+            if view not in self.views:
+                raise ValueError('Unknown continuation view')
+            self._view = view
+            if action == 'restore':
+                item_id = payload.get('item_id')
+                if item_id not in self.answers:
+                    raise ValueError('Unknown item')
+                token = payload.get('answer_id')
+                aid = next((s['answer_id'] for s in self.state['presentation'][item_id] if s['token'] == token), None)
+                if not aid or self.state['inventory'][item_id][aid]['status'] not in {'exacttrim', 'technical', 'missing'}:
+                    raise ValueError('Only mechanically filtered answers may be restored')
+                candidate = copy.deepcopy(self.state)
+                candidate['restored_answers'].setdefault(item_id, {})[aid] = {'at': now(), 'rules_version': FILTER_VERSION,
+                     'previous_status': self.state['inventory'][item_id][aid]['status']}
+                return self.commit(candidate, action, item_id)
+            if action == 'summary':
+                candidate = copy.deepcopy(self.state)
+                candidate['summary_exposures'].append({'at': now(), 'masked': True})
+                state = self.commit(candidate, action)
+                return {'state': state, 'summary': self.summary(True)}
+            if action == 'save':
+                payload = copy.deepcopy(payload)
+                mapping = {s['token']: s['answer_id'] for s in self.state['presentation'][payload['item_id']]}
+                # A displayed exact duplicate is one decision applied to its original occurrences.
+                groups = self.groups(payload['item_id'], view)
+                grouped = {}
+                for slots in groups:
+                    if len(slots) == 2:
+                        for slot in slots:
+                            grouped[slot['token']] = slots
+                saved = self.state['records'].get(payload['item_id'], {}).get('judgments', {})
+                for slot in self.state['presentation'][payload['item_id']]:
+                    decision_id = saved.get(slot['answer_id'], {}).get('decision_id')
+                    if decision_id:
+                        peers = [s for s in self.state['presentation'][payload['item_id']] if saved.get(s['answer_id'], {}).get('decision_id') == decision_id]
+                        if len(peers) > 1:
+                            grouped[slot['token']] = peers
+                expanded = {}
+                for token in set(payload.get('judgments', {})) | set(payload.get('tags', {})):
+                    if token not in mapping:
+                        raise ValueError('Unknown answer token')
+                    aid = mapping[token]
+                    if self.state['inventory'][payload['item_id']][aid]['status'] in {'exacttrim', 'technical', 'missing'}:
+                        raise ValueError('Restore filtered answer before judging')
+                    slots = grouped.get(token)
+                    if slots:
+                        expanded[token] = slots
+                        for slot in slots:
+                            for field in ('judgments', 'tags'):
+                                if token in payload.get(field, {}):
+                                    if slot['token'] in payload[field] and payload[field][slot['token']] != payload[field][token]:
+                                        raise ValueError('Conflicting labels or tags for one duplicate decision')
+                                    payload[field][slot['token']] = copy.deepcopy(payload[field][token])
+                self._decision_groups = expanded
+                try:
+                    return super().transact(action, payload)
+                finally:
+                    self._decision_groups = {}
+            return super().transact(action, payload)
+
+    def case(self, item_id, masked=True):
+        case = super().case(item_id, True)
+        for shown, slot in zip(case['answers'], self.state['presentation'][item_id]):
+            entry = self.state['inventory'][item_id][slot['answer_id']]
+            j = self.state['records'][item_id]['judgments'].get(slot['answer_id'], {})
+            shown.update(review_status=entry['status'], foreign_letters=entry['foreign_letters'],
+                         decision_id=j.get('decision_id'), occurrence_count=j.get('occurrence_count', 1))
+            if entry['status'] in {'exacttrim', 'technical', 'missing'}:
+                shown.update(filter_rule=entry['filter_rule'], rules_version=FILTER_VERSION)
+            if not masked:
+                answer = self.answers[item_id][slot['answer_id']]
+                label, score = shown['label'], answer.get('auto_score')
+                mismatch = (label == 'fits') != score if label in {'fits', 'not_fits'} and type(score) is bool else None
+                shown.update(answer_id=slot['answer_id'], original_answer_id=slot['answer_id'], model=answer['system_id'],
+                             raw=answer.get('raw'), auto_score=score, original_score_rule=answer.get('auto_score_rule'), origin=j.get('origin'),
+                             exposure_evidence=j.get('exposure_evidence'), tags_exposure_evidence=j.get('tags_exposure_evidence'),
+                             comparison='disagreement' if mismatch else 'agreement' if mismatch is False else 'undetermined')
+        if not masked:
+            r = self.state['records'][item_id]
+            case.update(source=self.items[item_id].get('source'), previous_note=r.get('previous_note', ''), edit_phase=r.get('edit_phase'), updated_at=r.get('updated_at'))
+        return case
+
+    def summary(self, masked=None):
+        with self.lock:
+            masked = True if masked is None else masked
+            if not masked and not self.state['revealed']:
+                raise ValueError('Explicit continuation reveal required')
+            result = super().summary(True)
+            result.update(masked=bool(masked), inventory_counts=self.counts(), initial_counts=copy.deepcopy(self.state['initial_counts']), rules_version=FILTER_VERSION, incomplete_ids=self.queues()['all'], tag_count_unit='answer_occurrences',
+                          tag_count_note='ספירת תגיות לפי מופעי תשובה; שיפוט יחיד על טקסט זהה עשוי לחול על שני מופעים.')
+            if not masked:
+                cases = [self.case(i, False) for i in self.plan['queue'] if i in self.state['records']]
+                result['cases'] = cases
+                result['examples'] = [c for c in cases if c['example']]
+                result['suspicions'] = [c for c in cases if c['suspect']]
+                result['unresolved'] = [c for c in cases if any(a['label'] == 'unsure' for a in c['answers'])]
+                result['accepted_human_rejected_auto'] = [c for c in cases if any(a['label'] == 'fits' and a['auto_score'] is False for a in c['answers'])]
+                result['rejected_human_accepted_auto'] = [c for c in cases if any(a['label'] == 'not_fits' and a['auto_score'] is True for a in c['answers'])]
+                result['historical_sample_preserved'] = True
+            return result
+
+    def markdown(self, masked=True):
+        # Reuse the established report's masked human fields, then add the continuation accounting.
+        text = super().markdown(True)
+        counts = self.counts()
+        text += '\n\n## תור ההמשך\n\n' + '\n'.join(f'- {label}: {counts[key]}' for key, label in (
+            ('source_answers', 'תשובות מקור'), ('human_answers', 'שיפוטים אנושיים קיימים'), ('exacttrim_answers', 'סוננו בהתאמה מלאה'),
+            ('technical_answers', 'סוננו בנרמול טכני מצומצם'), ('missing_answers', 'אין תשובה או כשל מתועד'),
+            ('pending_answers', 'תשובות שנותרו'), ('duplicate_savings', 'מופעים זהים שחוסכים הכרעה נוספת'), ('pending_decisions', 'הכרעות שנותרו')))
+        if not masked:
+            full = self.summary(False)
+            text += '\n\n## תוצאות לאחר חשיפה\n'
+            for case in full['cases']:
+                for answer in case['answers']:
+                    text += f"\n- {case['id']} / {answer['answer_id']}; מקור: {case['source']}; טקסט: {answer['raw']}; ייחוס: {case['gold']}; מודל: {answer['model']}; ציון מקורי: {answer['auto_score']}; שיפוט: {answer['label'] or 'טרם נשפט'}; תגיות: {', '.join(answer['tags']) or 'לא סומן'}; שלב: {answer['label_phase']}"
+        return text

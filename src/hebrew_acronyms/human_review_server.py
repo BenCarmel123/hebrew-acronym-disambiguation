@@ -469,11 +469,21 @@ class ReviewStore:
 
 
 def make_server(dataset, annotations, port=8765, qa=False):
-    masked_protocol = dataset.get("short_protocol") == "qualitative-generation-v2"
+    continuation_protocol = dataset.get("short_protocol") == "qualitative-generation-v3"
+    masked_protocol = continuation_protocol or dataset.get("short_protocol") == "qualitative-generation-v2"
     store = None if masked_protocol else ReviewStore(dataset, annotations)
     web = Path(__file__).with_name("human_review_web")
     short = None
-    if masked_protocol:
+    if continuation_protocol:
+        from .human_review_masked import ContinuationStore
+        previous_path = Path(annotations).with_name(Path(annotations).stem + ".short-v2.json")
+        previous = json.loads(previous_path.read_text(encoding="utf-8"))
+        previous_history = previous_path.with_suffix(".history.jsonl")
+        short = ContinuationStore(dataset, Path(annotations).with_name(Path(annotations).stem + ".continuation-v1.json"),
+                                  previous, previous_history.read_text(encoding="utf-8") if previous_history.exists() else "")
+        if qa:
+            short.state["reviewer"] = "QA_CONTINUATION_NOT_HUMAN"
+    elif masked_protocol:
         from .human_review_masked import MaskedStore
         previous_path = Path(annotations).with_name(Path(annotations).stem + ".short-v1.json")
         previous = json.loads(previous_path.read_text(encoding="utf-8"))
@@ -536,7 +546,7 @@ def make_server(dataset, annotations, port=8765, qa=False):
             if path == "/api/short/summary/export.md" and short:
                 return self.reply(short.markdown(), "text/markdown; charset=utf-8")
             if path == "/api/session":
-                return self.reply({"qa": qa, "annotations_path": str(Path(annotations).resolve()), "short_plan_id": dataset.get("short_plan", {}).get("plan_id"), "short_protocol": dataset.get("short_protocol", "qualitative-generation-v1")})
+                return self.reply({"qa": qa, "annotations_path": str(Path(annotations).resolve()), "short_plan_id": dataset.get("continuation_plan" if continuation_protocol else "short_plan", {}).get("plan_id"), "short_protocol": dataset.get("short_protocol", "qualitative-generation-v1")})
             if path == "/api/data":
                 return self.reply(dataset)
             if path == "/api/state":

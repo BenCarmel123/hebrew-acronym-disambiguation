@@ -3,27 +3,27 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>בדיקה קצרה · קיצורים בעברית</title>
+  <title>בדיקת תשובות · קיצורים בעברית</title>
   <link rel="stylesheet" href="/short.css">
   <script src="/short.js" defer></script>
 </head>
 <body>
   <div id="qaBanner" class="qa" hidden>סביבת בדיקת תוכנה בלבד · התיוגים נפרדים מעבודת המחקר</div>
   <header>
-    <div><p class="eyebrow">פרויקט NLP · בדיקה איכותנית קצרה</p><h1>האם הפירוש מתאים להקשר?</h1></div>
+    <div><p class="eyebrow">פרויקט NLP · בדיקת תשובות יצירה</p><h1>האם הפירוש מתאים להקשר?</h1></div>
     <div class="progress"><strong id="progress">טוען…</strong><span id="countDetail"></span><span id="reviewer"></span></div>
   </header>
   <div id="saveStatus" role="status" aria-live="polite">טוען את העבודה השמורה…</div>
   <main inert>
     <section id="reviewScreen">
-      <div class="guidance"><strong>נתקעת? סמן לא בטוח והמשך. אין צורך לחפש מידע חיצוני.</strong><p>שפוט משמעות בהקשר, לא התאמה מילולית לייחוס. אם חסר בסיס להחלטה — לא בטוח.</p><p class="small">א׳/ב׳ מציינים את מיקום התשובה במשפט הנוכחי. כדקה–שתיים לפריט. אפשר לעצור בכל רגע ולסכם; עד שעה לכל הבדיקה והסיכום.</p><p class="small">ג׳יבריש הוא טקסט משובש או לא קוהרנטי, לא כל פירוש שגוי או מילה לא מוכרת. כתיב ונטייה אינם מבטיחים שקילות; ״ניסוח חלופי שקול״ דורש אותה משמעות בהקשר.</p></div>
-      <div class="navigation"><button id="previous" class="quiet">→ הקודם</button><span id="position"></span><button id="detailsButton" class="text-button">פרטי המקרה</button></div>
+      <div class="guidance"><strong>נתקעת? סמן לא בטוח והמשך. אין צורך לחפש מידע חיצוני.</strong><p>שפוט משמעות בהקשר, לא התאמה מילולית לייחוס. אם חסר בסיס להחלטה — לא בטוח.</p><p class="small">מוצגות רק התשובות בתור שבחרת. הקודים מציינים מיקום מקומי במשפט. אפשר לעצור ולהמשיך בכל שלב.</p><p class="small">ג׳יבריש הוא טקסט משובש או לא קוהרנטי, לא כל פירוש שגוי או מילה לא מוכרת. כתיב ונטייה אינם מבטיחים שקילות; ״ניסוח חלופי שקול״ דורש אותה משמעות בהקשר.</p></div>
+      <div class="queue-controls"><label for="queueView">תור בדיקה</label><select id="queueView"><option value="all">כל התשובות הממתינות</option><option value="foreign">מכילות אותיות משפה אחרת</option><option value="unsure">לא בטוח — חזרה נפרדת</option><option value="suspicions">חשדות לייחוס או למשפט</option><option value="filtered" hidden>עיון בתשובות שסוננו</option></select><button id="filteredButton" class="text-button">עיון במסוננות והחזרה לבדיקה</button><p id="queueHint" class="small"></p></div><div class="navigation"><button id="previous" class="quiet">→ הקודם</button><span id="position"></span><button id="detailsButton" class="text-button">פרטי המקרה</button></div>
       <p id="exposureNotice" class="notice" hidden></p><div id="itemView"></div>
       <footer><button id="saveNext" class="primary">שמירה והבא ←</button><button id="stopSummary" class="quiet">עצירה וסיכום</button><span id="itemProgress" class="small"></span></footer>
-      <p class="small next-help">אפשר להמשיך גם בלי לסמן הכול; הפריט יישאר חלקי. אין צורך לנחש.</p>
+      <p class="small next-help">אפשר להמשיך גם בלי לסמן הכול; תשובות שלא נשפטו נשארות בתור הממתינות.</p>
     </section>
     <section id="detailsScreen" hidden><button id="backDetails" class="quiet">→ חזרה לבדיקה</button><h2>פרטי המקרה</h2><p class="small">פתיחת הפרטים מתועדת כחשיפה למידע הנוסף.</p><div id="detailsView"></div></section>
-    <section id="summaryScreen" hidden><div class="summary-heading"><h2 id="summaryTitle">סיכום ביניים מוסתר</h2><button id="backSummary" class="quiet">→ חזרה לבדיקה</button></div><p id="summaryIntro" class="small">הסיכום מציג התקדמות, שיפוטים, תגיות והערות בלבד. אפשר לשמור ולצאת בלי לחשוף תוצאות.</p><div id="summaryView"></div><div class="downloads"><button id="exportAnnotations">הורדת גיבוי מוסתר</button><button id="exportSummary">הורדת סיכום מוסתר</button></div><section id="revealPanel" class="card"><h3>חשיפת התוצאות — רק כשסיימת לתייג</h3><p>הפעולה תשמור תמונת מצב של השיפוטים לפני חשיפת המודלים והניקוד. עריכות נוספות יסומנו כעריכות לאחר חשיפה ולא ידרסו את תמונת המצב. אפשר לסיים גם לפני 20 משפטים.</p><button id="revealResults">סיום התיוג וחשיפת התוצאות</button></section><div id="fullDownloads" class="downloads" hidden><button id="exportFull">הורדת ייצוא מלא עם זהויות וניקוד</button><button id="exportFullSummary">הורדת סיכום תוצאות מלא</button></div></section>
+    <section id="summaryScreen" hidden><div class="summary-heading"><h2 id="summaryTitle">סיכום ביניים מוסתר</h2><button id="backSummary" class="quiet">→ חזרה לבדיקה</button></div><p id="summaryIntro" class="small">הסיכום מציג התקדמות, שיפוטים, תגיות והערות בלבד. אפשר לשמור ולצאת בלי לחשוף תוצאות.</p><div id="summaryView"></div><div class="downloads"><button id="exportAnnotations">הורדת גיבוי מוסתר</button><button id="exportSummary">הורדת סיכום מוסתר</button></div><section id="revealPanel" class="card"><h3>חשיפת התוצאות — רק כשסיימת לתייג</h3><p>הפעולה תשמור תמונת מצב של השיפוטים לפני חשיפת המודלים והניקוד. עריכות נוספות יסומנו כעריכות לאחר חשיפה ולא ידרסו את תמונת המצב. אפשר לעצור גם כשהתור טרם הסתיים.</p><button id="revealResults">סיום התיוג וחשיפת התוצאות</button></section><div id="fullDownloads" class="downloads" hidden><button id="exportFull">הורדת ייצוא מלא עם זהויות וניקוד</button><button id="exportFullSummary">הורדת סיכום תוצאות מלא</button></div></section>
     <section id="startupError" hidden><p>לא ניתן לטעון את הבדיקה כרגע. העבודה הקיימת נשארת בדיסק.</p><button id="retryLoad">ניסיון טעינה נוסף</button></section>
   </main>
 </body>

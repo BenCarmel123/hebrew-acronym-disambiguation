@@ -202,7 +202,61 @@ remains semantically unscored. Review gold labels and candidate inventories with
 including institutional uses, before interpreting these diagnostic development scores.
 
 
-## Short qualitative review (current protocol)
+## Continuation review of all generation answers (current protocol)
+
+`qualitative-generation-v3` extends the existing annotator to both saved generation
+answers in all 395 sentences. The diagnostic 20-sentence sample and its annotations
+remain immutable historical material. The new continuation plan is separate; no
+selection-system judgments or model runs are added. The reference is still shown,
+identities and original scores stay masked, and prior exposure is never reset.
+
+Each source answer belongs to exactly one primary status, in this order:
+existing/current human judgment; missing response or explicit source failure;
+whole-answer equality to the reference after boundary whitespace removal;
+whole-answer equality after narrowly defined technical normalization; or pending.
+Technical normalization uses Unicode NFC, whitespace-run collapse and equivalent
+single/double quotation marks only. It does not delete hyphens, general punctuation,
+Hebrew letters, or extra text, and does not equate inflections or semantic variants.
+Mechanical filtering is not human approval of either the answer or its reference;
+original scores remain unchanged. Each filter retains its rule/version and source.
+Restoring a filtered response to the queue is explicit and reversible without loss.
+
+At migration: 790 source answers = 40 previously judged + 181 trim-exact filtered
++ 0 technical-normalized filtered + 0 missing/explicit failures + 569 pending.
+Three byte-identical pairs within the same sentence require one presentation each,
+leaving 566 human decisions. This duplicate saving is not subtracted a second time
+from source coverage. The shared decision has one decision ID applied to its source
+occurrences; they are not independent judgments. Identical strings in different
+sentences are never merged. Nonidentical strings are never merged semantically.
+
+The default queue contains all pending work. Each case shows only its one or two
+remaining answer cards. Optional tags, concern/example flags, note, autosave and
+save-and-next remain. Counts refer to answer occurrences and required decisions,
+not only sentence completion. Separate views provide answers containing letters
+from another script, existing unsure judgments, and reference/context concerns.
+The foreign-letter feature uses Unicode letters only; digits, marks, spaces and
+punctuation do not count. It is an overlapping feature, never an exclusion or an
+automatic gibberish label. There are 172 pending occurrences with this feature at
+migration (177 including already judged responses). Empty/explicit source failures
+are separately available; no wrong/gibberish judgment is invented for them.
+
+Stop-and-summary remains masked, even after historical exposure. The separate
+finish-and-reveal action freezes the current judgments before revealing new results.
+Prior reveal events and unknown exposure still govern subsequent judgment phases;
+a new gate is not a claim that the reviewer forgot previously exposed information.
+The historical sample snapshot, notes, tags, labels, original ordering and exposure
+history are retained in full. Summaries distinguish prior/new human work from
+mechanical exclusions; no mixed “human accuracy” or random-sample claim is made.
+Scoring-rule changes remain a separate decision for Shaked and Ben.
+
+The existing launcher loads `review-data-continuation-v1.json`. New work goes to
+`annotations.continuation-v1.json` and its history; earlier annotation files are not
+modified. Keep the private file/history with backups: masked exports intentionally
+omit identity mappings and cannot replace the private store. At 15–30 seconds per
+remaining decision, the initial workload is about 2.5–5 hours before breaks and
+complex cases. This is a planning range, not a promise of completion within an hour.
+
+## Historical 20-sentence qualitative review
 
 The current `qualitative-generation-v2` protocol is a post-experiment diagnostic
 review with a one-hour human budget, including synthesis. The reference is shown.

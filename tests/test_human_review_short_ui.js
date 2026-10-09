@@ -165,3 +165,110 @@ test('actual selected and reviewed composition is rendered only after explicit r
     assert.ok(!masked.includes('הרכב הרשימה והבדיקה בפועל'));
   }
 });
+
+test('continuation starts with backend pending queue rather than old item completion',()=>{
+  const state={queues:{all:['remaining'],unsure:['uncertain'],foreign:['remaining'],filtered:['match'],suspicions:['suspect']},queue:['remaining'],records:{remaining:{completion:{status:'complete'}}}};
+  assert.equal(ui.firstIncomplete(state),'remaining');
+  assert.deepEqual(ui.queueIds(state,'unsure'),['uncertain']);
+  assert.deepEqual(ui.queueIds(state,'all'),['remaining']);
+});
+test('next navigation handles queue shrink after autosave and keeps earlier skips reachable',()=>{
+  assert.equal(ui.nextQueueId(['a','b','c'],'b',['a','c']),'c');
+  assert.equal(ui.nextQueueId(['a','b','c'],'c',['a']),'a');
+  assert.equal(ui.nextQueueId(['a','b'],'b',['b']),undefined);
+});
+test('single remaining or duplicate-collapsed answer requires only one judgment',()=>{
+  const i={...fixture,answers:[{...fixture.answers[0],review_status:'pending',occurrence_count:2}]};
+  const html=ui.renderMain(i,{});
+  assert.equal((html.match(/type="radio"/g)||[]).length,3);
+  assert.ok(html.includes('שיפוט אחד יחול עליהם'));
+  assert.deepEqual(ui.progressFor(i,{}),{judged:0,total:1});
+  assert.ok(!html.includes('HIDDEN_MODEL'));
+});
+test('mechanical answers have read-only cards with restoration but no judgment controls',()=>{
+  for(const status of ['exacttrim','technical','missing']){
+    const i={...fixture,answers:[{...fixture.answers[0],review_status:status}]};
+    const html=ui.renderMain(i,{},'filtered');
+    assert.ok(!html.includes('type="radio"'));
+    assert.ok(!html.includes('data-tags-answer'));
+    assert.ok(html.includes('data-restore-answer="opaque-1"'));
+    assert.ok(!html.includes('HIDDEN_MODEL_A'));
+  }
+});
+test('partition keeps duplicate savings and foreign letters separate from primary groups',()=>{
+  const counts={source_answers:790,human_answers:40,exacttrim_answers:300,technical_answers:50,missing_answers:10,pending_answers:390,pending_decisions:360,duplicate_savings:30,foreign_pending_answers:20};
+  const html=ui.renderPartition(counts);
+  assert.ok(html.includes('<th>סכום הקבוצות הראשיות</th><td>790</td>'));
+  assert.ok(html.includes('30 הצגות נוספות'));
+  assert.ok(html.includes('20 מהממתינות'));
+  assert.ok(html.includes('<strong>360</strong> הכרעות'));
+});
+test('historical reveal does not automatically unmask continuation summary',()=>{
+  const state={revealed:true,queues:{all:[]}};
+  assert.equal(ui.canShowFull(state,{masked:false}),false);
+  assert.equal(ui.canShowFull(state,{masked:false},true),true);
+  assert.equal(ui.canShowFull(state,{masked:true},true),false);
+});
+test('continuation shell has all queues, secondary filtered access and no twenty-item hour promise',()=>{
+  const html=fs.readFileSync(path.join(__dirname,'../src/hebrew_acronyms/human_review_web/short.html'),'utf8');
+  for(const v of ['all','foreign','unsure','suspicions'])assert.ok(html.includes('value="'+v+'"'));
+  assert.ok(html.includes('עיון במסוננות והחזרה לבדיקה'));
+  assert.ok(!html.includes('עד שעה'));
+  assert.ok(!html.includes('20 משפטים'));
+});
+
+test('SaveNext queues during autosave and persists edits made while the earlier request is pending',async()=>{
+  const vm=require('node:vm');
+  const source=fs.readFileSync(path.join(__dirname,'../src/hebrew_acronyms/human_review_web/short.js'),'utf8');
+  const elements=new Map();
+  function element(id){
+    if(!elements.has(id))elements.set(id,{value:'',checked:false,hidden:false,disabled:false,inert:false,innerHTML:'',textContent:'',listeners:{},addEventListener(type,fn){this.listeners[type]=fn;},querySelectorAll(){return [];}});
+    return elements.get(id);
+  }
+  let label='',tags=[],debounce,serverRevision=0;
+  const main=element('main'),qualityInput=element('qualityInput'),tagInput=element('tagInput');
+  element('itemView').querySelectorAll=selector=>selector==='input,textarea'?[qualityInput,tagInput]:[];
+  const group={dataset:{answer:'opaque-1'},querySelector(){return label?{value:label}:null;}};
+  const tagGroup={dataset:{tagsAnswer:'opaque-1'},querySelectorAll(){return tags.map(value=>({value}));}};
+  const document={getElementById:element,querySelector:()=>main,querySelectorAll:selector=>selector==='[data-answer]'?[group]:selector==='[data-tags-answer]'?[tagGroup]:[]};
+  const state=()=>({protocol_version:'qualitative-generation-v3',revision:serverRevision,queue:serverRevision>1?['second']:['first','second'],queues:{all:serverRevision>1?['second']:['first','second'],foreign:[],unsure:[],suspicions:[],filtered:[]},records:{},counts:{pending_answers:2,pending_decisions:2,human_answers:0},reviewer:'QA',revealed:false});
+  const opened=[],saves=[],waiting=[];
+  const fetch=async(url,options)=>{
+    const payload=options?.body?JSON.parse(options.body):null;
+    if(url==='/api/short/state')return {ok:true,json:async()=>state()};
+    if(url==='/api/session')return {ok:true,json:async()=>({qa:true})};
+    if(url==='/api/short/open'){
+      opened.push(payload.item_id);serverRevision++;
+      return {ok:true,json:async()=>({state:state(),item:{...fixture,id:payload.item_id,answers:[{id:'opaque-1',code:'א',text:'פירוש',review_status:'pending'}]}})};
+    }
+    if(url==='/api/short/save'){
+      saves.push(payload);
+      return new Promise(resolve=>waiting.push(()=>{serverRevision++;resolve({ok:true,json:async()=>state()});}));
+    }
+    throw new Error('Unexpected request '+url);
+  };
+  vm.runInNewContext(source,{document,fetch,setTimeout:fn=>{debounce=fn;return 1;},clearTimeout:()=>{},window:{addEventListener(){},scrollTo(){}},console});
+  async function until(predicate){for(let n=0;n<30&&!predicate();n++)await new Promise(resolve=>setImmediate(resolve));assert.ok(predicate(),'Expected asynchronous milestone: '+element('saveStatus').textContent);}
+  await until(()=>opened.length===1&&Boolean(qualityInput.listeners.input)&&!main.inert);
+  label='fits';qualityInput.listeners.input();debounce();
+  await until(()=>saves.length===1);
+  assert.equal(main.inert,false,'Background autosave must leave navigation clickable');
+  tags=['spelling'];tagInput.listeners.input();
+  element('saveNext').onclick();
+  assert.equal(main.inert,true,'Explicit navigation locks the form while awaiting save');
+  waiting.shift()();
+  await until(()=>saves.length===2);
+  assert.deepEqual(saves[0].tags['opaque-1'],[]);
+  assert.deepEqual(saves[1].tags['opaque-1'],['spelling']);
+  assert.equal(opened.length,1,'Do not navigate before the latest edit is saved');
+  waiting.shift()();
+  await until(()=>opened.length===2&&!main.inert);
+  assert.deepEqual(opened,['first','second']);
+  assert.equal(saves[1].judgments['opaque-1'],'fits');
+});
+
+test('zero pending continuation answers reports completion despite mechanical exclusions',()=>{
+  const html=ui.renderSummaryContent({masked:true,counts:{source_answers:790,pending_answers:0,pending_decisions:0,human_answers:500,exacttrim_answers:280,technical_answers:10,missing_answers:0,complete_items:200,total_items:395},incomplete_ids:[],cases:[]});
+  assert.ok(html.includes('אין תשובות שממתינות לבדיקה; שיפוטי לא בטוח נשארים בתור החזרה.'));
+  assert.ok(!html.includes('אפשר להמשיך בפריטים שטרם הושלמו.'));
+});
