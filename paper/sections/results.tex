@@ -1,87 +1,84 @@
 \section{Results and Discussion}
 \label{sec:results}
-
-\subsection{Held-out test results}
-\label{sec:test-results}
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=\linewidth]{figures/generate_vs_select.pdf}
-\caption{Accuracy under free generation versus candidate selection, for each
-LLM, on the held-out test set. Both models answer far more reliably once
-shown the same fixed candidate inventory the trained encoder uses.}
-\label{fig:generate-vs-select}
-\end{figure}
-
-Table~\ref{tab:test-results} reports the single held-out evaluation on the
-frozen, type-disjoint natural test population (\texttt{data/splits/test\_items.csv},
-395 items), run once on 3 October 2026. Baselines, both DictaBERT arms and
-both LLMs (generate and select, one request per item) were scored under an
-identical item universe and the shared exact-match scorer; per-item records
-are retained under \texttt{results/\{dictabert,dictabertx,qwen,gemini\}/}.
+% Skeleton following Vered Shwartz's advice: state the findings first, give results in full
+% and in an easy format, add examples, stay concise, do not oversell, report unflattering results.
+% TODO: every XX below is a manually judged generation score; fill them in and recheck each claim.
+Table~\ref{tab:test-results} gives accuracy for all systems on the 395 test items, and Figure~\ref{fig:generate-vs-select} compares the two formats for each LLM. Three results stand out. Selection beats generation for both LLMs. Fine-tuning improves the encoder. The fine-tuned encoder beats the small LLM, but not the proprietary LLM when that LLM selects from candidates. Sections~\ref{sec:res-formats} to~\ref{sec:res-errors} give the details.
 
 \begin{table}[t]
 \centering\small
 \begin{tabular}{lrr}
 \toprule
-Arm & Accuracy & Invalid rate \\
+System & Accuracy & Invalid \\
 \midrule
 Random & 23.4\% & -- \\
 Most frequent & 38.2\% & -- \\
 Most mined & 48.9\% & -- \\
 Oracle & 100.0\% & -- \\
+\midrule
 DictaBERT (untrained) & 65.1\% & -- \\
 DictaBERT (fine-tuned) & 72.4\% & -- \\
-Qwen 2.5 7B (generate) & 6.8\% & 92.7\% \\
-Qwen 2.5 7B (select) & 59.5\% & 0.8\% \\
-Gemini (generate) & 53.2\% & 44.3\% \\
-Gemini (select) & 93.7\% & 0.5\% \\
+\midrule
+Qwen 2.5 7B, generation & XX\% & XX\% \\
+Qwen 2.5 7B, selection & 59.5\% & 0.8\% \\
+Gemini, generation & XX\% & XX\% \\
+Gemini, selection & 93.7\% & 0.5\% \\
 \bottomrule
 \end{tabular}
-\caption{Held-out test accuracy (395 items). ``Invalid rate'' is the share of
-free-generation responses matching no candidate string; selection responses
-are constrained to the inventory by construction.}
+\caption{Test accuracy (395 items). For selection, an invalid answer is not a single valid letter. % TODO: define invalid for judged generation
+}
 \label{tab:test-results}
 \end{table}
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\linewidth]{figures/arm_comparison.pdf}
-\caption{All systems' accuracy on the held-out test set, sorted, with the
-random/most-frequent/most-mined baselines and the oracle ceiling shown as
-reference lines.}
-\label{fig:arm-comparison}
+\includegraphics[width=\linewidth]{figures/generate_vs_select.pdf}
+\caption{Accuracy under free generation and under candidate selection, for each LLM. % TODO: regenerate with the judged generation scores
+}
+\label{fig:generate-vs-select}
 \end{figure}
 
-Free generation fails as scored for both LLMs: the overwhelming majority of
-generated responses never produce the candidate's exact text, whether because
-the model answers with a close paraphrase, over-explains instead of returning
-a short phrase, or -- for Qwen specifically -- produces garbled,
-mixed-script output unrelated to the prompt. Restricting the same models to
-select from the fixed inventory closes most of that gap (Qwen: 6.8\% to
-59.5\%; Gemini: 53.2\% to 93.7\%), directly answering whether a
-general-purpose LLM already solves this task from context alone: not under
-free generation, but yes once given the same candidate-constrained scaffold
-the trained encoder uses.
+\subsection{Generation versus selection}
+\label{sec:res-formats}
+Candidate selection beats free generation for both LLMs. Accuracy rises from XX\% to 59.5\% for Qwen and from XX\% to 93.7\% for Gemini. % TODO: one sentence on why, from the error analysis, e.g. where generated answers go wrong
+Because selection is constrained to the inventory, this gain also depends on the inventory containing the right answer, which holds for every test item (the oracle is 100\%).
 
-The fine-tuned encoder (72.4\%) clearly exceeds both baselines and its own
-untrained zero-shot variant, and clearly exceeds unconstrained LLM generation
-for both LLMs -- a real, defensible result for task-specific fine-tuning over
-naive prompting. It does not exceed Gemini under selection (93.7\%), the
-strongest arm overall.
+\subsection{Fine-tuning and the encoder}
+\label{sec:res-encoder}
+Fine-tuning raises the encoder from 65.1\% to 72.4\%, a gain of 7.3 points from fewer than 3,000 training items. The fine-tuned encoder beats Qwen's selection (59.5\%) and Gemini's generation (XX\%). It trails Gemini's selection (93.7\%) by 21.3 points. So a model about 35 times smaller than Qwen can beat Qwen at selection, but it does not match the best system. We ran each system once, so we cannot say how stable the 7.3-point gain is.
 
-\ifpaperresults
-\subsection{Preliminary development results}
-\begin{table*}[t]
+\subsection{Results by kind of sentence}
+\label{sec:res-source}
+% TODO: add a table of accuracy for each system on the 267 Knesset, 41 Wikipedia and 87 Claude-authored items, and one sentence on whether authored items are easier or harder.
+Because 22\% of the test items were written by an LLM, we report accuracy separately for each kind of sentence in Table~\ref{tab:res-source}.
+
+\begin{table}[t]
 \centering\small
-\PaperResultsTable
-\caption{Selection scores and execution coverage from the explicitly selected preliminary development run. Free generation remains unjudged; unavailable values are not zero.}
-\label{tab:run-results}
-\end{table*}
-\begin{figure*}[t]
-\centering
-\PaperSelectionFigure
-\caption{Preliminary development selection accuracy for run \PaperRunID. Micro divides by all requested items; macro weights types equally. Partial arms are labeled, and failed requests remain in the denominator.}
-\label{fig:selection-results}
-\end{figure*}
-\fi
+\begin{tabular}{lrrr}
+\toprule
+System & Knesset & Wikipedia & Authored \\
+\midrule
+% TODO: fill in from the per-item results
+\bottomrule
+\end{tabular}
+\caption{Test accuracy by kind of sentence (267, 41 and 87 items).}
+\label{tab:res-source}
+\end{table}
+
+\subsection{Examples and errors}
+\label{sec:res-errors}
+% TODO: add three to five short examples in a table: a generated answer judged correct as a variant (\heb{שקל חדש} vs \heb{שקלים חדשים}), a generated answer judged wrong, a selection error by Gemini, and a selection error by the encoder.
+Table~\ref{tab:res-examples} shows examples of correct variants and of errors.
+
+\begin{table}[t]
+\centering\small
+\begin{tabular}{p{0.2\columnwidth}p{0.7\columnwidth}}
+\toprule
+Case & Example \\
+\midrule
+% TODO
+\bottomrule
+\end{tabular}
+\caption{Examples of generated answers and selection errors.}
+\label{tab:res-examples}
+\end{table}

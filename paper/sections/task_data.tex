@@ -1,11 +1,35 @@
 \section{Task and Data}
 \label{sec:data}
 \subsection{The unit of prediction}
-An item is a tuple $(a_i,x_i,s_i,r_i,C_i,y_i)$: an acronym type, a sentence, a half-open character span, its exact raw text, a candidate inventory, and a reference expansion. The span identifies one occurrence even when the sentence contains several abbreviations. We preserve $r_i=x_i[s_i]$, including an attached prefix, and mark that span with \texttt{[ACR]} and \texttt{[/ACR]}. The type is a grouping key; it is not substituted for the raw target in the input.
+Each item $i$ has the six elements listed in Table~\ref{tab:notation}. The span identifies one occurrence even when the sentence contains several abbreviations. We keep $r_i=x_i[s_i]$, including any attached prefix, and mark the span with \texttt{[ACR]} and \texttt{[/ACR]}.
 
-Generation predicts a short expansion from $(x_i,s_i,r_i)$, without candidates or the reference. Selection predicts one member of $C_i$ from the same marked sentence and the supplied inventory. The reference label is used for supervised training and evaluation. Selection includes the reference among its candidates but does not identify which answer is correct. The intended answer is a linguistic expansion appropriate to the occurrence. An entity description or a plausible etymology alone is insufficient. Some named uses require an explicit annotation decision: for example, the current development labels accept \heb{רבי משה בן מימון} for \heb{רמב״ם}, including institutional uses. This is a recorded local convention, not a general rule for all names.
+\begin{table}[t]
+\centering\small
+\begin{tabular}{@{}cp{0.78\columnwidth}@{}}
+\toprule
+Symbol & Meaning \\
+\midrule
+$a_i$ & Acronym type, used only for grouping, never as model input \\
+$x_i$ & Sentence \\
+$s_i$ & Half-open character span of the target in $x_i$ \\
+$r_i$ & Raw target text, $x_i[s_i]$, with any attached prefix \\
+$C_i$ & Candidate expansions (the inventory) \\
+$y_i$ & Reference expansion \\
+\bottomrule
+\end{tabular}
+\caption{Elements of an item.}
+\label{tab:notation}
+\end{table}
 
-Table~\ref{tab:example} illustrates the interface. It is a constructed explanation, not a dataset item or model output.
+Generation predicts an expansion from $(x_i,s_i,r_i)$, without candidates. Selection picks one member of $C_i$ for the same marked sentence. Both are compared with the reference $y_i$, which is also the training label. The intended answer is a true expansion of the acronym, not just a description of what it refers to.
+
+Formally, the two formats differ in their output space:
+\begin{equation}
+\hat{y}^{\mathrm{gen}}=f(x,s)\in\Sigma^{*},\qquad \hat{y}^{\mathrm{sel}}=\operatorname*{arg\,max}_{c\in C}\mathrm{score}(x,s,c),
+\end{equation}
+where $\Sigma^{*}$ is the set of all Hebrew strings, so generation may return any string, while selection returns one candidate in $C$.
+
+Table~\ref{tab:example} illustrates the interface with a constructed example, not a dataset item.
 \begin{table}[t]
 \centering\small
 \begin{tabular}{@{}p{0.22\columnwidth}p{0.71\columnwidth}@{}}
@@ -20,43 +44,40 @@ Selection & A letter assigned to one supplied candidate \\
 \label{tab:example}
 \end{table}
 
-\subsection{Sources and supervision}
-The retained collection draws on Hebrew Wikipedia and Knesset proceedings. Candidate evidence was collected from Wikipedia abbreviation and disambiguation pages and Wiktionary. Sentence and label sources are distinct: neither natural occurrence nor dictionary membership establishes the correct expansion in context.
+\subsection{Sources and construction}
+Candidate expansions come from Hebrew Wikipedia abbreviation and disambiguation pages and from Wiktionary. We merged the two sources and reviewed near-duplicate expansions by hand, which left 2,702 candidate rows for 638 acronym types. Sentences come from Hebrew Wikipedia article text and from the Knesset plenary corpus (HaifaCLGroup/KnessetCorpus). We kept only sentences of 40 to 200 characters with a clear acronym boundary, allowing attached Hebrew prefixes, and we removed sentences with glosses, explicit definitions or other acronyms. A dictionary entry does not show that a sense occurs in context, so candidate sources and sentence labels are kept separate.
 
-Most training examples are \emph{substituted}: a spelled-out expansion in a Wikipedia sentence was replaced with the acronym, and the removed expression supplies a weak label. Natural examples retain an observed acronym; a small \emph{deglossed} subset removes an adjacent explanation. The current release also contains Claude-authored examples. Substitution and authorship supply supervision cheaply but need not reproduce naturally abbreviated text. Stored labels were reused without comprehensive reannotation.
+Sentences are of four kinds. \emph{Natural} sentences contain the acronym as written. \emph{Substituted} sentences come from Wikipedia: a spelled-out expansion was replaced with the acronym, and the removed expression is a weak label. \emph{Deglossed} sentences are natural sentences with an adjacent explanation removed. \emph{Claude-authored} sentences were written by an LLM to add senses to types that had few. Substituted and authored sentences give labels cheaply, but they need not read like naturally abbreviated text.
 
-Table~\ref{tab:data} summarizes the available training and development files. The 136 Claude-authored items have no source document and are excluded from the document-key count.
+\subsection{Train, development and test sets}
+Table~\ref{tab:data} shows how the three sets differ in size and in the kind of sentence they contain.
 
 \begin{table}[t]
 \centering\small
-\begin{tabular}{@{}lrr@{}}
+\begin{tabular}{@{}lrrr@{}}
 \toprule
-Quantity & Train & Dev \\
+Quantity & Train & Dev & Test \\
 \midrule
-Occurrences & 2,829 & 62 \\
-Acronym types & 434 & 11 \\
-Nonempty document keys & 1,864 & 35 \\
-Sentence--candidate pairs & 12,684 & 331 \\
+Items & 2,829 & 62 & 395 \\
+Acronym types & 434 & 11 & 60 \\
 \midrule
-Substituted Wikipedia & 2,316 & 0 \\
-Natural Wikipedia & 50 & 0 \\
-Natural Knesset & 319 & 62 \\
-Deglossed Wikipedia & 8 & 0 \\
-Claude-authored & 136 & 0 \\
+Substituted Wikipedia & 2,316 & 0 & 0 \\
+Natural Knesset & 319 & 62 & 267 \\
+Natural Wikipedia & 50 & 0 & 41 \\
+Deglossed Wikipedia & 8 & 0 & 0 \\
+Claude-authored & 136 & 0 & 87 \\
 \bottomrule
 \end{tabular}
-\caption{Available training and development data. Source and construction categories follow stored metadata. Every item has at least two distinct candidates.}
+\caption{Items by set and by kind of sentence. Every item has at least two candidates.}
 \label{tab:data}
 \end{table}
 
-All development items are natural Knesset occurrences. Of their labels, 42 reuse content-matched historical review and 20 reflect AI-assisted author decisions; this is not independent double annotation. Training metadata identifies 2,507 labels without independent verification during preparation, 316 with historical review evidence and six with AI-assisted author decisions. File identities and detailed annotation provenance are provided in the paper's technical documentation.
+\paragraph{Train.} The encoder trains on 2,829 items, which give 12,684 sentence--candidate pairs. Most items are substituted, so most labels are weak. Stored labels were reused without comprehensive reannotation.
 
-\subsection{Qualification and separation}
+\paragraph{Development.} Development holds 62 natural Knesset items for 11 types, and we use it only to select the encoder checkpoint. Of its labels, 42 reuse an earlier human review of the same sentence, and 20 are AI-assisted author decisions, so this is not independent annotation.
+
+\paragraph{Test.} The test set has 395 items for 60 types, and a human reviewer went over the entire set. For the Knesset sentences, the review compared each label with the candidate list: of 1,045 mined sentences, 941 were confirmed, 100 were corrected and four were dropped. All 267 Knesset test items come from this pool (234 confirmed, 33 corrected). The 87 Claude-authored items add three sentences each to 29 types whose reviewed Knesset examples all shared one sense. A single reviewer did the work, so we have no agreement estimate.
+
+\subsection{Separation of the sets}
 \label{sec:separation}
-Preparation checks item identity, target boundaries and candidate structure. Targets use a unique bounded match after limited quotation-mark folding or a recorded human span. Each pair-loss item requires at least two distinct candidates and exactly one candidate matching the reference after surrounding whitespace is trimmed. These checks establish structural validity, not semantic correctness.
-
-The available train and dev files have no identical sentence strings or exact acronym forms in common. However, three document keys are shared, involving three training and five development items. The inspected data therefore lack complete document separation. This observation does not measure an effect on model performance or establish overlap with test.
-
-Separation of stored forms also leaves morphological overlap. Training contains \heb{מד״ר} in \mbox{\heb{אם אני אבקש מד״ר שגב}}, while dev contains \heb{בד״ר}; both include a prefix attached to the doctor abbreviation. Excluding the unprefixed \heb{ד״ר} from training does not remove all members of that family. Accordingly, the split does not establish generalization to wholly unseen acronym families.
-
-Each development acronym type has a single stored gold label. This annotation pattern does not establish that all its contexts express the same meaning. The current labels and their known defects limit reliable assessment of within-type sense discrimination.
+Preparation checked item identity, target boundaries and candidate structure. These checks show structural validity, not that a label is correct. We split by acronym type. The test set shares no acronym form or sentence string with train or dev, and train and dev share none either. Documents are not fully separated: train and dev share three documents (three train and five dev items), and test shares four Knesset protocols with train (five train and 14 test items). Prefixed variants of one acronym can also fall in different sets: train has \heb{מד״ר} and dev has \heb{בד״ר}. The split therefore does not show generalization to wholly unseen acronym families.
