@@ -5,7 +5,6 @@ needs to supply a `generate_fn(prompt: str) -> str` and call `evaluate()`.
 from __future__ import annotations
 
 import random
-import string
 
 from tqdm import tqdm
 
@@ -14,6 +13,20 @@ from hebrew_acronyms.models.common.pairs import _normalise
 #: Seed for one random generator per evaluation call. Reproducing candidate order
 #: requires the same ordered inputs and candidate lists; it is not keyed by item ID.
 SHUFFLE_SEED = 42
+
+
+def candidate_labels(n_candidates: int) -> list[str]:
+    """Label every candidate using bijective base 26: A..Z, AA..AZ, BA..."""
+    if type(n_candidates) is not int or n_candidates < 0:
+        raise ValueError("Candidate count must be a nonnegative integer")
+    labels = []
+    for number in range(1, n_candidates + 1):
+        label = ""
+        while number:
+            number, remainder = divmod(number - 1, 26)
+            label = chr(65 + remainder) + label
+        labels.append(label)
+    return labels
 
 
 def build_generate_prompt(acronym: str, sentence: str) -> str:
@@ -26,12 +39,12 @@ def build_generate_prompt(acronym: str, sentence: str) -> str:
 
 
 def build_select_prompt(acronym: str, sentence: str, shuffled_candidates: list[str]) -> str:
-    """Request a letter choice using the candidate order supplied by the caller."""
-    letters = string.ascii_uppercase[:len(shuffled_candidates)]
+    """Request a label using every candidate in the order supplied by the caller."""
+    letters = candidate_labels(len(shuffled_candidates))
     options = "\n".join(f"{l}. {c}" for l, c in zip(letters, shuffled_candidates))
     return (
         f"בהתחשב במשפט הבא בעברית, מהו הפירוש של ראשי התיבות \"{acronym}\"?\n"
-        f"ענה באות אחת בלבד (למשל: A), בלי שום טקסט נוסף.\n\n"
+        f"ענה בסימון של אפשרות אחת בלבד (למשל: A או AA), בלי שום טקסט נוסף.\n\n"
         f"משפט: {sentence}\n\n"
         f"{options}\n\n"
         f"תשובה:"
@@ -39,12 +52,18 @@ def build_select_prompt(acronym: str, sentence: str, shuffled_candidates: list[s
 
 
 def parse_letter_choice(response: str, n_candidates: int) -> int | None:
-    """Accept only one uppercase in-range letter after trimming boundary whitespace."""
-    if not isinstance(response, str) or not 1 <= n_candidates <= 26:
+    """Accept exactly one uppercase in-range label after boundary whitespace trim."""
+    if not isinstance(response, str) or type(n_candidates) is not int or n_candidates < 1:
         return None
     answer = response.strip()
-    letters = string.ascii_uppercase[:n_candidates]
-    return letters.index(answer) if len(answer) == 1 and answer in letters else None
+    if not answer or any(character < "A" or character > "Z" for character in answer):
+        return None
+    number = 0
+    for character in answer:
+        number = number * 26 + ord(character) - 64
+        if number > n_candidates:
+            return None
+    return number - 1
 
 
 def is_correct(response: str, gold: str) -> bool:
@@ -242,10 +261,11 @@ def inspect_predictions(rows: list[dict], records: list[dict]) -> dict:
             record = raw[(condition, item_id)]
             result = {"selection_decoded": detail["selected_candidate"], "selection_status": detail["status"],
                       "selection_correct": detail["correct"], "selection_raw": record.get("raw_response"),
-                      "letter_mapping": dict(zip(string.ascii_uppercase, record.get("shown_order") or [])),
+                      "letter_mapping": dict(zip(candidate_labels(len(record.get("shown_order") or [])),
+                                                 record.get("shown_order") or [])),
                       "selection_error": detail.get("error")}
             if detail["status"] == "parse_error":
-                result["selection_error"] = "Expected a single uppercase letter in the displayed range"
+                result["selection_error"] = "Expected one uppercase candidate label in the displayed range"
             if system != "dictabert":
                 generation_condition = "generate" if condition == "select" else system + "_generate"
                 generation = raw[(generation_condition, item_id)]
