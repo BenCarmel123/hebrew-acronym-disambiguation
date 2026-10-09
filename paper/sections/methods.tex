@@ -1,6 +1,6 @@
 \section{Systems and Experimental Design}
 \label{sec:systems}
-Table~\ref{tab:systems} defines the five arms. For a given LLM, generation and selection use the same configured model. Across LLMs, the prompt text is shared within each task, and selection uses the same displayed candidate order for each item. The implemented order is a seeded shuffle of the stored lists; it is recorded with each response. These controls align inputs but do not make architectures, training or inference equivalent.
+Table~\ref{tab:systems} defines the five arms. Both LLMs get the same prompt for each task, and selection shows the candidates in the same seeded, shuffled order for every item. These controls align inputs but do not make the systems equivalent. The models also differ greatly in size: DictaBERT has about 0.2B parameters, 35 times fewer than the 7B Qwen model. Gemini's size is not public.
 
 \begin{table}[t]
 \centering\small
@@ -20,24 +20,31 @@ Gemini selection & Yes & Candidate letter \\
 \end{table}
 
 \subsection{Supervised Hebrew candidate ranker}
-DictaBERT is a pretrained Hebrew encoder \citep{shmidman2023dictabert}. Our implementation is a \emph{cross-encoder}: the marked sentence and one candidate are encoded jointly, allowing attention between their tokens. A dropout layer and a linear head turn the pooled representation into a scalar score. The model uses the initial classification token (CLS). Candidates are scored independently, and prediction chooses the largest score within the item's inventory.
+DictaBERT is a pretrained Hebrew encoder \citep{shmidman2023dictabert}. Our implementation is a \emph{cross-encoder}: the marked sentence and one candidate are encoded jointly, so their tokens can attend to each other. A dropout layer and a linear head turn the pooled representation into a scalar score. Candidates are scored independently, and prediction chooses the highest score within the item's candidates.
 
-For each training occurrence, the reference candidate is positive and the other supplied candidates are negative. The implemented objective is binary cross-entropy on the candidate-pair logits:
+For each training item, the reference candidate is positive and the other candidates are negative. The objective is binary cross-entropy on the pair scores, with the symbols defined in Table~\ref{tab:loss-notation}:
 \begin{equation}
-\begin{split}
-\mathcal{L}=-\frac{1}{M}\sum_{j=1}^{M}\big[&z_j\log\sigma(u_j)\,+\\
-&(1-z_j)\log(1-\sigma(u_j))\big],
-\end{split}
+\mathcal{L}=-\frac{1}{M}\sum_{j=1}^{M}\big[z_j\log p_j+(1-z_j)\log(1-p_j)\big].
 \end{equation}
-where $M$ is the number of pairs, $u_j$ is a score, $\sigma$ is the sigmoid function and $z_j\in\{0,1\}$ is the label. Thus occurrences with larger inventories contribute more pairs. This is binary pair training, not a multiclass softmax over each inventory. AdamW updates the encoder and scoring head; no parameter-efficient adapter is used in this implementation.
+AdamW updates the whole model, with no adapter.
 
-The checkpoint is attributed by the authors to the Colab training procedure based on \texttt{dicta-il/dictabert}. That notebook specifies dropout 0.1, learning rate $2\times10^{-5}$, pair batch size 16, one epoch and seed 42. It sets the seed after model initialization, so initialization is not controlled by that setting. Checkpoints are selected by strict improvement in development pair loss, which differs from occurrence-level selection accuracy.
+\begin{table}[t]
+\centering\small
+\begin{tabular}{@{}cp{0.78\columnwidth}@{}}
+\toprule
+Symbol & Meaning \\
+\midrule
+$M$ & Number of sentence--candidate pairs \\
+$u_j$ & Score of pair $j$ \\
+$p_j$ & $\sigma(u_j)$, the match probability, with $\sigma$ the sigmoid function \\
+$z_j$ & Label of pair $j$: 1 for the reference candidate, 0 otherwise \\
+\bottomrule
+\end{tabular}
+\caption{Symbols in the training loss.}
+\label{tab:loss-notation}
+\end{table}
 
-The pair layout places the marked context before the candidate, separated by BERT special tokens, with a nominal limit of 256 tokens. Context is cropped from the outside while retaining the target and candidate. Candidate length can affect the context budget; the LLMs receive the full sentence. The supplied checkpoint was saved in fp16 and loaded in full, including the encoder and scoring head, for fp32 development inference. Loading checks support reconstruction but do not authenticate the original training inputs or executed settings. The actual seed and complete training record remain unresolved; notebook settings above are not a verified execution log. Detailed loading evidence and remaining provenance gaps are documented in the repository.
+Training used dropout 0.1, learning rate $2\times10^{-5}$, pair batch size 16 and one epoch, and kept the checkpoint with the lowest development pair loss. The checkpoint comes from the authors' Colab run based on \texttt{dicta-il/dictabert}. The seed (42) was set after model initialization, so it does not control initialization, and we could not verify the executed settings from a complete training log. Each pair is the marked sentence followed by the candidate, joined by BERT special tokens, with a limit of 256 tokens. Long contexts are cropped while keeping the target and candidate. The LLMs receive the full sentence.
 
 \subsection{Prompted language models}
-The generation prompt, written in Hebrew, asks for the expansion of the marked acronym in a few words, without explanation. The selection prompt supplies lettered candidates and requests exactly one letter. Neither contains demonstrations or identifies the correct answer. Full prompt templates belong to the technical companion; their information content and response requirements are the experimental distinction described here.
-
-The development runs use \texttt{qwen2.5:7b} from the Qwen2.5 family \citep{qwen2025technical}, through Ollama with Q4\_K\_M quantization, and \texttt{gemini-3.8-flash} with thinking level \texttt{low}. Qwen's server digest is consistent across both tasks; successful Gemini responses preserve the returned version string. No additional Qwen decoding options were supplied, and omitted service defaults remain unresolved. These settings do not establish deterministic decoding; low thinking does not mean disabled thinking.
-
-Requests have a 120-second timeout. The basic path has no automatic retry; Gemini continuation permits up to three attempts per item for transient errors, with backoff and saved progress. Completed responses are retained. The saved runs contain all 62 DictaBERT selections and both sets of 62 Qwen responses; Gemini coverage is partial after HTTP 429 and 503 errors. Prompts, candidate orders, raw answers, model identities and failure statuses are preserved in the \codebase{results/dev-2026-10-03/summary.json}{development records}.
+The generation prompt, written in Hebrew, asks for the expansion of the marked acronym in a few words, without explanation. The selection prompt lists lettered candidates and asks for exactly one letter. Neither includes examples or the answer. We use \texttt{qwen2.5:7b} \citep{qwen2025technical} through Ollama with Q4\_K\_M quantization, and \texttt{gemini-3.8-flash} with low thinking. Each item gets one request per task. We set no decoding options for Qwen, and low thinking is not disabled thinking, so neither run is deterministic. Full prompts and raw answers are in the repository.

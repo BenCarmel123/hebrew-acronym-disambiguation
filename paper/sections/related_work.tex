@@ -1,56 +1,16 @@
 \section{Related Work}
 \label{sec:related-work}
+\paragraph{Hebrew acronyms.}
+HAADS disambiguates abbreviations in Hebrew and Aramaic Jewish Law documents \citep{hacohenkerner2010haads}. \citet{jacobs2020acronyms} build an acronym dictionary for Modern Hebrew from unannotated text and use context to choose among its entries. These are the closest works to ours, and they show that finding expansions and choosing between them are separate problems. Both predate modern language models, so neither tells us how an LLM or a fine-tuned encoder performs. Both also treat the task as choosing from a dictionary, and neither asks what happens when a model must write the expansion itself. We study only the choosing step, from a marked acronym and a given list of expansions, in both formats.
 
-Hebrew acronym interpretation has an established research history. HAADS addresses
-abbreviation disambiguation in Hebrew and Aramaic Jewish Law documents
-\citep{hacohenkerner2010haads}. For Modern Hebrew,
-\citet{jacobs2020acronyms} develop an acronym dictionary from unannotated text and
-enrich it with contextual information for disambiguation. Their approach also
-addresses cases in which an expansion is absent from the acronym's document.
-These studies establish that both collecting possible expansions and choosing
-among them are substantive problems. Our study starts with an identified target
-occurrence and an existing candidate inventory. It therefore evaluates expansion
-and selection under that input contract, rather than end-to-end acronym detection
-or dictionary construction. The quality and coverage of the supplied inventory
-remain part of the conditions under which a selection score can be interpreted.
+\paragraph{LLMs and Hebrew word ambiguity.}
+\citet{liang2026cognates} test 16 LLMs, including Qwen2.5-7B and a Hebrew-capable model, on Arabic--Hebrew word pairs whose similar forms hide different meanings. They find that models lean on surface-form similarity, and that context and model size help only for some models. Two annotators checked the word labels, with agreement measured on a 10\% sample. All of their tasks are multiple choice, and they note that this may not reflect open-ended settings such as generation. Their task is cognates, not acronyms, and they do not compare formats. We make that comparison for Hebrew acronyms.
 
-A related distinction concerns what an evaluation split measures.
-\citet{chen2023gladis} introduce GLADIS, an English acronym benchmark covering
-general, scientific, and biomedical domains. Its task splits keep training acronym
-types out of validation and test. Their AcroBERT model jointly encodes a context
-and a candidate expansion, using a triplet objective to distinguish matching
-from nonmatching pairs. This provides a precedent for scoring candidate text and
-transferring across task-training types. Our DictaBERT ranker uses pairwise binary
-classification, so it is not a reproduction of AcroBERT's training procedure.
+\paragraph{Selecting from candidates.}
+\citet{chen2023gladis} introduce GLADIS, an English acronym benchmark whose test acronyms do not appear in training. Their model, AcroBERT, reads the context and one candidate together and learns to tell matching pairs from non-matching ones. Our encoder follows the same idea but is trained differently, with a binary match label for each pair. GLADIS has two weaknesses for our purpose. It covers only English and only selection, so it cannot show how selection compares with free generation. It also builds many evaluation sentences by replacing a full expression with its acronym, so those sentences were not written with an acronym. We use mostly naturally occurring test sentences and keep substituted sentences for training.
 
-Data construction also affects this comparison. GLADIS builds its general and
-biomedical evaluation sets by replacing annotated entity long forms with acronyms,
-while repartitioning an existing acronym dataset for the scientific domain
-\citep{chen2023gladis}. Replacement creates a labeled example without requiring a
-naturally occurring acronym mention. However, the sentence was originally written
-with the full expression. For our study, this distinction motivates retaining the
-construction history of each example and distinguishing largely substituted
-training material from natural development occurrences. It does not establish that
-one source is necessarily easier, since the acronym and expansion distributions
-also differ.
+\paragraph{Judging generated answers.}
+A generated answer can be right without matching the reference string, so the way answers are judged changes the score. \citet{agrawal2022large} ask GPT-3 to expand clinical abbreviations without choices, then map each answer to the candidate with the highest character overlap. In English clinical notes this works well (86\% accuracy on one benchmark), but the score is tied to the candidate list, and it is unknown whether character overlap suits Hebrew, where prefixes and inflection change a word's surface form. \citet{meconi2025large} test LLMs on word senses in two ways: selecting among supplied definitions, and generating definitions or explanations that an expert annotator rates by hand. They find that the best LLMs match supervised systems at selection, and that shuffling the candidates hurts smaller models. Their two settings use different items and different scoring, and they study word senses, not acronyms. We judge generated answers by hand and count valid variants of the same expansion, such as \heb{שקל חדש} and \heb{שקלים חדשים}, as correct. We also shuffle the candidate order.
 
-Generation introduces a separate evaluation problem: the answer may express the
-right expansion without matching the reference string.
-\citet{agrawal2022large} prompt an LLM to expand abbreviations in clinical snippets
-without showing answer choices. They then map its output to the candidate with
-the greatest contiguous character overlap. Their design separates the information
-available to the generator from the inventory available to the evaluator. It also
-shows why a reported generation score depends on the answer resolver. We do not
-assume that this English clinical matching rule is appropriate for Hebrew, where
-acceptable wording and the distinction between expanding a name and identifying
-its referent require explicit treatment.
-
-The same concern appears in word sense disambiguation.
-\citet{meconi2025large} study selection among supplied definitions and separately
-ask LLMs to generate definitions, explanations, and examples without a predefined
-answer list. Their generation study uses expert judgments rather than treating
-literal agreement with a dictionary definition as sufficient. Word definitions
-and acronym expansions are different outputs, but the methodological lesson is
-relevant: the two response formats require a stated basis for comparison. Our
-selection metrics are implemented, while a final human judgment protocol for
-free expansions remains to be completed.
+\paragraph{The gap.}
+To our knowledge, no earlier work compares free generation with candidate selection for Hebrew acronyms on the same occurrences, across a small LLM, a proprietary LLM and a fine-tuned encoder. We make this comparison on a human-reviewed test set whose acronym forms are absent from training.
