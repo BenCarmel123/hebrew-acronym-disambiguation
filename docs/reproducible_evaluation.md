@@ -85,7 +85,9 @@ branch still requires the user's separate authorization.
 Token-based costs are estimates from actual reported usage at the documented
 rates, not a settled provider invoice. The runner retains usage and allowances
 for uncertain calls and stops before the next request exceeds the configured
-budget. Missing usage is not zero cost. The official rates used are
+budget. Missing usage is not zero cost: the saved per-call allowance is shown separately
+from measured token costs and included in the projection. Incomplete logical
+responses still block full test even when the allowance fits the budget. The official rates used are
 [Gemini](https://ai.google.dev/gemini-api/docs/pricing),
 [GPT-4.1 mini](https://developers.openai.com/api/docs/models/gpt-4.1-mini), and
 [Haiku 5.5](https://platform.claude.com/docs/en/models/haiku-5-5/overview),
@@ -97,7 +99,13 @@ or long-context tier needs a new recorded price assumption.
 After a disconnect, reopen the same notebook, reinstall the same commit, remount
 Drive, reload Secrets and use the same `RUN_NAME` and settings. Preparation compares
 input bytes, complete prompts, candidate orders, systems, settings and source
-hashes. Completed requests are not resent. A started call with no saved completion
+hashes. Qwen identity binds its digest, server version, template, quantization and
+settings; download timestamps are retained in separate per-session inspection files,
+so a fresh VM with identical model content can resume. Before full test, the notebook
+reloads the saved pilot, compares its configuration with current values, and
+recomputes coverage and remaining budget. The newly prepared test manifest must
+also match the pilot's installed-source hashes before any test API call. Changing settings after inspecting a
+pilot cannot reuse its success flag. Completed requests are not resent. A started call with no saved completion
 is ambiguous: it may have been billed, and is retained for inspection instead of
 being automatically retried. Do not delete its log to force another request.
 Never run two writers against the same directory.

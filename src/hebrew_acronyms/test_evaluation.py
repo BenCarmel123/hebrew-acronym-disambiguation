@@ -483,6 +483,11 @@ def summarize_evaluation(output_dir):
             "n_incomplete": sum(record["status"] not in {"response_received", "not_run"} for record in records),
             "n_identity_unverified": sum(record["response_metadata"].get("identity_status") == "unverified" for record in records),
             "truncated_journal_tails": tails, "usage": usage, "by_system_task": groups, "records": records,
+            "unknown_usage_reserve_usd": {
+                name: sum(_reserve(identity, name) for attempt_id, start in starts.items()
+                          if start["system"] == name and (attempt_id not in finishes or
+                              _usage(finishes[attempt_id]["response"], systems[name]["provider"]) is None))
+                for name in systems},
             "timings_seconds": {name: sum(event["elapsed_seconds"] for attempt_id, event in finishes.items()
                                            if starts[attempt_id]["system"] == name) for name in systems},
             "reserved_usd": sum(_reserve(identity, start["system"]) for attempt_id, start in starts.items()
@@ -493,7 +498,12 @@ def summarize_evaluation(output_dir):
 
 
 def estimate_cost(summary, rates_usd_per_million, *, full_items=395, reserve_fraction=.25):
-    """One pilot extrapolation; rejects unknown billed usage rather than guessing zero."""
+    """Scale measured pilot costs plus recorded reserves for uncertain attempts.
+
+    All logical answers must still be complete and identity-verified. Unknown
+    usage is covered by the saved per-call allowance, never treated as free.
+    These tariff estimates and reserves are not a settled provider invoice.
+    """
     if summary["n_completed"] != summary["n_records"] or summary.get("n_identity_unverified"):
         raise ValueError("Complete all pilot responses with verified identity before cost extrapolation")
     _positive(full_items, "full_items", True)
@@ -501,17 +511,28 @@ def estimate_cost(summary, rates_usd_per_million, *, full_items=395, reserve_fra
         raise ValueError("reserve_fraction must be finite and nonnegative")
     by_system = {}
     for name, usage in summary["usage"].items():
-        if usage["attempts_without_usage"] or not usage["attempts_with_usage"]:
-            raise ValueError(f"{name}: unknown billed usage; inspect provider billing before extrapolating")
         rates = rates_usd_per_million[name]
         for key in ("input", "output"):
             if type(rates[key]) not in {int, float} or not math.isfinite(rates[key]) or rates[key] < 0:
                 raise ValueError("Token rates must be finite and nonnegative")
         cost = (usage["input_tokens"] * rates["input"] +
                 (usage["output_tokens"] + usage["thinking_tokens"]) * rates["output"]) / 1_000_000
-        by_system[name] = {"pilot_usd": cost, "projected_full_usd": cost * full_items / summary["n_items"]}
+        unknown_attempts = usage["attempts_without_usage"]
+        reserve = summary.get("unknown_usage_reserve_usd", {}).get(name, 0)
+        if type(reserve) not in {int, float} or not math.isfinite(reserve) or reserve < 0:
+            raise ValueError(f"{name}: invalid saved unknown-usage reserve")
+        if unknown_attempts and not reserve and any(rates.values()):
+            raise ValueError(f"{name}: unknown billed usage has no saved conservative reserve")
+        accounted = cost + reserve
+        by_system[name] = {"pilot_usd": accounted, "measured_pilot_usd": cost,
+                           "unknown_usage_reserve_usd": reserve,
+                           "unknown_usage_attempts": unknown_attempts,
+                           "projected_full_usd": accounted * full_items / summary["n_items"]}
     pilot = sum(value["pilot_usd"] for value in by_system.values())
     full = sum(value["projected_full_usd"] for value in by_system.values())
-    return {"pilot_usd": pilot, "projected_full_usd": full,
+    return {"pilot_usd": pilot,
+            "measured_pilot_usd": sum(value["measured_pilot_usd"] for value in by_system.values()),
+            "unknown_usage_reserve_usd": sum(value["unknown_usage_reserve_usd"] for value in by_system.values()),
+            "projected_full_usd": full,
             "projected_full_with_reserve_usd": full * (1 + reserve_fraction), "by_system": by_system,
-            "note": "Observed pilot extrapolation, not a bill or a worst-case guarantee; includes thinking tokens and charges cache at full input rate."}
+            "note": "Pilot total combines measured token costs and saved allowances for unknown usage; full projection scales both and adds the stated margin. Not a settled bill or a worst-case guarantee; thinking included and cache charged at full input rate."}

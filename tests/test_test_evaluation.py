@@ -218,6 +218,27 @@ class EvaluationTests(unittest.TestCase):
             self.run_saved(responder)
         responder.assert_not_called()
 
+    def test_completed_pilot_with_unknown_retry_uses_saved_reserve(self):
+        self.prepare(reserve_per_call_usd={"mock": .02}, budget_usd=1,
+                     rates_usd_per_million={"mock": {"input": 1, "output": 2}})
+        responder = Mock(side_effect=[
+            {"status": "service_error", "response": "", "retryable": True, "http_status": 503},
+            self.response, self.response, self.response, self.response,
+        ])
+        summary = self.run_saved(responder)
+        self.assertEqual((summary["n_completed"], summary["n_calls"]), (4, 5))
+        self.assertEqual(summary["unknown_usage_reserve_usd"], {"mock": .02})
+        estimate = runner.estimate_cost(summary, {"mock": {"input": 1, "output": 2}})
+        self.assertAlmostEqual(estimate["measured_pilot_usd"], .000056)
+        self.assertAlmostEqual(estimate["unknown_usage_reserve_usd"], .02)
+        self.assertAlmostEqual(estimate["pilot_usd"], .020056)
+        self.assertAlmostEqual(estimate["projected_full_usd"], .020056 * 395 / 2)
+        self.assertEqual(estimate["by_system"]["mock"]["unknown_usage_attempts"], 1)
+        # Completion and identity checks still hold even with sufficient reserves.
+        summary["n_identity_unverified"] = 1
+        with self.assertRaisesRegex(ValueError, "Complete all pilot"):
+            runner.estimate_cost(summary, {"mock": {"input": 1, "output": 2}})
+
     def test_provider_usage_conventions_include_gemini_thinking(self):
         self.assertEqual(runner._usage({"usage_metadata": {"promptTokenCount": 12, "candidatesTokenCount": 3, "thoughtsTokenCount": 8}}, "gemini"),
                          {"input_tokens": 12, "output_tokens": 3, "thinking_tokens": 8, "cached_input_tokens": 0})

@@ -1,7 +1,12 @@
 """Offline notebook contracts; no credentials, research data or model calls."""
 import ast
+from copy import deepcopy
+import contextlib
+import hashlib
+import io
 import json
 from pathlib import Path
+import tempfile
 import unittest
 from unittest.mock import Mock
 
@@ -64,17 +69,115 @@ class TestEvaluationNotebook(unittest.TestCase):
         self.assertIn('raise RuntimeError', source)
         self.assertIn('from None', source)
 
-    def test_full_test_cannot_call_provider_before_gate(self):
+    def full_fixture(self, directory):
+        folder = Path(directory)
+        pilot = folder / "pilot"
+        pilot.mkdir()
+        dev = folder / "dev.csv"
+        dev.write_text("invented fixed data")
+        inspection = {"model": "qwen2.5:7b", "digest": "fixture-digest",
+                      "server_version": "fixture-version", "options": {"seed": 42},
+                      "template": "fixture-template", "model_parameters": "stop fixture",
+                      "details": {"quantization_level": "Q4_K_M"}, "model_info": {"architecture": "qwen2"},
+                      "installed_model": {"modified_at": "old-session-time"}}
+        source = self.cell_containing('QWEN_STABLE_FIELDS =')
+        assignments = [node for node in ast.parse(source).body if isinstance(node, ast.Assign)
+                       and any(isinstance(target, ast.Name) and target.id in
+                               {'QWEN_STABLE_FIELDS', 'QWEN_FROZEN_IDENTITY'} for target in node.targets)]
+        state = {"QWEN_IDENTITY": deepcopy(inspection)}
+        exec(compile(ast.Module(body=assignments, type_ignores=[]), '<qwen-identity>', 'exec'), state)
+        rates = {"fixture": {"input": .4, "output": 1.6}}
+        systems = [{"name": "fixture", "model": "exact-fixture", "settings": {"max_output_tokens": 512}}]
+        metadata = {"qwen_inspection": state['QWEN_FROZEN_IDENTITY'],
+                    "rates_usd_per_million": rates, "conversion_allowance_ils_per_usd": 4.0,
+                    "prior_spend_ils": 0.0}
+        identity = {"cohort": "dev_pilot", "systems": systems, "code_revision": "a" * 40,
+                    "code_sha256": {"test_evaluation.py": "fixture-source-hash"},
+                    "source_sha256": hashlib.sha256(dev.read_bytes()).hexdigest(),
+                    "seed": 42, "max_attempts": 2, "max_calls": 160,
+                    "rates_usd_per_million": rates, "reserve_per_call_usd": {"fixture": .02},
+                    "metadata": metadata, "budget_usd": 25.0}
+        (pilot / "manifest.json").write_text(json.dumps({"identity": identity}))
+        summary = {"n_items": 10, "n_records": 80, "n_completed": 80, "n_pending": 0,
+                   "n_ambiguous": 0, "n_identity_unverified": 0, "charged_or_reserved_usd": .2,
+                   "n_calls": 80}
+        state.update(json=json, hashlib=hashlib, PILOT_DIR=pilot, DEV_PATH=dev,
+                     TEST_PATH=folder / "test.csv", TEST_DIR=folder / "full",
+                     CODE_REVISION="a" * 40, SYSTEMS=deepcopy(systems), RATES=deepcopy(rates),
+                     BUDGET_ILS=100.0, PRIOR_SPEND_ILS=0.0, ILS_PER_USD_ALLOWANCE=4.0,
+                     RESERVE_PER_CALL_USD={"fixture": .02}, PILOT_INSPECTED=True,
+                     PILOT_PASSED=True, projected_total_ils=1.0,
+                     pilot_summary={"charged_or_reserved_usd": 0.0},
+                     summarize_evaluation=Mock(return_value=summary),
+                     estimate_cost=Mock(return_value={"pilot_usd": .2, "projected_full_with_reserve_usd": 2.0}),
+                     prepare_evaluation=Mock(return_value={"identity": {"code_sha256": {"test_evaluation.py": "fixture-source-hash"}}}),
+                     run_evaluation=Mock(return_value=summary))
+        return state
+
+    def execute_full_cell(self, state):
         source = self.cell_containing('test_manifest = prepare_evaluation(')
-        for passed, cost in ((False, 1.0), (True, 100.01)):
-            prepare, run = Mock(), Mock()
-            namespace = {'PILOT_PASSED': passed, 'projected_total_ils': cost,
-                         'BUDGET_ILS': 100.0, 'prepare_evaluation': prepare,
-                         'run_evaluation': run}
-            with self.subTest(passed=passed, cost=cost), self.assertRaises(RuntimeError):
-                exec(compile(source, '<full-test>', 'exec'), namespace)
-            prepare.assert_not_called()
-            run.assert_not_called()
+        with contextlib.redirect_stdout(io.StringIO()):
+            exec(compile(source, '<full-test>', 'exec'), state)
+
+    def test_full_test_rejects_changed_settings_despite_stale_success_flag(self):
+        for changed in ('system', 'code', 'rates', 'digest', 'template', 'source'):
+            with self.subTest(changed=changed), tempfile.TemporaryDirectory() as directory:
+                state = self.full_fixture(directory)
+                if changed == 'system':
+                    state['SYSTEMS'][0]['settings']['max_output_tokens'] = 1024
+                elif changed == 'code':
+                    state['CODE_REVISION'] = 'b' * 40
+                elif changed == 'rates':
+                    state['RATES']['fixture']['output'] = .1
+                elif changed in {'digest', 'template'}:
+                    state['QWEN_IDENTITY'][changed] = 'changed'
+                else:
+                    state['DEV_PATH'].write_text('changed input')
+                with self.assertRaisesRegex(RuntimeError, 'Pilot configuration changed'):
+                    self.execute_full_cell(state)
+                state['prepare_evaluation'].assert_not_called()
+                state['run_evaluation'].assert_not_called()
+
+    def test_full_test_reloads_coverage_cost_and_remaining_budget(self):
+        for changed in ('incomplete', 'expensive', 'uninspected', 'complete'):
+            with self.subTest(changed=changed), tempfile.TemporaryDirectory() as directory:
+                state = self.full_fixture(directory)
+                if changed == 'incomplete':
+                    state['summarize_evaluation'].return_value['n_completed'] = 79
+                elif changed == 'expensive':
+                    state['estimate_cost'].return_value['projected_full_with_reserve_usd'] = 30.0
+                elif changed == 'uninspected':
+                    state['PILOT_INSPECTED'] = False
+                if changed == 'complete':
+                    self.execute_full_cell(state)
+                    state['summarize_evaluation'].assert_called_once_with(state['PILOT_DIR'])
+                    self.assertEqual(state['prepare_evaluation'].call_args.kwargs['budget_usd'], 24.8)
+                    state['run_evaluation'].assert_called_once()
+                else:
+                    with self.assertRaises(RuntimeError):
+                        self.execute_full_cell(state)
+                    state['prepare_evaluation'].assert_not_called()
+                    state['run_evaluation'].assert_not_called()
+
+    def test_changed_installed_source_blocks_calls_despite_same_commit_label(self):
+        with tempfile.TemporaryDirectory() as directory:
+            state = self.full_fixture(directory)
+            state['prepare_evaluation'].return_value['identity']['code_sha256'] = {
+                "test_evaluation.py": "changed-installed-source"}
+            with self.assertRaisesRegex(RuntimeError, 'Installed package source differs'):
+                self.execute_full_cell(state)
+            state['prepare_evaluation'].assert_called_once()
+            state['run_evaluation'].assert_not_called()
+
+    def test_same_qwen_digest_with_new_pull_timestamp_can_resume(self):
+        with tempfile.TemporaryDirectory() as directory:
+            state = self.full_fixture(directory)
+            state['QWEN_IDENTITY']['installed_model']['modified_at'] = 'new-session-time'
+            self.execute_full_cell(state)
+            metadata = state['prepare_evaluation'].call_args.kwargs['metadata']
+            self.assertNotIn('installed_model', metadata['qwen_inspection'])
+            self.assertEqual(metadata['qwen_inspection']['digest'], 'fixture-digest')
+            state['run_evaluation'].assert_called_once()
 
     def test_pilot_gate_requires_every_model_completion_and_identity(self):
         source = self.cell_containing('PILOT_INSPECTED = False')
