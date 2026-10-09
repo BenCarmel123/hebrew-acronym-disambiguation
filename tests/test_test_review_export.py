@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from hebrew_acronyms.test_review_export import export_review, review_coverage
+from hebrew_acronyms.test_review_export import export_review, export_encoder_review, review_coverage
 
 
 class ReviewExportTests(unittest.TestCase):
@@ -103,3 +103,29 @@ class ReviewExportTests(unittest.TestCase):
         rows = review_coverage(self.root/'positive-only.json', self.root/'absent.json')['rows']
         self.assertTrue(all(row['automatic_nonpositive_total'] == 0 for row in rows))
         self.assertEqual(sum(row['automatic_positive_total'] for row in rows), 790)
+
+    def test_encoder_queue_is_selection_only_and_binds_actual_candidate(self):
+        predictions = [dict(selected_candidate='alpha', status='ok', correct=i % 2 == 0)
+                       for i in range(395)]
+        (self.root/'predictions.jsonl').write_text('fixture')
+        test_path = self.root/'test.csv'
+        test_path.write_text('fixture')
+        with patch('hebrew_acronyms.encoder_test_results.load_encoder_test',
+                   return_value={'records': predictions}) as loader, \
+             patch('hebrew_acronyms.models.common.pairs.load_rows', return_value=self.rows):
+            bundle = export_encoder_review(self.root, test_path, self.root/'encoder.json',
+                                           expected_run_id='encoder-fixture', expected_identity='identified',
+                                           expected_predictions_sha256='predictions-hash')
+        self.assertEqual(loader.call_args.kwargs['expected_identity'], 'identified')
+        self.assertEqual(len(bundle['items']), 395)
+        self.assertEqual(len(bundle['queues']['calibration']), 20)
+        self.assertEqual(set(bundle['queues']['diagnosis']) | set(bundle['queues']['evaluation']),
+                         {item['id'] for item in bundle['items']})
+        for item in bundle['items']:
+            answer = item['answers'][0]
+            self.assertEqual(answer['task'], 'selection')
+            self.assertEqual(answer['raw'], 'alpha')
+            self.assertEqual(answer['auto_score_rule'], 'exact_candidate_match')
+            self.assertEqual(answer['binding']['run_id'], 'encoder-fixture')
+        result = review_coverage(self.root/'encoder.json', self.root/'absent.json')
+        self.assertEqual(result['rows'][0]['not_reviewed'], 395)
