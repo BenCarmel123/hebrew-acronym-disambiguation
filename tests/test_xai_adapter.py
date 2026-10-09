@@ -38,7 +38,7 @@ class XAIAdapterTests(unittest.TestCase):
         self.assertEqual(kwargs['json'], {'model': 'grok-4.7',
             'input': [{'role': 'user', 'content': 'unchanged prompt'}],
             'reasoning': {'effort': 'low'}, 'max_output_tokens': 1024,
-            'tools': [], 'tool_choice': 'none', 'stream': False, 'store': False})
+            'tools': [], 'stream': False, 'store': False})
         self.assertFalse(kwargs['allow_redirects'])
         self.assertEqual(result['status'], 'response_received')
         self.assertEqual(result['response'], 'A')
@@ -46,6 +46,18 @@ class XAIAdapterTests(unittest.TestCase):
         self.assertNotIn('private-thought', json.dumps(result))
         self.assertNotIn('fixture-secret', json.dumps(result))
         self.assertEqual(result['usage_metadata'], self.payload['usage'])
+
+    def test_empty_tools_omits_tool_choice_rejected_by_live_service(self):
+        def service(*args, **kwargs):
+            body = kwargs['json']
+            if not body.get('tools') and 'tool_choice' in body:
+                return response({'error': 'A tool_choice was set but no tools were specified'}, 400)
+            return response(self.payload)
+        with patch.object(xai.requests, 'post', side_effect=service) as post:
+            result = xai.xai_response('unchanged prompt', model=xai.MODEL)
+        post.assert_called_once()
+        self.assertEqual(result['status'], 'response_received')
+        self.assertEqual(result['response'], 'A')
 
     def test_partial_wrong_model_tools_and_refusal_cannot_pass(self):
         for kind in ('partial', 'wrong-model', 'tool', 'refusal', 'multiple', 'malformed'):

@@ -26,7 +26,7 @@ def validate_xai_settings(model, timeout=120, max_output_tokens=1024, effort="lo
     if effort != "low":
         raise ValueError("This study requires low reasoning effort")
     return {"max_output_tokens": max_output_tokens, "reasoning": {"effort": effort},
-            "tools": [], "tool_choice": "none", "store": False, "stream": False}
+            "tools": [], "store": False, "stream": False}
 
 
 def xai_response(prompt, *, model, max_output_tokens=1024, timeout=120, effort="low"):

@@ -85,6 +85,36 @@ class TestEvaluationNotebook(unittest.TestCase):
         source = self.cell_containing('QWEN_MODEL =')
         self.assertIn('if qwen_name not in SELECTED_SYSTEMS:', source)
 
+    def test_qwen14_preload_has_no_prompt_and_rejects_generated_output(self):
+        source = self.cell_containing('preload_started =')
+        tree = ast.parse(source)
+        block = next(node for node in ast.walk(tree) if isinstance(node, ast.If)
+                     and any(isinstance(child, ast.Name) and child.id == 'preload_started'
+                             for child in ast.walk(node))
+                     and isinstance(node.test, ast.Compare))
+        for payload, valid in (({'done': True, 'response': ''}, True),
+                               ({'done': False}, False),
+                               ({'done': True, 'response': 'unexpected'}, False)):
+            request = Mock()
+            request.post.return_value.json.return_value = payload
+            with tempfile.TemporaryDirectory() as directory:
+                state = {'qwen_name': 'qwen14', 'qwen_model': 'qwen2.5:14b',
+                         'OLLAMA_URL': 'http://localhost:11434', 'QWEN_OPTIONS': {'seed': 42},
+                         'inspection': {'digest': 'fixture'}, 'OUTPUT_ROOT': Path(directory),
+                         'time': Mock(perf_counter=Mock(side_effect=[0, 73]), time_ns=Mock(return_value=1)),
+                         'requests': request, 'json': json}
+                code = compile(ast.Module(body=[block], type_ignores=[]), '<preload>', 'exec')
+                if valid:
+                    exec(code, state)
+                    self.assertEqual(len(list(Path(directory).glob('*preload*.json'))), 1)
+                else:
+                    with self.assertRaises(RuntimeError):
+                        exec(code, state)
+                body = request.post.call_args.kwargs['json']
+                self.assertNotIn('prompt', body)
+                self.assertEqual(body['model'], 'qwen2.5:14b')
+                request.post.assert_called_once()
+
     def test_selected_unavailable_provider_does_not_block_others(self):
         source = next(source for source in self.cells if source.startswith('SYSTEMS = ['))
         state = {'QWEN_MODEL': 'qwen2.5:7b', 'QWEN_IDENTITIES': {}, 'QWEN14_MODEL': 'qwen2.5:14b',
