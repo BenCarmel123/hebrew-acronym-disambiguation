@@ -200,3 +200,55 @@ agreement, retains original arm run IDs, and displays all 62 items without model
 network calls. Selection includes service/format failures in its denominator; generation
 remains semantically unscored. Review gold labels and candidate inventories with Ben,
 including institutional uses, before interpreting these diagnostic development scores.
+
+
+## Local human review of saved test answers
+
+The optional human-review tool reads existing predictions; it does not invoke models
+or modify research data. It serves a Hebrew RTL interface on loopback and stores
+human annotations separately. Install the package in a fresh environment. The
+review-only modules use the Python standard library, so an editable installation
+with `python -m pip install --no-deps -e .` is sufficient for this tool; this does not
+provide the model-training environment described above.
+
+Build the immutable-source bundle and start the server with explicit paths:
+
+```bash
+python -m hebrew_acronyms.human_review_data --root . --output ../artifacts/human-review-20261009/review-data.json
+python -m hebrew_acronyms.human_review_server --data ../artifacts/human-review-20261009/review-data.json --annotations ../artifacts/human-review-20261009/annotations.json
+```
+
+Reuse the same frozen bundle while annotating. Changing source identity requires a
+separate annotation set, not rebuilding over an ongoing review. The source manifest
+records file hashes, the source revision, and the builder checkout revision.
+
+Launch the supplied local review launcher in the external artifact directory, or
+run `python -m hebrew_acronyms.human_review_server --help` for explicit data and
+annotation paths. Keep the server terminal open while reviewing; restart with the
+same paths to resume. The browser is a client, not the sole storage location.
+
+Enter the actual annotator's name. Begin with the frozen 20-item calibration queue.
+First interpret the sentence without gold or model answers; optionally reveal
+candidates, then the reference, then the responses. Each reveal is recorded.
+Stable system aliases reduce name cues but do not establish experimental blinding;
+prior exposure defaults to unknown and must be recorded by the reviewer. Any
+highlighting is a mechanical string match, not an authenticated target occurrence.
+
+The annotation schema is a calibration draft. Item/reference issues and response
+semantics are separate, as are response-format adherence and disagreement with the
+original automatic score. No human semantic labels are prefilled. Autosave retains
+drafts; explicit review completion is separate. Saved-work summaries distinguish
+items from responses and evaluation sampling from diagnosis. Inspect the disk-save
+indicator and export a JSON or CSV backup before closing. Import is restricted to
+the same source identity and supported annotation schema; retain older exports if
+the schema changes, and re-examine affected labels rather than silently migrating.
+
+The diagnostic queue targets automatic errors, disagreement and mechanical anomalies.
+Its rates cannot estimate benchmark-wide error. The calibration sample is spread
+across available source and stored acronym-type metadata; it is not a proportional
+sample. Neither source composition nor differences between systems establish
+causality. The author must calibrate the schema before expanding human review.
+
+The review code and QA fixtures were prepared with AI assistance. Production
+annotations must come from the named human reviewer; QA annotations are stored in a
+separate test directory and must never be included in the research summary.
