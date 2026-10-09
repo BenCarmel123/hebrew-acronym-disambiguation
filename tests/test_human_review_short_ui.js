@@ -43,7 +43,7 @@ test('source text, annotations and opaque IDs are escaped as data',()=>{
 });
 test('reused work has a notice but no new annotation requirement',()=>{
   const html=ui.renderMain({...fixture,prior_reused:true},{judgments:{'opaque-1':'fits','opaque-2':'not_fits'},completion:{status:'complete'}});
-  assert.ok(html.includes('אין צורך לבדוק אותו שוב'));
+  assert.ok(html.includes('אין צורך לבדוק שוב תשובה שכבר נשפטה'));
   assert.equal((html.match(/type="radio"[^>]*checked/g)||[]).length,2);
   assert.ok(!html.includes('interpretation'));assert.ok(!html.includes('annotator'));
 });
@@ -57,8 +57,8 @@ test('main shell has exact short guidance and one details entry, without accordi
 
 test('partial inherited work asks only for missing judgments and does not claim completion',()=>{
   const html=ui.renderMain({...fixture,prior_reused:true},{judgments:{'opaque-1':{label:'fits'}},completion:{status:'partial'}});
-  assert.ok(html.includes('יש להשלים רק שיפוטים חסרים'));
-  assert.ok(!html.includes('אין צורך לבדוק אותו שוב'));
+  assert.ok(html.includes('משלימים רק שיפוטים חסרים'));
+  assert.equal((html.match(/type="radio"[^>]*checked/g)||[]).length,1);
 });
 test('legacy metadata never enters main view and summary marks inherited origin explicitly',()=>{
   const record={legacy_record:{answers:{secret:{model:'HIDDEN_LEGACY_MODEL'}}},inherited_from:{schema:'old'},judgments:{}};
@@ -75,7 +75,7 @@ test('six optional tag chips render per answer without preselection or judgment 
     assert.equal((html.match(new RegExp('value="'+id+'"','g'))||[]).length,2);
     assert.ok(!html.includes('value="'+id+'" checked'));
   }
-  assert.ok(html.includes('סמן תופעה בולטת אם יש; אין צורך לחפש בכוח או להסביר כל החלטה.'));
+  assert.ok(fs.readFileSync(path.join(__dirname,'../src/hebrew_acronyms/human_review_web/short.html'),'utf8').includes('סמן תופעה בולטת אם יש; אין צורך לחפש בכוח או להסביר כל החלטה.'));
   const tagged={judgments:{'opaque-1':{label:'',tags:['gibberish','extra_text']}}};
   assert.deepEqual(ui.progressFor(fixture,tagged),{judged:0,total:2});
   const saved=ui.renderMain(fixture,tagged);
@@ -86,7 +86,7 @@ test('tags remain tied to opaque response IDs after response order changes',()=>
   const r={judgments:{'opaque-1':{label:'fits',tags:['spelling']},'opaque-2':{label:'not_fits',tags:['extra_text']}}};
   const reversed={...fixture,answers:[{...fixture.answers[1],code:'א'},{...fixture.answers[0],code:'ב'}]};
   const html=ui.renderMain(reversed,r);
-  const cards=html.split('<article class="card"><h3>');
+  const cards=html.split('<article class="answer-row"');
   assert.ok(cards[1].includes('value="extra_text" checked'));
   assert.ok(cards[1].includes('value="not_fits" checked'));
   assert.ok(cards[2].includes('value="spelling" checked'));
@@ -95,7 +95,7 @@ test('tags remain tied to opaque response IDs after response order changes',()=>
 test('empty tags mean not marked and do not assert clean output',()=>{
   assert.equal(ui.tagsText({tags:[],tag_status:'not_marked'}),'לא סומן');
   const html=ui.renderMain(fixture,{});
-  assert.ok(html.includes('ולא אישור שאין תופעות'));
+  assert.ok(fs.readFileSync(path.join(__dirname,'../src/hebrew_acronyms/human_review_web/short.html'),'utf8').includes('ולא אישור שאין תופעות'));
 });
 test('masked summary strips models, scores, sources, reasons and comparison cues even from full input',()=>{
   const secretCase={...fixture,source:'SECRET_SOURCE',reason:'SECRET_REASON',legacy_record:{secret:'SECRET_LEGACY'},answers:[{id:'opaque',original_answer_id:'SECRET_ORIGINAL',code:'א',model:'SECRET_MODEL',text:'מקור טקסט',auto_score:'SECRET_SCORE',label:'fits',tags:['punctuation'],comparison:'disagreement',label_phase:'before_reveal'}]};
@@ -181,7 +181,7 @@ test('single remaining or duplicate-collapsed answer requires only one judgment'
   const i={...fixture,answers:[{...fixture.answers[0],review_status:'pending',occurrence_count:2}]};
   const html=ui.renderMain(i,{});
   assert.equal((html.match(/type="radio"/g)||[]).length,3);
-  assert.ok(html.includes('שיפוט אחד יחול עליהם'));
+  assert.ok(html.includes('שיפוט אחד חל על 2 מופעים זהים באותו משפט'));
   assert.deepEqual(ui.progressFor(i,{}),{judged:0,total:1});
   assert.ok(!html.includes('HIDDEN_MODEL'));
 });
@@ -217,7 +217,7 @@ test('continuation shell has all queues, secondary filtered access and no twenty
   assert.ok(!html.includes('20 משפטים'));
 });
 
-test('SaveNext queues during autosave and persists edits made while the earlier request is pending',async()=>{
+test('Enter queues SaveNext during autosave and persists edits made while the earlier request is pending',async()=>{
   const vm=require('node:vm');
   const source=fs.readFileSync(path.join(__dirname,'../src/hebrew_acronyms/human_review_web/short.js'),'utf8');
   const elements=new Map();
@@ -232,7 +232,7 @@ test('SaveNext queues during autosave and persists edits made while the earlier 
   const tagGroup={dataset:{tagsAnswer:'opaque-1'},querySelectorAll(){return tags.map(value=>({value}));}};
   const document={getElementById:element,querySelector:()=>main,querySelectorAll:selector=>selector==='[data-answer]'?[group]:selector==='[data-tags-answer]'?[tagGroup]:[]};
   const state=()=>({protocol_version:'qualitative-generation-v3',revision:serverRevision,queue:serverRevision>1?['second']:['first','second'],queues:{all:serverRevision>1?['second']:['first','second'],foreign:[],unsure:[],suspicions:[],filtered:[]},records:{},counts:{pending_answers:2,pending_decisions:2,human_answers:0},reviewer:'QA',revealed:false});
-  const opened=[],saves=[],waiting=[];
+  const opened=[],saves=[],waiting=[],windowEvents={};
   const fetch=async(url,options)=>{
     const payload=options?.body?JSON.parse(options.body):null;
     if(url==='/api/short/state')return {ok:true,json:async()=>state()};
@@ -247,14 +247,17 @@ test('SaveNext queues during autosave and persists edits made while the earlier 
     }
     throw new Error('Unexpected request '+url);
   };
-  vm.runInNewContext(source,{document,fetch,setTimeout:fn=>{debounce=fn;return 1;},clearTimeout:()=>{},window:{addEventListener(){},scrollTo(){}},console});
+  vm.runInNewContext(source,{document,fetch,setTimeout:fn=>{debounce=fn;return 1;},clearTimeout:()=>{},window:{addEventListener(type,listener){windowEvents[type]=listener;},scrollTo(){}},console});
   async function until(predicate){for(let n=0;n<30&&!predicate();n++)await new Promise(resolve=>setImmediate(resolve));assert.ok(predicate(),'Expected asynchronous milestone: '+element('saveStatus').textContent);}
   await until(()=>opened.length===1&&Boolean(qualityInput.listeners.input)&&!main.inert);
   label='fits';qualityInput.listeners.input();debounce();
   await until(()=>saves.length===1);
   assert.equal(main.inert,false,'Background autosave must leave navigation clickable');
   tags=['spelling'];tagInput.listeners.input();
-  element('saveNext').onclick();
+  windowEvents.keydown({key:'Enter',target:{tagName:'TEXTAREA'},preventDefault(){throw new Error('Typing shortcut must be ignored');}});
+  assert.equal(main.inert,false,'Enter inside a note must not navigate');
+  let prevented=false;windowEvents.keydown({key:'Enter',target:{tagName:'ARTICLE'},preventDefault(){prevented=true;}});
+  assert.equal(prevented,true);
   assert.equal(main.inert,true,'Explicit navigation locks the form while awaiting save');
   waiting.shift()();
   await until(()=>saves.length===2);
@@ -271,4 +274,34 @@ test('zero pending continuation answers reports completion despite mechanical ex
   const html=ui.renderSummaryContent({masked:true,counts:{source_answers:790,pending_answers:0,pending_decisions:0,human_answers:500,exacttrim_answers:280,technical_answers:10,missing_answers:0,complete_items:200,total_items:395},incomplete_ids:[],cases:[]});
   assert.ok(html.includes('אין תשובות שממתינות לבדיקה; שיפוטי לא בטוח נשארים בתור החזרה.'));
   assert.ok(!html.includes('אפשר להמשיך בפריטים שטרם הושלמו.'));
+});
+
+test('numeric shortcuts bind only to the active row and do not infer a tag',()=>{
+  assert.deepEqual(ui.shortcutIntent({key:'1',target:{tagName:'ARTICLE'}},'opaque-B'),{type:'label',answerId:'opaque-B',label:'fits'});
+  assert.deepEqual(ui.shortcutIntent({key:'2',target:{tagName:'INPUT',type:'radio'}},'opaque-A'),{type:'label',answerId:'opaque-A',label:'not_fits'});
+  assert.deepEqual(ui.shortcutIntent({key:'3',target:{}},'opaque-A'),{type:'label',answerId:'opaque-A',label:'unsure'});
+  assert.equal(ui.shortcutIntent({key:'1',target:{}},null),null);
+});
+test('keyboard shortcuts ignore typing fields, repeat and modifier keys',()=>{
+  for(const target of [{tagName:'TEXTAREA'},{tagName:'SELECT'},{tagName:'INPUT',type:'text'},{tagName:'INPUT',type:'number'},{isContentEditable:true}]){
+    for(const key of ['1','2','3','Enter'])assert.equal(ui.shortcutIntent({key,target},'answer'),null);
+  }
+  for(const flag of ['repeat','ctrlKey','altKey','metaKey','shiftKey'])assert.equal(ui.shortcutIntent({key:'1',[flag]:true,target:{}},'answer'),null);
+  assert.equal(ui.shortcutIntent({key:'Enter',target:{tagName:'BUTTON'}},'answer'),null);
+  assert.deepEqual(ui.shortcutIntent({key:'Enter',target:{tagName:'ARTICLE'}},'answer'),{type:'next'});
+});
+test('active row advances to another unjudged response without advancing item',()=>{
+  assert.equal(ui.nextActiveAnswer(['a','b'],{a:'fits'},'a'),'b');
+  assert.equal(ui.nextActiveAnswer(['a','b'],{a:'fits',b:'unsure'},'b'),'b');
+  assert.equal(ui.nextActiveAnswer(['a','b'],{b:'not_fits'},'b'),'a');
+  assert.equal(ui.nextActiveAnswer(['a'],{a:'fits'},'a'),'a');
+});
+test('compact rows share sentence context and preserve original response whitespace',()=>{
+  const i={...fixture,answers:[{id:'a',code:'א',text:'  מענה\nמקורי  ',occurrence_count:2},{id:'b',code:'ב',text:'אחר'}]};
+  const html=ui.renderMain(i,{});
+  assert.equal((html.match(/class="sentence"/g)||[]).length,1);
+  assert.equal((html.match(/class="answer-row"/g)||[]).length,2);
+  assert.ok(html.includes('  מענה\nמקורי  '));
+  assert.ok(!html.includes('tag-help'));
+  assert.ok(html.includes('ייחוס (עשוי להיות שגוי)'));
 });

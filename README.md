@@ -204,6 +204,18 @@ including institutional uses, before interpreting these diagnostic development s
 
 ## Continuation review of all generation answers (current protocol)
 
+The compact work screen keeps the sentence and reference above one or two remaining
+answer rows, with inline judgments and optional tags. Use **1** = fits context,
+**2** = does not fit, **3** = unsure for the highlighted answer row; then **Enter**
+to save and move on. The active row moves to the next unanswered response. Shortcuts
+do not run while typing a note or choosing a queue, and never infer tags or labels.
+Mouse controls remain available. Longer explanations are in case details; answer
+text, context, and reference are not shortened. This interface change does not alter
+the protocol, filtering, previous work or exposure history. Exact duplicate responses
+within a sentence were already combined; no cross-sentence judgments are propagated.
+The remaining decisions still take reading time, so a one-hour completion is not
+promised. Stopping preserves partial coverage and a masked summary.
+
 `qualitative-generation-v3` extends the existing annotator to both saved generation
 answers in all 395 sentences. The diagnostic 20-sentence sample and its annotations
 remain immutable historical material. The new continuation plan is separate; no

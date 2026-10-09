@@ -41,11 +41,23 @@
   }
   // Deliberate whitelist: the main answer view never consumes model or score fields.
   function renderMainAnswer(answer,selected='',tags=[]){
-    return `<article class="card"><h3>תשובה ${esc(answer.code)}</h3>${answer.occurrence_count>1?`<p class="small">טקסט זהה ב־${Number(answer.occurrence_count)} מופעים באותו משפט. שיפוט אחד יחול עליהם, ולא ייספר כהכרעות עצמאיות.</p>`:''}<div class="answer-text" dir="auto">${esc(answer.text??'לא נמסר מענה')}</div><fieldset class="choices" data-answer="${esc(answer.id)}"><legend>השיפוט שלך לתשובה ${esc(answer.code)}</legend>${Object.entries(LABELS).map(([value,label])=>`<label class="choice"><input type="radio" name="judgment-${esc(answer.id)}" value="${value}" ${selected===value?'checked':''}><span>${label}</span></label>`).join('')}</fieldset><fieldset class="tag-chips" data-tags-answer="${esc(answer.id)}"><legend>תופעות בולטות (רשות, אפשר כמה)</legend>${Object.entries(TAGS).map(([value,label])=>`<label class="tag-chip" title="${esc(TAG_HELP[value])}"><input type="checkbox" aria-label="${esc(label)}" value="${value}" ${tags.includes(value)?'checked':''}><span>${label}</span></label>`).join('')}</fieldset><p class="small tag-help">סמן תופעה בולטת אם יש; אין צורך לחפש בכוח או להסביר כל החלטה.</p><p class="small">תגית אינה קובעת נכונות. ללא תגיות: ״לא סומן״, ולא אישור שאין תופעות.</p></article>`;
+    return `<article class="answer-row" data-row-answer="${esc(answer.id)}" tabindex="0" aria-label="תשובה ${esc(answer.code)}"><div class="answer-main"><h3>תשובה ${esc(answer.code)} <span class="active-indicator" aria-hidden="true">פעילה</span>${answer.occurrence_count>1?` <span class="duplicate-badge" title="שיפוט אחד חל על ${Number(answer.occurrence_count)} מופעים זהים באותו משפט; לא הכרעות עצמאיות">×${Number(answer.occurrence_count)} זהה</span>`:''}</h3><div class="answer-text" dir="auto">${esc(answer.text??'לא נמסר מענה')}</div></div><fieldset class="choices" data-answer="${esc(answer.id)}"><legend class="sr-only">השיפוט שלך לתשובה ${esc(answer.code)}</legend>${Object.entries(LABELS).map(([value,label],index)=>`<label class="choice"><input type="radio" name="judgment-${esc(answer.id)}" value="${value}" ${selected===value?'checked':''}><span><small aria-hidden="true">${index+1}</small> ${label}</span></label>`).join('')}</fieldset><fieldset class="tag-chips" data-tags-answer="${esc(answer.id)}"><legend class="sr-only">תופעות בולטות (רשות, אפשר כמה)</legend>${Object.entries(TAGS).map(([value,label])=>`<label class="tag-chip" title="${esc(TAG_HELP[value])}"><input type="checkbox" aria-label="${esc(label)}" value="${value}" ${tags.includes(value)?'checked':''}><span>${label}</span></label>`).join('')}</fieldset></article>`;
   }
   function renderMain(item,record={},view='all'){
     const labels=savedLabels(record);
-    return `${item.prior_reused?`<p class="notice">${record.completion?.status==='complete'?'השיפוטים הקודמים לפריט הזה נשמרו במסלול הקצר. אין צורך לבדוק אותו שוב.':'העבודה הקודמת נשמרה; יש להשלים רק שיפוטים חסרים.'}</p>`:''}<article class="card"><div class="small">קיצור: ${esc(item.acronym)}</div><div class="sentence">${highlightedSentence(item)}</div><div class="gold"><span>ייחוס המקור (עשוי להיות שגוי)</span><strong>${esc(item.gold??'לא זמין')}</strong></div></article><div class="answers">${item.answers.map(answer=>editableAnswer(answer,view)?renderMainAnswer(answer,labels[answer.id],record.judgments?.[answer.id]?.tags||[]):renderFilteredAnswer(answer)).join('')||'<p class="empty">אין כאן תשובות נוספות שדורשות שיפוט בתור הנוכחי.</p>'}</div><section class="card optional"><label><input id="suspect" type="checkbox" ${record.suspect?'checked':''}>חשד לבעיה בייחוס או במשפט</label><label><input id="example" type="checkbox" ${record.example?'checked':''}>דוגמה שכדאי לשמור למאמר</label>${record.has_previous_note?'<p class="small">הערה קודמת נשמרה ותוצג לאחר החשיפה.</p>':''}<label for="note">הערה קצרה (רשות)</label><textarea id="note" rows="2" placeholder="אפשר להשאיר ריק">${esc(record.note||'')}</textarea></section>`;
+    return `<article class="card context-card"><div class="sentence">${highlightedSentence(item)}</div><div class="context-meta"><span>קיצור: <strong>${esc(item.acronym)}</strong></span><span>ייחוס (עשוי להיות שגוי): <strong>${esc(item.gold??'לא זמין')}</strong></span>${item.prior_reused?'<span class="small" title="השיפוטים הקודמים נשמרו. אין צורך לבדוק שוב תשובה שכבר נשפטה; משלימים רק שיפוטים חסרים.">עבודה קודמת נשמרה</span>':''}</div></article><div class="answers">${item.answers.map(answer=>editableAnswer(answer,view)?renderMainAnswer(answer,labels[answer.id],record.judgments?.[answer.id]?.tags||[]):renderFilteredAnswer(answer)).join('')||'<p class="empty">אין כאן תשובות נוספות שדורשות שיפוט בתור הנוכחי.</p>'}</div><section class="optional compact-optional"><label><input id="suspect" type="checkbox" ${record.suspect?'checked':''}>חשד בייחוס / במשפט</label><label><input id="example" type="checkbox" ${record.example?'checked':''}>דוגמה למאמר</label><label for="note" class="sr-only">הערה קצרה (רשות)</label><textarea id="note" rows="1" placeholder="הערה (רשות)">${esc(record.note||'')}</textarea>${record.has_previous_note?'<span class="small" title="הערה קודמת נשמרה ותוצג לאחר החשיפה.">הערה קודמת שמורה</span>':''}</section>`;
+  }
+  function shortcutIntent(event,activeId){
+    if(event.repeat||event.ctrlKey||event.altKey||event.metaKey||event.shiftKey)return null;
+    const target=event.target||{},tag=String(target.tagName||'').toUpperCase(),type=String(target.type||'text').toLowerCase();
+    if(target.isContentEditable||tag==='TEXTAREA'||tag==='SELECT'||(tag==='INPUT'&&!['radio','checkbox','button','submit','reset'].includes(type)))return null;
+    if(event.key==='Enter')return tag==='BUTTON'||tag==='A'||target.closest?.('button,a')?null:{type:'next'};
+    const label={'1':'fits','2':'not_fits','3':'unsure'}[event.key];
+    return label&&activeId?{type:'label',answerId:activeId,label}:null;
+  }
+  function nextActiveAnswer(ids,labels,currentId){
+    const index=ids.indexOf(currentId),ordered=[...ids.slice(index+1),...ids.slice(0,index)];
+    return ordered.find(id=>!Object.hasOwn(LABELS,labels[id]))||currentId||ids[0];
   }
   function brief(value){
     if(value===null||value===undefined||value==='')return 'לא זמין';
@@ -82,13 +94,13 @@
     const recommendations=full&&summary.recommendations?.length?`<section class="card"><h3>המלצות לבדיקה ולהחלטה</h3><p class="small">לא שונה הניקוד הרשמי. תגית לצד פער אינה הוכחה לסיבת הפער; אלו הצעות לבדיקה ולא אימות עצמאי.</p>${summary.recommendations.map(r=>`<div class="recommendation">${typeof r==='string'?esc(r):`<h3>${esc(r.title||'הצעה לבדיקה')}</h3>${r.status?`<p class="small">${esc(r.status)}</p>`:''}<p><strong>כשל שהכלל עשוי לפתור:</strong> ${esc(r.possible_failure||'טרם פורט')}</p><p><strong>סיכון לקבלה שגויה:</strong> ${esc(r.false_acceptance_risk||'טרם פורט')}</p>${r.causal_limit?`<p class="small">${esc(r.causal_limit)}</p>`:''}${r.evidence?.length?`<p>מקרים לבדיקה:</p><ul>${r.evidence.map(e=>`<li><bdi>${esc(e.item_id)} / ${esc(e.answer_id)}</bdi> · ${esc(LABELS[e.label]||'טרם סומן')} · ציון שמור: ${esc(brief(e.auto_score))} · תגיות: ${esc(tagsText(e))}</li>`).join('')}</ul>`:'<p class="small">לא סומנו עדיין מקרים התומכים בכלל זה.</p>'}`}</div>`).join('')}${summary.next_step?`<p class="notice">${esc(summary.next_step)}</p>`:''}</section>`:'';
     return `${renderPartition(c)}${c.source_answers===undefined?`<div class="summary-counts"><div><strong>${c.reviewed_items??((c.complete_items||0)+(c.partial_items||0))}</strong> משפטים שנבדקו</div><div><strong>${c.complete_items||0}</strong> משפטים מלאים</div><div><strong>${c.partial_items||0}</strong> משפטים חלקיים</div><div><strong>${c.judged_answers||0}</strong> תשובות שסומנו מתוך ${c.total_answers||0}</div></div>`:''}<p class="small">${c.source_answers!==undefined?'״לא בטוח״ נשמר כשיפוט קיים בתור נפרד. סינון מכני אינו אישור אנושי.':'השלמה מתייחסת לשני שיפוטים בלבד, כולל ״לא בטוח״.'} תגיות והערות אינן חובה ואינן משלימות שיפוט חסר.</p><section class="card"><h3>תגיות שסומנו</h3><div class="tag-counts">${tagCounts}</div><p class="small">היעדר תגית פירושו ״לא סומן״. תגיות מוצגות גם כשאין פער בין השיפוט לניקוד.${c.source_answers!==undefined?' הספירה היא לפי מופעי תשובה; שיפוט יחיד שהוחל על מופעים זהים אינו כמה הכרעות עצמאיות.':''}</p></section>${sections.map(([key,title])=>`<section class="card"><h3>${title}</h3>${summary[key]?.length?summary[key].map(v=>renderCase(v,full)).join(''):'<p class="small">אין פריטים בסעיף זה.</p>'}</section>`).join('')}${full?`<section class="card"><h3>כל המקרים — כולל הסכמה בין השיפוט לניקוד</h3>${fullCasesTable(summary.cases||summary.all_cases||[])}</section>`:''}${full?renderFullComposition(summary.composition||summary.sample_composition):''}${rules}${recommendations}<section class="card"><h3>${c.source_answers!==undefined?'משפטים עם תשובות שממתינות לבדיקה':'משפטים שלא הושלמו'}</h3><p>${summary.incomplete_ids?.length?summary.incomplete_ids.map(esc).join(' · '):c.source_answers!==undefined&&c.pending_answers===0?'אין תשובות שממתינות לבדיקה; שיפוטי לא בטוח נשארים בתור החזרה.':c.source_answers===undefined&&c.complete_items===c.total_items?'כל המשפטים במסלול הושלמו.':'אפשר להמשיך בפריטים שטרם הושלמו.'}</p></section><section class="card"><h3>גבולות הסיכום</h3>${(Array.isArray(summary.limitations)?summary.limitations:[summary.limitations||'בדיקה איכותנית מצומצמת עם ייחוס מוצג. אין להסיק ממנה שיעורים לכל המאגר; סגנון התשובה עשוי לרמוז לזהות.']).map(text=>`<p>${esc(text)}</p>`).join('')}</section>`;
   }
-  const api={canShowFull,isContinuation,queueIds,nextQueueId,editableAnswer,renderFilteredAnswer,renderPartition,judgmentPhaseText,TAGS,TAG_HELP,PHASES,tagsText,renderMaskedDetails,renderSummaryContent,fullCasesTable,LABELS,esc,labelOf,savedLabels,firstIncomplete,progressFor,highlightedSentence,renderMainAnswer,renderMain,renderCase};
+  const api={shortcutIntent,nextActiveAnswer,canShowFull,isContinuation,queueIds,nextQueueId,editableAnswer,renderFilteredAnswer,renderPartition,judgmentPhaseText,TAGS,TAG_HELP,PHASES,tagsText,renderMaskedDetails,renderSummaryContent,fullCasesTable,LABELS,esc,labelOf,savedLabels,firstIncomplete,progressFor,highlightedSentence,renderMainAnswer,renderMain,renderCase};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   root.ShortReview=api;
   if(typeof document==='undefined')return;
 
   const $=id=>document.getElementById(id);
-  let state,currentItem,dirty=false,timer=null,pending=Promise.resolve(),lastError=null,view='all',routeIds=[],currentPosition=-1,editVersion=0,lockCount=0;
+  let state,currentItem,dirty=false,timer=null,pending=Promise.resolve(),lastError=null,view='all',routeIds=[],currentPosition=-1,editVersion=0,lockCount=0,activeAnswerId=null;
   async function request(path,payload){
     const response=await fetch(path,payload?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}:{});
     const result=await response.json();
@@ -118,10 +130,11 @@
     $('progress').textContent=isContinuation(state)?`${counts.pending_answers||0} תשובות ממתינות`:`${counts.complete_items||0} מתוך ${total} משפטים הושלמו`;
     $('countDetail').textContent=isContinuation(state)?`${counts.pending_decisions||0} הכרעות נדרשות · ${counts.human_answers||0} תשובות עם שיפוט אנושי`:`נבדקו ${counts.reviewed_items??((counts.complete_items||0)+(counts.partial_items||0))} · ${counts.partial_items||0} חלקיים`;
     $('exposureNotice').hidden=!(state.revealed||state.exposed||state.prior_exposure);
-    $('exposureNotice').textContent=isContinuation(state)?'החשיפות והשיפוטים הקודמים נשמרו. ההמשך אינו מוצג כבדיקה שלא קדמה לה חשיפה; הזהויות והניקוד מוסתרים במסך העבודה ובסיכום הביניים.':state.revealed||state.exposed?'התוצאות כבר נחשפו. שינויים חדשים יתועדו לאחר חשיפה; תמונת המצב שלפניה נשמרת.':'העבודה והחשיפות מהפרוטוקול הקודם נשמרו. אין לראות בשיפוטים הקודמים שיפוט חדש ללא חשיפה.';
+    $('exposureNotice').textContent=isContinuation(state)?'החשיפות הקודמות נשמרו; הזהויות והניקוד מוסתרים כעת.':state.revealed||state.exposed?'התוצאות כבר נחשפו. שינויים חדשים יתועדו לאחר חשיפה; תמונת המצב שלפניה נשמרת.':'העבודה והחשיפות מהפרוטוקול הקודם נשמרו. אין לראות בשיפוטים הקודמים שיפוט חדש ללא חשיפה.';
     $('reviewer').textContent=`מתייג/ת: ${state.reviewer||'לא זמין'}`;
     $('queueView').value=view;
     $('queueHint').textContent={all:'כל תשובה שטרם נשפטה ולא סוננה נמצאת כאן. ״לא בטוח״ נמצא בתור נפרד.',foreign:'אותיות משפה אחרת הן סימון מכני בלבד; אין כאן שיפוט או תגית ג׳יבריש אוטומטיים.',unsure:'שיפוטים קיימים שסומנו ״לא בטוח״. חזרה אליהם היא בחירה נפרדת.',suspicions:'מקרים עם חשד לייחוס או למשפט נשארים נגישים גם כאשר תשובה סוננה.',filtered:'עיון בלבד בתשובות שסוננו; אפשר להחזיר תשובה לתור הממתינות.'}[view];
+    $('queueView').title=$('queueHint').textContent;
     if(currentItem){
       const p=progressFor(currentItem,state.records[currentItem.id]);
       $('itemProgress').textContent=view==='filtered'?'עיון במסוננות — אין צורך לשפוט כאן':`${p.judged}/${p.total} הכרעות בכרטיסים המוצגים נשמרו`;
@@ -147,15 +160,27 @@
   }
   async function flush(){clearTimeout(timer);await saveNow();}
   function markDirty(){editVersion++;dirty=true;lastError=null;clearTimeout(timer);status('שומר את השינוי…');timer=setTimeout(()=>run(saveNow,false),500);}
+  function setActiveAnswer(id,focus=false){
+    const rows=[...$('itemView').querySelectorAll('[data-row-answer]')];
+    const selected=rows.find(row=>row.dataset.rowAnswer===id);
+    activeAnswerId=selected?id:null;
+    for(const row of rows){const active=row===selected;row.classList.toggle('active-row',active);row.setAttribute('aria-current',active?'true':'false');}
+    const code=currentItem?.answers.find(answer=>answer.id===activeAnswerId)?.code;
+    $('activeRowHint').textContent=code?`1–3: תשובה ${code}`:'';
+    if(focus&&selected)selected.focus({preventScroll:true});
+  }
   function renderItem(){
     $('itemView').innerHTML=renderMain(currentItem,state.records[currentItem.id],view);
+    $('itemView').querySelectorAll('[data-row-answer]').forEach(row=>{row.addEventListener('click',()=>setActiveAnswer(row.dataset.rowAnswer));row.addEventListener('focusin',()=>setActiveAnswer(row.dataset.rowAnswer));});
+    const ids=currentItem.answers.filter(answer=>editableAnswer(answer,view)).map(answer=>answer.id),labels=savedLabels(state.records[currentItem.id]);
+    setActiveAnswer(ids.find(id=>!Object.hasOwn(LABELS,labels[id]))||ids[0],true);
     $('itemView').querySelectorAll('input,textarea').forEach(element=>element.addEventListener('input',markDirty));
     $('itemView').querySelectorAll('[data-restore-answer]').forEach(button=>button.onclick=()=>run(async()=>{const id=currentItem.id;await flush();state=await request('/api/short/restore',{revision:state.revision,item_id:id,answer_id:button.dataset.restoreAnswer});view='all';routeIds=queueIds(state,view).slice();await openItem(id);status('התשובה הוחזרה לבדיקה; לא נוצר שיפוט אנושי אוטומטי.');}));
     updateProgress();showScreen('reviewScreen');
   }
   async function openItem(id){
     await flush();
-    if(!id){currentItem=null;currentPosition=-1;dirty=false;$('itemView').innerHTML='<p class="empty">אין תשובות בתור שנבחר. אפשר לבחור ״כל התשובות הממתינות״ או לפתוח סיכום.</p>';$('saveNext').disabled=true;$('previous').disabled=true;$('detailsButton').disabled=true;updateProgress();showScreen('reviewScreen');status('התור שנבחר ריק · כל העבודה נשמרה');return;}
+    if(!id){activeAnswerId=null;$('activeRowHint').textContent='';currentItem=null;currentPosition=-1;dirty=false;$('itemView').innerHTML='<p class="empty">אין תשובות בתור שנבחר. אפשר לבחור ״כל התשובות הממתינות״ או לפתוח סיכום.</p>';$('saveNext').disabled=true;$('previous').disabled=true;$('detailsButton').disabled=true;updateProgress();showScreen('reviewScreen');status('התור שנבחר ריק · כל העבודה נשמרה');return;}
     status('טוען פריט…');
     const result=await request('/api/short/open',{revision:state.revision,item_id:id,view});
     state=result.state;currentItem=result.item;currentPosition=routeIds.indexOf(id);dirty=false;lastError=null;$('saveNext').disabled=false;$('detailsButton').disabled=false;renderItem();
@@ -198,6 +223,16 @@
   $('exportFull').onclick=()=>run(()=>download('/api/short/full-export.json','short-review-full-results.json'));
   $('exportFullSummary').onclick=()=>run(()=>download('/api/short/full-summary.md','short-review-full-summary.md'));
   $('retryLoad').onclick=()=>run(init);
+  window.addEventListener('keydown',event=>{
+    if($('reviewScreen').hidden||document.querySelector('main').inert)return;
+    const intent=shortcutIntent(event,activeAnswerId);if(!intent)return;
+    if(intent.type==='next'){if($('saveNext').disabled)return;event.preventDefault();$('saveNext').onclick();return;}
+    const rows=[...$('itemView').querySelectorAll('[data-row-answer]')],row=rows.find(row=>row.dataset.rowAnswer===intent.answerId);
+    const radio=row?.querySelector(`input[type=radio][value="${intent.label}"]`);if(!radio)return;
+    event.preventDefault();radio.checked=true;markDirty();
+    const labels=Object.fromEntries(rows.map(r=>[r.dataset.rowAnswer,r.querySelector('input[type=radio]:checked')?.value||'']));
+    setActiveAnswer(nextActiveAnswer(rows.map(r=>r.dataset.rowAnswer),labels,intent.answerId),true);
+  });
   window.addEventListener('beforeunload',event=>{if(dirty||lastError){event.preventDefault();event.returnValue='';}});
   run(init);
 })(typeof globalThis!=='undefined'?globalThis:this);
