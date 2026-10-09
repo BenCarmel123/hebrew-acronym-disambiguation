@@ -204,73 +204,94 @@ including institutional uses, before interpreting these diagnostic development s
 
 ## Short qualitative review (current protocol)
 
-The current human task is a post-experiment qualitative review with a one-hour
-budget including synthesis. It is **not** an independent blind evaluation, a
-representative sample, or a basis for corrected benchmark-wide accuracy. The older
-six-system calibration workflow below is historical and remains available at
-`/legacy`; its queue and annotation meanings have not been changed.
+The current `qualitative-generation-v2` protocol is a post-experiment diagnostic
+review with a one-hour human budget, including synthesis. The reference is shown.
+It is not an independent blind evaluation, a representative sample, or a basis
+for corrected benchmark-wide accuracy. Report identity/score masking only for
+records with supporting exposure evidence. Answer style can suggest identity;
+previous exposure and unknown exposure remain explicit.
 
-The fixed `qualitative-generation-v1` route has 20 distinct sentences/acronyms:
-12 with generation failure and selection success for the same model, four with
-both failures for the same model, and four with both generation scores positive.
-Items are disjoint. Selection uses saved Boolean scores only, retaining eligible
-prior work and preferring diverse acronyms, sources, model witnesses and acronym
-length proxies, with a deterministic hash tie-break. The three groups are interleaved
-so stopping early does not mean reviewing a contiguous group only. Eligibility pools
-may overlap; selected groups do not. The bundle stores all selection reasons and
-actual composition. The delivered sample has seven Knesset, six Wikipedia and seven
-AI-authored sentences. No answer semantics were inferred to choose them.
+The existing sampling plan `qualitative-generation-v1-41ead33e814b0eb5` is unchanged:
+20 distinct sentences/acronyms, with 12 generation-failure/selection-success cases,
+four both-failure cases (each pair concerns the same model), and four cases where
+both generation scores were positive. Groups are disjoint and interleaved. Sources
+are seven Knesset, six Wikipedia and seven AI-authored sentences. Eligibility and
+selection use saved scores and metadata, never inferred semantic correctness.
+Protocol version and sampling-plan identity are separate. No additional queue opens.
 
-Only Qwen and Gemini free-generation answers are required. The main screen uses
-neutral codes and immediately shows the sentence and the possibly faulty reference.
-Choose “fits context”, “does not fit”, or “unsure”; optional reference/context concern,
-article example flag and a note require no explanation. Save-and-next also permits
-partial work. Changes autosave to disk, and reload resumes at the first incomplete
-sentence. Two marked generation responses complete a **short-route** item only;
-this does not change the six-response completion state of the old protocol.
-Stop-and-summary works at any point; it never opens another review queue.
+Only the two free-generation answers require judgments. Choose “fits context”,
+“does not fit”, or “unsure”; no explanation is required. Six optional multi-select
+tags describe gibberish, inflection, punctuation/spacing, spelling, equivalent
+phrasing, and extra/contradictory text. Tags never set or change a judgment. Empty
+tags mean **not marked**, not absence of those phenomena. Reference/context concern,
+article-example flag and a short note are optional. Save-and-next allows partial
+work; changes autosave. Reload resumes at the first incomplete sentence. Completion
+means two short-route judgments, including unsure, not six-system completion.
 
-Case details are one explicit secondary view containing candidates, saved selection
-responses, other systems and source information. Main-screen API payloads exclude
-model identities, automatic scores, sampling reasons and derived agreements. Opening
-a case records reference/generation exposure before judging; opening details or the
-summary separately records the additional exposure. No initial independent attempt
-is fabricated. Prior exposure from the old record remains intact.
+Each sentence receives an independent random answer order, persisted on disk.
+A/B are local positions, not model aliases. Judgments remain keyed to original
+answer IDs privately; the browser receives random opaque tokens and unchanged raw
+answer text. Main, candidate-details and interim-summary payloads omit model names,
+scores, sampling reasons and source details. Candidate access is logged. The older
+`/legacy` view and data/export endpoints are blocked in this protocol to prevent
+accidental disclosure; historical data and code remain intact.
 
-The supplied `Start Review.command` now loads `review-data-short-v1.json`. The server
-keeps the original `annotations.json` and its history, and writes the short protocol
-to `annotations.short-v1.json` plus its own append-only history. The original first
-item, `manual-0042`, is included: its generation judgments map explicitly from
-`wrong` to `not_fits` and `correct` to `fits`; they remain attributed to the earlier
-protocol and require no repeat. Original interpretations, all six judgments, notes,
-flags, timestamps and exposure history remain unchanged and are copied losslessly
-into the short export. Only `correct`, `wrong`, and explicit `undecidable` have direct
-mappings. Partial, combined legacy categories and `no_answer` are preserved as
-unmapped original judgments; they are never silently assigned a semantic meaning.
+**Stop and summary** stays masked. It permits exit and masked JSON/Markdown export
+without ending annotation. **Finish annotation and reveal results** is a separate
+explicit action. It saves an immutable pre-reveal snapshot and then shows identities,
+original scores, both directions of human/automatic disagreement, unresolved cases,
+reference concerns, all human tags (including agreements), examples and notes. The
+full case table includes original IDs, source, sentence, raw answer, reference,
+human label and exposure phase. Selected, reviewed and completed sample composition
+are separate. Subsequent label/tag edits have their own timestamps and exposure
+phases; they never replace the frozen snapshot.
 
-The summary distinguishes computed counts/composition/score differences from human
-judgments, suspicions and notes. It lists disagreements, possible reference/context
-issues, flagged examples, unresolved answers, all reviewed cases and incomplete IDs.
-It does not infer a semantic cause from a score difference. Download the summary as
-Markdown or the complete annotated bundle/history as JSON. To restore the latter,
-stop the server and place a copy at the short annotation path; startup verifies the
-protocol, plan and source manifest. Keep a backup before restoring.
+The launcher `Start Review.command` loads `review-data-short-v2.json` and validates
+the live protocol, plan, annotation path and non-QA session. After a computer restart,
+run it again and keep its terminal window open. Open http://127.0.0.1:8765/ in Chrome.
+The server preserves `annotations.json`, `annotations.short-v1.json`, and their
+histories byte-for-byte; new work goes to `annotations.short-v2.json` and its own
+history. The existing first item's compatible generation judgments remain complete
+without repeat work. All six original judgments, initial and revised interpretations,
+notes, flags and exposures remain in the historical snapshots. No new tags or
+independent interpretation are invented for old work. Previously written free text
+is retained privately until reveal because it may contain model identities.
 
-To create an explicitly authorized new short plan at a fresh output path:
+Labels distinguish prior protocol, new protocol before reveal, after documented
+reveal, and unknown exposure. Historical global summaries and identity/details
+views count across cases; later exposures are not backdated to older judgments.
+Tag additions keep separate phase/timestamp metadata from inherited labels.
+
+Masked JSON backups omit private mappings and source history. They are signed and
+can be restored with `MaskedStore.restore_masked` only against the existing matching
+private store, with revision/source/plan checks; keep the private file and history
+backed up as well. This method backs up the current state and never resets exposures
+or the pre-reveal snapshot. Do not replace the private file with a masked download.
+After explicit reveal, the separate full JSON export includes the private state,
+original material, snapshot and history. A full export can be restored at the same
+private path with the server stopped and a prior backup; startup validates it.
+
+The scoring audit verifies the original quote-normalized **reference substring**
+rule, not full exact match. Source functions, notebook and saved responses are
+hash-checked; all 790 saved generation scores reproduce with zero mismatches. The
+notebook loads code from `main`, so this does not independently establish the exact
+runtime revision. No official score changes. After reveal, proposals reference only
+human-marked cases and state both the possible benefit and false-acceptance risk.
+Spelling and semantic alternatives need controlled human approval; never remove
+Hebrew letters globally, merge singular/plural automatically, or infer semantic
+correctness from string similarity. New rules require Shaked/Ben approval, use the
+same stored answers, preserve originals, inspect changes in both directions and
+positive controls, and do not count development cases as independent validation.
+
+Focused offline checks (no model calls):
 
 ```bash
-python -m hebrew_acronyms.human_review_short --data existing-review-data.json --legacy annotations.json --output fresh-short-data.json
-python -m hebrew_acronyms.human_review_server --data fresh-short-data.json --annotations annotations.json
-```
-
-Additional offline tests:
-
-```bash
-python -m unittest tests.test_human_review_short
+python -m unittest discover -s tests -p 'test_human_review*.py'
+node tests/test_human_review_ui.js
 node tests/test_human_review_short_ui.js
 ```
 
-## Local human review of saved test answers
+## Historical six-system review of saved test answers
 
 The review-only tool serves existing answers in Hebrew on loopback. It does not
 invoke models or edit original research files. Its Python modules use the standard

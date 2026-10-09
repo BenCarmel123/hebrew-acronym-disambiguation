@@ -63,8 +63,105 @@ test('partial inherited work asks only for missing judgments and does not claim 
 test('legacy metadata never enters main view and summary marks inherited origin explicitly',()=>{
   const record={legacy_record:{answers:{secret:{model:'HIDDEN_LEGACY_MODEL'}}},inherited_from:{schema:'old'},judgments:{}};
   assert.ok(!ui.renderMain(fixture,record).includes('HIDDEN_LEGACY_MODEL'));
-  const summary=ui.renderCase({id:'old',inherited_from:{schema:'old'},answers:[{model:'Visible after summary',text:'answer',label:'fits',comparison:'agreement'}]});
-  assert.ok(summary.includes('אין כאן תיוג עצמאי חדש'));
+  const summary=ui.renderCase({id:'old',inherited_from:{schema:'old'},answers:[{model:'Visible after summary',text:'answer',label:'fits',comparison:'agreement'}]},true);
+  assert.ok(summary.includes('אין להציגם כתיוג עצמאי חדש'));
   assert.ok(summary.includes('תואם לניקוד האוטומטי'));
   assert.ok(!summary.includes('agreement'));
+});
+
+test('six optional tag chips render per answer without preselection or judgment inference',()=>{
+  const html=ui.renderMain(fixture,{});
+  for(const id of ['gibberish','inflection','punctuation','spelling','equivalent','extra_text']){
+    assert.equal((html.match(new RegExp('value="'+id+'"','g'))||[]).length,2);
+    assert.ok(!html.includes('value="'+id+'" checked'));
+  }
+  assert.ok(html.includes('סמן תופעה בולטת אם יש; אין צורך לחפש בכוח או להסביר כל החלטה.'));
+  const tagged={judgments:{'opaque-1':{label:'',tags:['gibberish','extra_text']}}};
+  assert.deepEqual(ui.progressFor(fixture,tagged),{judged:0,total:2});
+  const saved=ui.renderMain(fixture,tagged);
+  assert.ok(saved.includes('value="gibberish" checked'));
+  assert.equal((saved.match(/type="radio"[^>]*checked/g)||[]).length,0);
+});
+test('tags remain tied to opaque response IDs after response order changes',()=>{
+  const r={judgments:{'opaque-1':{label:'fits',tags:['spelling']},'opaque-2':{label:'not_fits',tags:['extra_text']}}};
+  const reversed={...fixture,answers:[{...fixture.answers[1],code:'א'},{...fixture.answers[0],code:'ב'}]};
+  const html=ui.renderMain(reversed,r);
+  const cards=html.split('<article class="card"><h3>');
+  assert.ok(cards[1].includes('value="extra_text" checked'));
+  assert.ok(cards[1].includes('value="not_fits" checked'));
+  assert.ok(cards[2].includes('value="spelling" checked'));
+  assert.ok(cards[2].includes('value="fits" checked'));
+});
+test('empty tags mean not marked and do not assert clean output',()=>{
+  assert.equal(ui.tagsText({tags:[],tag_status:'not_marked'}),'לא סומן');
+  const html=ui.renderMain(fixture,{});
+  assert.ok(html.includes('ולא אישור שאין תופעות'));
+});
+test('masked summary strips models, scores, sources, reasons and comparison cues even from full input',()=>{
+  const secretCase={...fixture,source:'SECRET_SOURCE',reason:'SECRET_REASON',legacy_record:{secret:'SECRET_LEGACY'},answers:[{id:'opaque',original_answer_id:'SECRET_ORIGINAL',code:'א',model:'SECRET_MODEL',text:'מקור טקסט',auto_score:'SECRET_SCORE',label:'fits',tags:['punctuation'],comparison:'disagreement',label_phase:'before_reveal'}]};
+  const summary={masked:true,counts:{},cases:[secretCase],disagreements:[secretCase],accepted_human_rejected_auto:[secretCase],composition:{secret:'SECRET_COMPOSITION'},scoring_rules:'SECRET_RULES',recommendations:['SECRET_RECOMMENDATION']};
+  const html=ui.renderSummaryContent(summary,true);
+  for(const secret of ['SECRET_SOURCE','SECRET_REASON','SECRET_LEGACY','SECRET_ORIGINAL','SECRET_MODEL','SECRET_SCORE','SECRET_COMPOSITION','SECRET_RULES','SECRET_RECOMMENDATION','פער מול הניקוד האוטומטי'])assert.ok(!html.includes(secret),secret);
+  assert.ok(html.includes('רווחים / מקפים / גרשיים'));
+  assert.ok(html.includes('בפרוטוקול החדש לפני חשיפה'));
+  assert.ok(html.includes('מקור טקסט'));
+});
+test('details always allow only candidates and never legacy or response metadata',()=>{
+  const html=ui.renderMaskedDetails({candidates:['פירוש'],source:'SECRET_SOURCE',source_metadata:{model:'SECRET_MODEL'},selection_reason:'SECRET_REASON',legacy_record:{model:'SECRET_LEGACY'},answers:[{model:'SECRET_MODEL',auto_score:'SECRET_SCORE'}]});
+  assert.ok(html.includes('פירוש'));
+  for(const secret of ['SECRET_SOURCE','SECRET_MODEL','SECRET_REASON','SECRET_LEGACY','SECRET_SCORE'])assert.ok(!html.includes(secret));
+});
+test('full result rendering requires explicit permission and supports both discrepancy directions',()=>{
+  const value={id:'sentence',source:'SOURCE_FULL',gold:'ייחוס',note:'הערה',answers:[{original_answer_id:'ORIGINAL_FULL',model:'MODEL_FULL',text:'טקסט מלא',label:'fits',auto_score:false,tags:['spelling'],label_phase:'prior_protocol',tags_phase:'after_reveal'}]};
+  const summary={masked:false,counts:{},cases:[value],accepted_human_rejected_auto:[value],rejected_human_accepted_auto:[],tag_counts:{spelling:1}};
+  assert.ok(!ui.renderSummaryContent(summary).includes('MODEL_FULL'));
+  const full=ui.renderSummaryContent(summary,true);
+  for(const expected of ['MODEL_FULL','ORIGINAL_FULL','SOURCE_FULL','נפסלה אוטומטית והאדם קיבל','התקבלה אוטומטית והאדם דחה','לאחר חשיפה מתועדת','הבדל כתיב'])assert.ok(full.includes(expected),expected);
+});
+
+test('previous notes are preserved without revealing them during labeling',()=>{
+  const r={has_previous_note:true,previous_note:'SECRET_OLD_NOTE',judgments:{}};
+  const main=ui.renderMain(fixture,r);
+  assert.ok(main.includes('הערה קודמת נשמרה ותוצג לאחר החשיפה'));
+  assert.ok(!main.includes('SECRET_OLD_NOTE'));
+  const c={...fixture,previous_note:'SECRET_OLD_NOTE'};
+  assert.ok(!ui.renderCase(c).includes('SECRET_OLD_NOTE'));
+  assert.ok(ui.renderCase(c,true).includes('SECRET_OLD_NOTE'));
+  assert.ok(ui.fullCasesTable([c]).includes('SECRET_OLD_NOTE'));
+});
+
+test('tag checkbox accessible names stay stable before and after selection',()=>{
+  const plain=ui.renderMainAnswer(fixture.answers[0],'',[]);
+  const checked=ui.renderMainAnswer(fixture.answers[0],'',['spelling']);
+  for(const [id,label] of Object.entries(ui.TAGS)){
+    const expected='type="checkbox" aria-label="'+ui.esc(label)+'" value="'+id+'"';
+    assert.ok(plain.includes(expected));
+    assert.ok(checked.includes(expected));
+  }
+  assert.ok(checked.includes('aria-label="הבדל כתיב, למשל י׳/ו׳" value="spelling" checked'));
+});
+
+test('an empty human label is unjudged rather than unknown exposure',()=>{
+  const answer={code:'א',text:'טקסט',label:'',label_phase:null,tags:[]};
+  assert.equal(ui.judgmentPhaseText(answer),'טרם נשפט');
+  const c={id:'one',answers:[answer]};
+  for(const html of [ui.renderCase(c),ui.fullCasesTable([c])]){
+    assert.ok(html.includes('טרם נשפט'));
+    assert.ok(!html.includes('מצב החשיפה אינו ידוע'));
+  }
+  assert.equal(ui.judgmentPhaseText({...answer,label:'fits',label_phase:'unknown'}),'מצב החשיפה אינו ידוע');
+});
+
+test('actual selected and reviewed composition is rendered only after explicit reveal',()=>{
+  const composition={selected:{generation_fail_selection_pass:8,both_fail:6,both_generation_pass:6},reviewed:{generation_fail_selection_pass:3},completed:{generation_fail_selection_pass:2},sources_selected:{SOURCE_COMPOSITION:20},sources_reviewed:{SOURCE_COMPOSITION:3},adjustments:[]};
+  const summary={masked:false,counts:{},cases:[],composition};
+  const full=ui.renderSummaryContent(summary,true);
+  assert.ok(full.includes('הרכב הרשימה והבדיקה בפועל'));
+  assert.ok(full.includes('<td>8</td><td>3</td><td>2</td>'));
+  assert.ok(full.includes('SOURCE_COMPOSITION'));
+  for(const masked of [ui.renderSummaryContent(summary),ui.renderSummaryContent({...summary,masked:true},true)]){
+    assert.ok(!masked.includes('SOURCE_COMPOSITION'));
+    assert.ok(!masked.includes('כשל ביצירה והצלחה בבחירה של אותו מודל'));
+    assert.ok(!masked.includes('הרכב הרשימה והבדיקה בפועל'));
+  }
 });

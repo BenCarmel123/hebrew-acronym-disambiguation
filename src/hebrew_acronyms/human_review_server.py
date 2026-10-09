@@ -469,10 +469,20 @@ class ReviewStore:
 
 
 def make_server(dataset, annotations, port=8765, qa=False):
-    store = ReviewStore(dataset, annotations)
+    masked_protocol = dataset.get("short_protocol") == "qualitative-generation-v2"
+    store = None if masked_protocol else ReviewStore(dataset, annotations)
     web = Path(__file__).with_name("human_review_web")
     short = None
-    if dataset.get("short_plan"):
+    if masked_protocol:
+        from .human_review_masked import MaskedStore
+        previous_path = Path(annotations).with_name(Path(annotations).stem + ".short-v1.json")
+        previous = json.loads(previous_path.read_text(encoding="utf-8"))
+        previous_history = previous_path.with_suffix(".history.jsonl")
+        short = MaskedStore(dataset, Path(annotations).with_name(Path(annotations).stem + ".short-v2.json"),
+                            previous, previous_history.read_text(encoding="utf-8") if previous_history.exists() else "")
+        if qa:
+            short.state["reviewer"] = "QA_MASKED_NOT_HUMAN"
+    elif dataset.get("short_plan"):
         from .human_review_short import ShortStore
         legacy_history = Path(annotations).with_suffix(Path(annotations).suffix + ".history.jsonl")
         short = ShortStore(dataset, Path(annotations).with_name(Path(annotations).stem + ".short-v1.json"),
@@ -506,6 +516,19 @@ def make_server(dataset, annotations, port=8765, qa=False):
             if not self.allowed():
                 return self.reply({"error": "Loopback origin required"}, status=403)
             path = urlparse(self.path).path
+            if masked_protocol and path in {"/api/data", "/api/state", "/api/export.json", "/api/export.csv", "/legacy", "/app.js", "/review_logic.js"}:
+                return self.reply({"error": "המסלול המוסתר אינו מציג מידע מלא; חשיפה אפשרית רק בפעולת הסיום המפורשת."}, status=403)
+            if masked_protocol and path in {"/api/short/full-export.json", "/api/short/full-summary.md"}:
+                try:
+                    from .human_review_scoring_audit import enrich_summary, scoring_markdown
+                    if path.endswith(".json"):
+                        result = short.export(masked=False)
+                        result["summary"] = enrich_summary(short.summary(masked=False), dataset)
+                        return self.reply(result)
+                    summary = enrich_summary(short.summary(masked=False), dataset)
+                    return self.reply(short.markdown(masked=False) + scoring_markdown(summary), "text/markdown; charset=utf-8")
+                except ValueError as error:
+                    return self.reply({"error": str(error)}, status=403)
             if path == "/api/short/state" and short:
                 return self.reply(short.snapshot())
             if path == "/api/short/export.json" and short:
@@ -513,7 +536,7 @@ def make_server(dataset, annotations, port=8765, qa=False):
             if path == "/api/short/summary/export.md" and short:
                 return self.reply(short.markdown(), "text/markdown; charset=utf-8")
             if path == "/api/session":
-                return self.reply({"qa": qa, "annotations_path": str(Path(annotations).resolve()), "short_plan_id": dataset.get("short_plan", {}).get("plan_id")})
+                return self.reply({"qa": qa, "annotations_path": str(Path(annotations).resolve()), "short_plan_id": dataset.get("short_plan", {}).get("plan_id"), "short_protocol": dataset.get("short_protocol", "qualitative-generation-v1")})
             if path == "/api/data":
                 return self.reply(dataset)
             if path == "/api/state":
@@ -538,6 +561,11 @@ def make_server(dataset, annotations, port=8765, qa=False):
                 payload = json.loads(self.rfile.read(length))
                 if self.path.startswith("/api/short/") and short:
                     result = short.transact(self.path.rsplit("/", 1)[-1], payload)
+                    if masked_protocol and "summary" in result:
+                        from .human_review_scoring_audit import enrich_summary
+                        result["summary"] = enrich_summary(result["summary"], dataset)
+                elif masked_protocol:
+                    return self.reply({"error": "פעולה זו אינה זמינה במסלול המוסתר"}, status=403)
                 elif self.path == "/api/update":
                     result = store.update(payload)
                 elif self.path == "/api/import":
