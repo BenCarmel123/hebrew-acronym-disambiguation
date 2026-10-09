@@ -205,8 +205,12 @@ The authorized checkpoint SHA-256 is
 `23bbff0324a7ce4d9d4a24a9ebfb87a4f6ac296bf1f1ce1bd25126c09260267f`.
 A fresh strict encoder run also requires qualified target spans: the historical test
 CSV lacks the explicit span columns, and multiple target occurrences must not be
-resolved by silently taking the first match. That integration remains pending;
-historical encoder results are preserved separately. Its original training seed,
+resolved by silently taking the first match. The identified test inference
+`dictabert-test-20261009-f49c3b5` uses a researcher-authorized, quote-normalized
+first-occurrence policy, recorded with the derived 395-item input and checkpoint
+identity. These spans are automatic targets, not human annotations. Its selected
+candidates reproduce the historical CSV, without proving that file's execution
+origin. Historical encoder results remain separate. The original training seed,
 selected epoch, library versions and exact training
 rows are not proven by the state dictionary. Record supplied snapshot/tokenizer
 identities without inventing that missing provenance.

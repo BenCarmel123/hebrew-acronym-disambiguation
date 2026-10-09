@@ -116,6 +116,41 @@ class SavedTestComparisonTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Duplicate session"):
             self.compare()
 
+    def test_explicit_continuation_counts_only_new_run_and_preserves_prior(self):
+        original = self.sources[0][0]
+        resumed = self.root / "resumed"
+        shutil.copytree(original, resumed)
+        session = json.loads((resumed / "session.json").read_text())
+        system = {"name": "gemini", "provider": "gemini", "model": "gemini-3.8-flash",
+                  "settings": {"timeout": 120, "generation_config": {"maxOutputTokens": 1024}}}
+        manifest = staged._prepare(resumed, session, system, "full_test", None)
+        directory = resumed / "gemini/full-test"
+        response = {"status": "response_received", "response": "אחד", "finish_reason": "STOP",
+                    "identity_status": "verified", "usage_metadata": {"promptTokenCount": 10,
+                    "candidatesTokenCount": 2, "totalTokenCount": 12}}
+        with patch.object(evaluation, "_call", return_value=response):
+            evaluation.run_evaluation(directory, code_revision="a" * 40, max_new_calls=1)
+        expected = self.expected | {"gemini": manifest["run_id"]}
+        continuation = [(resumed, session["identity_sha256"])]
+        result = compare_saved_tests(self.sources, expected, continuation_sources=continuation)
+        increment = evaluation.summarize_evaluation(directory)["charged_or_reserved_usd"] * 4
+        self.assertAlmostEqual(result["cost"]["total_accounted_ils"], self.compare()["cost"]["total_accounted_ils"] + increment)
+        self.assertEqual(result["unique_attempts"], 3)
+        self.assertTrue(result["cost_sessions"][-1]["continuation"])
+        self.assertEqual(result["cost_sessions"][-1]["prior_ils"], 4)
+        old_journal = resumed / "openai/full-test/attempts.jsonl"
+        with old_journal.open("a") as stream:
+            stream.write("\n")
+        with self.assertRaisesRegex(ValueError, "previously counted evidence"):
+            compare_saved_tests(self.sources, expected, continuation_sources=continuation)
+
+    def test_continuation_without_new_evidence_is_rejected(self):
+        copied = self.root / "continuation-copy"
+        shutil.copytree(self.sources[0][0], copied)
+        with self.assertRaisesRegex(ValueError, "no new run"):
+            compare_saved_tests(self.sources, self.expected,
+                                continuation_sources=[(copied, self.sources[0][1])])
+
     def test_duplicate_attempt_across_runs_is_rejected(self):
         first = json.loads((self.directories[0] / "attempts.jsonl").read_text().splitlines()[0])["attempt_id"]
         path = self.directories[1] / "attempts.jsonl"
@@ -163,6 +198,29 @@ class SavedTestComparisonTests(unittest.TestCase):
         path.write_text(json.dumps(baseline))
         with self.assertRaisesRegex(ValueError, "Baseline"):
             self.compare()
+
+    def test_identified_diagnostic_is_counted_once_without_session_total_duplication(self):
+        before = self.compare()
+        directory = self.root / 'diagnostic'
+        directory.mkdir()
+        start = {'event': 'start', 'max_requests': 1, 'reserved_ils': .04,
+                 'source_session': self.sources[-1][0].name, 'source_revision': 'a' * 40,
+                 'prior_accounted_ils': before['cost']['total_accounted_ils']}
+        finish = {'event': 'finish_recovered_from_kernel',
+                  'result': {'attempts': 1, 'http_status': 400, 'usage_metadata': None},
+                  'accounted_ils_including_reserve': start['prior_accounted_ils'] + .04}
+        paths = [directory / 'diagnostic.jsonl', directory / 'recovered-finish.json']
+        for path, value in zip(paths, (start, finish)):
+            path.write_text(json.dumps(value))
+        source = (directory, *(hashlib.sha256(p.read_bytes()).hexdigest() for p in paths))
+        result = compare_saved_tests(self.sources, self.expected, diagnostic_sources=[source])
+        self.assertAlmostEqual(result['cost']['total_accounted_ils'], 4.080048)
+        self.assertAlmostEqual(result['cost']['uncertain_attempt_allowances_ils'], .08)
+        with self.assertRaisesRegex(ValueError, 'Duplicate diagnostic'):
+            compare_saved_tests(self.sources, self.expected, diagnostic_sources=[source, source])
+        paths[0].write_text(json.dumps(start | {'reserved_ils': 0}))
+        with self.assertRaisesRegex(ValueError, 'hash mismatch'):
+            compare_saved_tests(self.sources, self.expected, diagnostic_sources=[source])
 
     def test_table_escapes_model_text(self):
         self.assertIn("&lt;script&gt;", result_table([{"answer": "<script>"}], {"answer": "Answer"}))
