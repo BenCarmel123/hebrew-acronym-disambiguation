@@ -75,19 +75,19 @@ class TestEvaluationNotebook(unittest.TestCase):
         assignment = next(node for node in tree.body if isinstance(node, ast.Assign)
                           and any(isinstance(t, ast.Name) and t.id == 'SYSTEMS' for t in node.targets))
         for qwen in (None, {'digest': 'fixture-digest'}):
-            state = {'QWEN_MODEL': 'qwen2.5:7b', 'QWEN_IDENTITY': qwen,
+            state = {'QWEN_MODEL': 'qwen2.5:7b', 'QWEN_IDENTITIES': {'qwen': qwen or {}, 'qwen14': qwen or {}}, 'QWEN14_MODEL': 'qwen2.5:14b',
                      'OLLAMA_URL': 'http://localhost:11434',
                      'QWEN_OPTIONS': {'temperature': 0, 'seed': 42, 'num_predict': 512}}
             exec(compile(ast.Module(body=[assignment], type_ignores=[]), '<settings>', 'exec'), state)
             for system in state['SYSTEMS']:
-                if system['name'] != 'qwen' or qwen:
+                if system['provider'] != 'qwen' or qwen:
                     _validate_system(system, fixture=False)
         source = self.cell_containing('QWEN_MODEL =')
-        self.assertIn('if "qwen" in SELECTED_SYSTEMS:', source)
+        self.assertIn('if qwen_name not in SELECTED_SYSTEMS:', source)
 
     def test_selected_unavailable_provider_does_not_block_others(self):
         source = next(source for source in self.cells if source.startswith('SYSTEMS = ['))
-        state = {'QWEN_MODEL': 'qwen2.5:7b', 'QWEN_IDENTITY': None,
+        state = {'QWEN_MODEL': 'qwen2.5:7b', 'QWEN_IDENTITIES': {}, 'QWEN14_MODEL': 'qwen2.5:14b',
                  'OLLAMA_URL': 'http://localhost:11434',
                  'QWEN_OPTIONS': {'temperature': 0, 'seed': 42, 'num_predict': 512},
                  'SELECTED_SYSTEMS': ['openai', 'anthropic'],
@@ -136,7 +136,7 @@ class TestEvaluationNotebook(unittest.TestCase):
         self.assertIn('prepare_session(', source)
         self.assertIn('rates=RATES, reserves=RESERVE_PER_CALL_USD', source)
         self.assertNotIn('PILOT_PASSED', source)
-        for model in ('qwen2.5:7b', 'gemini-3.8-flash', 'gpt-4.1-mini-2025-04-14', 'claude-haiku-5-5'):
+        for model in ('qwen2.5:7b', 'gemini-3.8-flash', 'gpt-4.1-mini-2025-04-14', 'claude-haiku-5-5', 'grok-4.7', 'qwen2.5:14b'):
             self.assertIn(model, source)
 
 

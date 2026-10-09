@@ -55,6 +55,28 @@ class StagedEvaluationTests(unittest.TestCase):
         review = staged.review_system_pilot(self.output, system)
         return staged.run_system_full(self.output, system, inspected_pilot_identity=review["pilot_identity"], **kwargs)
 
+
+    def test_xai_and_qwen14_have_distinct_pilots_and_shared_accounting(self):
+        xai = {"name": "xai", "provider": "xai", "model": "grok-4.7",
+               "settings": {"timeout": 120, "max_output_tokens": 1024, "effort": "low"}}
+        qwen14 = {"name": "qwen14", "provider": "qwen", "model": "qwen2.5:14b",
+                  "settings": {"timeout": 120, "options": {"temperature": 0, "seed": 42, "num_predict": 512},
+                               "expected_digest": "fixture-digest"}}
+        self.call.return_value = {"status": "response_received", "response": "A", "identity_status": "verified",
+            "usage_metadata": {"input_tokens": 10, "output_tokens": 5, "total_tokens": 15,
+                               "output_tokens_details": {"reasoning_tokens": 3}},
+            "response_metadata": {"prompt_eval_count": 10, "eval_count": 5}}
+        first, second = self.pilot(xai), self.pilot(qwen14)
+        self.assertEqual(first["summary"]["n_completed"], 20)
+        self.assertEqual(second["summary"]["n_completed"], 20)
+        self.assertAlmostEqual(staged.session_summary(self.output)["charged_or_reserved_usd"], 40 * .000015)
+        for a, b in zip(first["manifest"]["identity"]["requests"], second["manifest"]["identity"]["requests"]):
+            for field in ("item_id", "task", "prompt", "shown_order"):
+                self.assertEqual(a[field], b[field])
+        self.assertEqual(self.full(xai, max_new_calls=1)["n_calls"], 1)
+        self.assertEqual(self.full(qwen14, max_new_calls=1)["n_calls"], 1)
+        self.assertEqual(staged.session_summary(self.output)["systems"]["qwen"]["full_test"]["status"], "not_run")
+
     def test_system_switch_preserves_spend_prompts_order_and_reports_absent(self):
         first = self.pilot()
         second = self.pilot(self.anthropic)

@@ -13,7 +13,7 @@ import re
 
 from hebrew_acronyms import test_evaluation as evaluation
 
-SYSTEM_NAMES = ("qwen", "gemini", "openai", "anthropic")
+SYSTEM_NAMES = ("qwen", "gemini", "openai", "anthropic", "qwen14", "xai")
 
 
 def prepare_session(output_dir, dev_path, test_path, *, code_revision,
@@ -25,7 +25,7 @@ def prepare_session(output_dir, dev_path, test_path, *, code_revision,
         raise ValueError("Record all earlier expenditure, including failed attempts, below 100 ILS")
     evaluation._positive(ils_per_usd, "ils_per_usd")
     if set(rates) != set(SYSTEM_NAMES) or set(reserves) != set(SYSTEM_NAMES):
-        raise ValueError("Rates and reserves must cover all four systems, including unselected ones")
+        raise ValueError("Rates and reserves must cover all approved systems, including unselected ones")
     for name in SYSTEM_NAMES:
         if set(rates[name]) != {"input", "output"}:
             raise ValueError("Prices need input and output rates")
@@ -77,7 +77,7 @@ def _directory(root, name, cohort):
 def _prepare(root, session, system, cohort, metadata):
     identity = session["identity"]
     name = system["name"]
-    if name not in SYSTEM_NAMES or system["provider"] != name:
+    if name not in SYSTEM_NAMES or system["provider"] != ("qwen" if name == "qwen14" else name):
         raise ValueError("Preserve the approved system/provider names")
     return evaluation.prepare_evaluation(
         identity["sources"][cohort]["path"], _directory(root, name, cohort),
@@ -91,7 +91,7 @@ def _prepare(root, session, system, cohort, metadata):
 
 
 def session_summary(output_dir):
-    """Report all four systems, and charge every journal regardless of selection."""
+    """Report all approved systems, and charge every journal regardless of selection."""
     root = Path(output_dir).resolve()
     session = _session(root)
     identity = session["identity"]
