@@ -471,6 +471,14 @@ class ReviewStore:
 def make_server(dataset, annotations, port=8765, qa=False):
     store = ReviewStore(dataset, annotations)
     web = Path(__file__).with_name("human_review_web")
+    short = None
+    if dataset.get("short_plan"):
+        from .human_review_short import ShortStore
+        legacy_history = Path(annotations).with_suffix(Path(annotations).suffix + ".history.jsonl")
+        short = ShortStore(dataset, Path(annotations).with_name(Path(annotations).stem + ".short-v1.json"),
+                           store.snapshot(), legacy_history.read_text() if legacy_history.exists() else "")
+        if qa:
+            short.state["reviewer"] = "QA_SHORT_NOT_HUMAN"
 
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, format, *args):
@@ -498,8 +506,14 @@ def make_server(dataset, annotations, port=8765, qa=False):
             if not self.allowed():
                 return self.reply({"error": "Loopback origin required"}, status=403)
             path = urlparse(self.path).path
+            if path == "/api/short/state" and short:
+                return self.reply(short.snapshot())
+            if path == "/api/short/export.json" and short:
+                return self.reply(short.export())
+            if path == "/api/short/summary/export.md" and short:
+                return self.reply(short.markdown(), "text/markdown; charset=utf-8")
             if path == "/api/session":
-                return self.reply({"qa": qa, "annotations_path": str(Path(annotations).resolve())})
+                return self.reply({"qa": qa, "annotations_path": str(Path(annotations).resolve()), "short_plan_id": dataset.get("short_plan", {}).get("plan_id")})
             if path == "/api/data":
                 return self.reply(dataset)
             if path == "/api/state":
@@ -508,10 +522,10 @@ def make_server(dataset, annotations, port=8765, qa=False):
                 return self.reply(store.snapshot())
             if path == "/api/export.csv":
                 return self.reply(store.export_csv(), "text/csv; charset=utf-8")
-            names = {"/": "index.html", "/app.js": "app.js", "/review_logic.js": "review_logic.js", "/style.css": "style.css"}
+            names = {"/": "short.html" if short else "index.html", "/legacy": "index.html", "/short.js": "short.js", "/short.css": "short.css", "/app.js": "app.js", "/review_logic.js": "review_logic.js", "/style.css": "style.css"}
             if path not in names:
                 return self.reply({"error": "Not found"}, status=404)
-            kind = {"/": "text/html", "/app.js": "text/javascript", "/review_logic.js": "text/javascript", "/style.css": "text/css"}[path]
+            kind = {"/": "text/html", "/legacy": "text/html", "/short.js": "text/javascript", "/short.css": "text/css", "/app.js": "text/javascript", "/review_logic.js": "text/javascript", "/style.css": "text/css"}[path]
             return self.reply((web / names[path]).read_bytes(), kind + "; charset=utf-8")
 
         def do_POST(self):
@@ -522,7 +536,9 @@ def make_server(dataset, annotations, port=8765, qa=False):
                 if length > 30_000_000:
                     raise ValueError("Import too large")
                 payload = json.loads(self.rfile.read(length))
-                if self.path == "/api/update":
+                if self.path.startswith("/api/short/") and short:
+                    result = short.transact(self.path.rsplit("/", 1)[-1], payload)
+                elif self.path == "/api/update":
                     result = store.update(payload)
                 elif self.path == "/api/import":
                     bundle = store.csv_bundle(payload["text"]) if payload["format"] == "csv" else json.loads(payload["text"])
@@ -535,6 +551,7 @@ def make_server(dataset, annotations, port=8765, qa=False):
 
     server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
     server.store = store
+    server.short_store = short
     return server
 
 

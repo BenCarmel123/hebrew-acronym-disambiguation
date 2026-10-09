@@ -202,6 +202,74 @@ remains semantically unscored. Review gold labels and candidate inventories with
 including institutional uses, before interpreting these diagnostic development scores.
 
 
+## Short qualitative review (current protocol)
+
+The current human task is a post-experiment qualitative review with a one-hour
+budget including synthesis. It is **not** an independent blind evaluation, a
+representative sample, or a basis for corrected benchmark-wide accuracy. The older
+six-system calibration workflow below is historical and remains available at
+`/legacy`; its queue and annotation meanings have not been changed.
+
+The fixed `qualitative-generation-v1` route has 20 distinct sentences/acronyms:
+12 with generation failure and selection success for the same model, four with
+both failures for the same model, and four with both generation scores positive.
+Items are disjoint. Selection uses saved Boolean scores only, retaining eligible
+prior work and preferring diverse acronyms, sources, model witnesses and acronym
+length proxies, with a deterministic hash tie-break. The three groups are interleaved
+so stopping early does not mean reviewing a contiguous group only. Eligibility pools
+may overlap; selected groups do not. The bundle stores all selection reasons and
+actual composition. The delivered sample has seven Knesset, six Wikipedia and seven
+AI-authored sentences. No answer semantics were inferred to choose them.
+
+Only Qwen and Gemini free-generation answers are required. The main screen uses
+neutral codes and immediately shows the sentence and the possibly faulty reference.
+Choose “fits context”, “does not fit”, or “unsure”; optional reference/context concern,
+article example flag and a note require no explanation. Save-and-next also permits
+partial work. Changes autosave to disk, and reload resumes at the first incomplete
+sentence. Two marked generation responses complete a **short-route** item only;
+this does not change the six-response completion state of the old protocol.
+Stop-and-summary works at any point; it never opens another review queue.
+
+Case details are one explicit secondary view containing candidates, saved selection
+responses, other systems and source information. Main-screen API payloads exclude
+model identities, automatic scores, sampling reasons and derived agreements. Opening
+a case records reference/generation exposure before judging; opening details or the
+summary separately records the additional exposure. No initial independent attempt
+is fabricated. Prior exposure from the old record remains intact.
+
+The supplied `Start Review.command` now loads `review-data-short-v1.json`. The server
+keeps the original `annotations.json` and its history, and writes the short protocol
+to `annotations.short-v1.json` plus its own append-only history. The original first
+item, `manual-0042`, is included: its generation judgments map explicitly from
+`wrong` to `not_fits` and `correct` to `fits`; they remain attributed to the earlier
+protocol and require no repeat. Original interpretations, all six judgments, notes,
+flags, timestamps and exposure history remain unchanged and are copied losslessly
+into the short export. Only `correct`, `wrong`, and explicit `undecidable` have direct
+mappings. Partial, combined legacy categories and `no_answer` are preserved as
+unmapped original judgments; they are never silently assigned a semantic meaning.
+
+The summary distinguishes computed counts/composition/score differences from human
+judgments, suspicions and notes. It lists disagreements, possible reference/context
+issues, flagged examples, unresolved answers, all reviewed cases and incomplete IDs.
+It does not infer a semantic cause from a score difference. Download the summary as
+Markdown or the complete annotated bundle/history as JSON. To restore the latter,
+stop the server and place a copy at the short annotation path; startup verifies the
+protocol, plan and source manifest. Keep a backup before restoring.
+
+To create an explicitly authorized new short plan at a fresh output path:
+
+```bash
+python -m hebrew_acronyms.human_review_short --data existing-review-data.json --legacy annotations.json --output fresh-short-data.json
+python -m hebrew_acronyms.human_review_server --data fresh-short-data.json --annotations annotations.json
+```
+
+Additional offline tests:
+
+```bash
+python -m unittest tests.test_human_review_short
+node tests/test_human_review_short_ui.js
+```
+
 ## Local human review of saved test answers
 
 The review-only tool serves existing answers in Hebrew on loopback. It does not
