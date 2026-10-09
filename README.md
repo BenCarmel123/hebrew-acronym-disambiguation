@@ -1,11 +1,30 @@
 # Hebrew Acronym Disambiguation
 
-A TAU NLP course project comparing five arms: trained DictaBERT candidate selection,
-Qwen free expansion and selection, and Gemini free expansion and selection. All arms
-use the sentence and the same identified target occurrence. The two LLMs receive the
-same prompt per task and the same displayed candidates for selection; generation
-receives neither candidates nor gold. This compares systems, without isolating the
-causal effect of model size or context. No final research results are reported.
+A TAU NLP course project studying Hebrew acronym expansion through free generation
+and candidate selection. Saved test results cover Qwen, Gemini, trained DictaBERT
+selection and a DictaBERT similarity baseline. Historical development and test
+runs have different execution and scoring paths; they must not be combined without
+checking their inputs and provenance. Generation receives neither candidates nor
+gold. Comparisons between systems do not isolate the causal effect of model size.
+
+## Execution status and entry points
+
+The saved [test results](results/test_results.md) are historical measurements.
+Human review and preparation of a new reproducible evaluation are in progress;
+new model integrations and new results are not yet implemented or completed.
+
+| Entry point | Role and current status |
+|---|---|
+| [Test evaluation in Colab](notebooks/run_test_eval_colab.ipynb) | Execution entry point to repair for the new full-test run. The current version fetches mutable source files, has a Gemini call-signature mismatch, and lacks durable per-item recovery. Do not launch a fresh full run before these are fixed. |
+| [Experimental study](notebooks/experimental_study.ipynb) | Methods, development experiments and analysis companion. Its documented development workflow below is distinct from the test runner. |
+| [Training appendix](notebooks/train_dictabert.ipynb) | Package-backed training route. Retraining is a separate experiment, not an automatic part of test evaluation. |
+| [Historical Colab training](notebooks/train_dictabert_colab.ipynb) | Reference for the existing checkpoint; its seed is set after model initialization. See the recorded provenance limitations before reusing it. |
+| [Qwen scale experiment](notebooks/run_qwen_scale_colab.ipynb) | Optional 32B/72B experiment with substantial GPU requirements; not the default full-test runner. |
+
+Preserve saved outputs when preparing a new run. Human decisions, mechanical
+normalization and original automatic scores are different evidence types. The
+paper is a working draft; its pending values and figures require reconciliation
+with the selected results before submission.
 
 ## Code and reading map
 
@@ -24,11 +43,13 @@ causal effect of model size or context. No final research results are reported.
 The [LaTeX manuscript](paper/main.tex), [paper build/export instructions](paper/README.md),
 [bibliography](paper/references.bib) and
 [course sources](docs/course/README.md) describe the research context. The ID-named PDF
-is the submitted proposal; the other PDF is an earlier draft. The [data inventory](data/README.md)
+is the submitted proposal. A new manuscript PDF must be built from the current
+source and visually checked; the previously tracked `paper/draft.pdf` was removed.
+The [data inventory](data/README.md)
 and [dataset card](data/mined/DATASET_CARD.md) preserve source and construction details.
 [Historical results](results/all_arms_summary.md) and [training records](docs/checkpoints.md)
-refer to earlier inputs and include unresolved score discrepancies. They are not
-results for the current study. Earlier work also exists in `ShakedSchnarch/nlp-hw-team`;
+refer to earlier inputs and include unresolved score discrepancies. Keep these
+separate from the saved test CSVs and any new evaluation. Earlier work also exists in `ShakedSchnarch/nlp-hw-team`;
 its checkpoints and implementation are not interchangeable with this repository.
 
 <a id="install-and-check"></a>
