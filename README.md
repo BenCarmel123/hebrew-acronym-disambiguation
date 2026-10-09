@@ -10,12 +10,14 @@ gold. Comparisons between systems do not isolate the causal effect of model size
 ## Execution status and entry points
 
 The saved [test results](results/test_results.md) are historical measurements.
-Human review and preparation of a new reproducible evaluation are in progress;
-new model integrations and new results are not yet implemented or completed.
+Human review and a new reproducible evaluation are in progress. The repaired
+runner and four LLM adapters have offline recovery and provider tests. Live pilot
+and Colab validation remain separate acceptance steps; no new full-test result is
+claimed here. See the [operating guide](docs/reproducible_evaluation.md).
 
 | Entry point | Role and current status |
 |---|---|
-| [Test evaluation in Colab](notebooks/run_test_eval_colab.ipynb) | Execution entry point to repair for the new full-test run. The current version fetches mutable source files, has a Gemini call-signature mismatch, and lacks durable per-item recovery. Do not launch a fresh full run before these are fixed. |
+| [Test evaluation in Colab](notebooks/run_test_eval_colab.ipynb) | Installs an identified commit/archive, uses Secrets and Drive, runs a fixed dev pilot, and saves each attempt for identity-checked recovery. Full test follows pilot inspection and the shared budget check. |
 | [Experimental study](notebooks/experimental_study.ipynb) | Methods, development experiments and analysis companion. Its documented development workflow below is distinct from the test runner. |
 | [Training appendix](notebooks/train_dictabert.ipynb) | Package-backed training route. Retraining is a separate experiment, not an automatic part of test evaluation. |
 | [Historical Colab training](notebooks/train_dictabert_colab.ipynb) | Reference for the existing checkpoint; its seed is set after model initialization. See the recorded provenance limitations before reusing it. |
@@ -35,7 +37,7 @@ with the selected results before submission.
 | [Cross-encoder source](src/hebrew_acronyms/models/dictabert_cross_encoder/) | `encoding.py`: length-bounded inputs; `model.py`: scoring and checkpoints; `training.py`: optimization; `eval.py`: item records; `workflow.py`: small local setup helpers. |
 | [Input contract](src/hebrew_acronyms/models/common/pairs.py) | Exact target spans, IDs, candidate pairs and input identities. |
 | [Shared study evaluation](src/hebrew_acronyms/models/common/eval.py) | Strict letter parsing, preliminary selection micro/macro accuracy and item inspection. Historical scoring functions remain separate from the current study. |
-| [LLM backends](src/hebrew_acronyms/models/) | Qwen via local Ollama and Gemini via its API, with bounded requests and response provenance; other retained model code is historical context. |
+| [LLM backends](src/hebrew_acronyms/models/) | Qwen via Ollama, Gemini, GPT-4.1 mini and Claude Haiku 5.5, with bounded requests and response provenance. Explicit model IDs and settings are recorded for each run. |
 | [Data preparation](docs/data_processing.md) | Source collection, review application and split-construction functions and commands. |
 | [Local checks](docs/pipelines.md) | Environment check and explicit data validation; no combined model runner. |
 | [Tests](tests/) | Invented fixtures, tiny learning and reconstruction checks; no Git history needed. |
