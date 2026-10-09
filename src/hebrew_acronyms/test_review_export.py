@@ -78,6 +78,10 @@ def export_review(run_sources, output_path):
                           'prior_exposure': 'unknown', 'target_spans': spans, 'target_span_verified': False,
                           'target_warning': 'סימון מכני של כל ההתאמות; אינו הכרעה בהופעת המטרה.',
                           'acronym_type_proxy': '', 'sampling_stratum': stratum})
+    return _write_review_bundle(items, systems, sources, seen, output_path)
+
+
+def _write_review_bundle(items, systems, sources, seen, output_path):
     # Early timing sample mixes negative and positive generation answers; all
     # answers remain accessible afterward, including selection and technical failures.
     ranked = sorted(items, key=lambda x: x['id'])
@@ -85,6 +89,8 @@ def export_review(run_sources, output_path):
     positive = [x['id'] for x in ranked if x['answers'][0]['auto_score']]
     neg_gen = [x['id'] for x in ranked if x['answers'][0]['task'] == 'generation' and x['sampling_stratum'] == 'automatic_nonpositive']
     pos_gen = [x['id'] for x in ranked if x['answers'][0]['task'] == 'generation' and x['sampling_stratum'] == 'automatic_positive']
+    if not neg_gen and not pos_gen:
+        neg_gen, pos_gen = negative, positive
     calibration = []
     for i in range(min(4, len(pos_gen), len(neg_gen) // 4)):
         calibration.extend(neg_gen[4*i:4*i+4] + pos_gen[i:i+1])
@@ -182,3 +188,49 @@ def review_coverage(data_path, annotations_path):
                     'note': 'Wall-clock estimate includes breaks; the initial queue is not a representative sample.'}
     return {'rows': rows, 'pace': pace, 'annotations_present': annotations is not None,
             'source_identity': dataset['source_identity']}
+
+
+def export_encoder_review(directory, test_path, output_path, *, expected_run_id,
+                          expected_identity, expected_predictions_sha256):
+    """Queue identified encoder candidate choices; this is selection, not generation."""
+    from hebrew_acronyms.encoder_test_results import load_encoder_test
+    from hebrew_acronyms.models.common.pairs import load_rows
+    output_path, directory = Path(output_path), Path(directory)
+    if output_path.exists():
+        raise FileExistsError(output_path)
+    saved = load_encoder_test(directory, test_path, expected_run_id=expected_run_id,
+                              expected_identity=expected_identity,
+                              expected_predictions_sha256=expected_predictions_sha256)
+    items = []
+    for row, record in zip(load_rows(test_path), saved['records']):
+        raw = record['selected_candidate'] or ''
+        binding = {'item_id': row['item_id'], 'task': 'select', 'run_id': expected_run_id,
+                   'response_sha256': hashlib.sha256(raw.encode()).hexdigest()}
+        answer_id = digest(binding)
+        technical = record['status'] != 'ok'
+        stratum = 'technical_failure' if technical else 'automatic_positive' if record['correct'] else 'automatic_nonpositive'
+        answer = {'id': answer_id, 'system_id': 'dictabert_select', 'task': 'selection',
+                  'response_type': 'text', 'raw': raw, 'decoded': raw,
+                  'option_mapping': [], 'shown_order': [], 'omitted_candidates': [],
+                  'missing': not bool(raw), 'status': record['status'], 'technical_failure': technical,
+                  'auto_score': record['correct'], 'auto_valid': not technical,
+                  'auto_score_rule': 'exact_candidate_match', 'mechanical_flags': [stratum],
+                  'source_file': str(directory / 'predictions.jsonl'), 'binding': binding,
+                  'prompt_sha256': None}
+        spans = [{'start': m.start(), 'end': m.end()} for m in re.finditer(
+            re.escape(row['acronym'].translate(QUOTES)), row['sentence'].translate(QUOTES))]
+        items.append({'id': answer_id, 'original_item_id': row['item_id'],
+                      'sentence': row['sentence'], 'acronym': row['acronym'], 'source': row.get('source', ''),
+                      'origin': 'מחובר ב־AI' if row.get('label_origin') == 'claude_authored' else 'לפי מקור שמור',
+                      'source_metadata': row, 'gold': row['gold_expansion'],
+                      'candidates': row['candidates'].split('|'), 'answers': [answer], 'findings': [stratum],
+                      'selection_reasons': ['בחירת מועמד של המודל המאומן; אין העברת שיפוטים היסטוריים'],
+                      'prior_exposure': 'unknown', 'target_spans': spans[:1], 'target_span_verified': False,
+                      'target_warning': 'הופעה ראשונה לפי מדיניות ההרצה האוטומטית; לא תיוג מיקום אנושי.',
+                      'acronym_type_proxy': '', 'sampling_stratum': stratum})
+    sources = [{'path': str(p.resolve()), 'sha256': hashlib.sha256(p.read_bytes()).hexdigest(),
+                'bytes': p.stat().st_size} for p in
+               (directory/'manifest.json', directory/'predictions.jsonl', Path(test_path))]
+    systems = [{'id': 'dictabert_select', 'blind_id': 'מערכת 1', 'name': 'DictaBERT — בחירה',
+                'task': 'selection', 'response_type': 'text'}]
+    return _write_review_bundle(items, systems, sources, {expected_run_id}, output_path)
