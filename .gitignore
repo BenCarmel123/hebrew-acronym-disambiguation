@@ -26,6 +26,11 @@ NOTES_FOR_SHAKED.md
 # One-off local working scripts/tools, never committed.
 scratch/
 
+# Standalone inlined copy for working in Overleaf -- edits get synced back
+# into paper/sections/*.tex by hand at the end of the day, never committed
+# directly.
+paper/overleaf_main.tex
+
 # macOS
 .DS_Store
 
