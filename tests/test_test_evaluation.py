@@ -1,5 +1,6 @@
 """Offline durability/identity checks, using only invented CSV inputs."""
 import csv
+from datetime import datetime, timedelta, timezone
 import json
 from pathlib import Path
 import tempfile
@@ -117,11 +118,132 @@ class EvaluationTests(unittest.TestCase):
         first = self.run_saved(responder, max_new_calls=1)
         self.assertEqual(first["n_calls"], 1)
         summary = self.run_saved(responder)
-        self.assertEqual((summary["n_calls"], responder.call_count), (8, 8))
-        self.assertEqual(summary["n_pending"], 0)
+        self.assertEqual((summary["n_calls"], responder.call_count), (2, 2))
+        self.assertEqual(summary["n_pending"], 3)
+        self.assertEqual(summary["stop_reason"], "provider_paused")
         self.run_saved(responder)
-        self.assertEqual(responder.call_count, 8)
-        self.assertEqual(summary["usage"]["mock"]["attempts_without_usage"], 8)
+        self.assertEqual(responder.call_count, 2)
+        self.assertEqual(summary["usage"]["mock"]["attempts_without_usage"], 2)
+
+    def add_healthy_provider(self):
+        self.systems.append({"name": "healthy", "provider": "qwen", "model": "qwen2.5:7b",
+                             "settings": {"timeout": 10, "expected_digest": "fixture-digest",
+                                          "options": {"num_predict": 20, "seed": 42, "temperature": 0}}})
+
+    def run_two_providers(self, blocked, healthy, **kwargs):
+        return runner.run_evaluation(self.output, code_revision="test-commit",
+                                     responders={"mock": blocked, "healthy": healthy}, **kwargs)
+
+    def test_account_block_survives_resume_and_healthy_provider_completes(self):
+        self.add_healthy_provider()
+        # A second model at the same provider must also respect the account block.
+        self.systems.append({"name": "sibling", "provider": "fixture", "model": "another-model", "settings": {}})
+        self.prepare()
+        blocked = Mock(return_value={"status": "service_error", "response": "", "retryable": False,
+                                     "provider_blocked": True, "error_category": "quota_exhausted"})
+        healthy = Mock(return_value=self.response)
+        sibling = Mock(return_value=self.response)
+        def execute():
+            return runner.run_evaluation(self.output, code_revision="test-commit",
+                                         responders={"mock": blocked, "healthy": healthy, "sibling": sibling})
+        summary = execute()
+        self.assertEqual((blocked.call_count, healthy.call_count), (1, 4))
+        sibling.assert_not_called()
+        self.assertEqual(summary["n_records"], 12)
+        self.assertEqual(summary["n_completed"], 4)
+        withheld = [record for record in summary["records"] if record["status"] == "not_run"]
+        self.assertEqual(len(withheld), 7)
+        self.assertTrue(all(record["not_run_reason"] == "provider_blocked" for record in withheld))
+        self.assertEqual(summary["n_pending"], 7)
+        execute()
+        self.assertEqual((blocked.call_count, healthy.call_count), (1, 4))
+        sibling.assert_not_called()
+
+    def test_long_retry_after_pauses_provider_and_resume_cannot_change_item(self):
+        self.add_healthy_provider()
+        self.prepare(max_attempts=1)
+        bad = Mock(return_value={"status": "service_error", "response": "", "retryable": True,
+                                "retry_after": 3600, "error_category": "rate_or_quota_unknown"})
+        healthy, sleeping = Mock(return_value=self.response), Mock()
+        before = datetime.now(timezone.utc)
+        summary = self.run_two_providers(bad, healthy, sleep=sleeping)
+        self.assertEqual((bad.call_count, healthy.call_count), (1, 4))
+        sleeping.assert_not_called()
+        state = summary["provider_states"]["fixture"]
+        self.assertFalse(state["blocked"])
+        self.assertGreaterEqual(datetime.fromisoformat(state["not_before_utc"]), before + timedelta(seconds=3600))
+        self.run_two_providers(bad, healthy, sleep=sleeping)
+        self.assertEqual((bad.call_count, healthy.call_count), (1, 4))
+        sleeping.assert_not_called()
+
+    def test_long_delay_before_retry_leaves_healthy_provider_available(self):
+        self.add_healthy_provider()
+        self.prepare(max_attempts=2)
+        bad = Mock(return_value={"status": "service_error", "response": "", "retryable": True,
+                                "retry_after": 1e300})
+        healthy, sleeping = Mock(return_value=self.response), Mock()
+        summary = self.run_two_providers(bad, healthy, sleep=sleeping)
+        self.assertEqual((bad.call_count, healthy.call_count), (1, 4))
+        self.assertTrue(summary["records"][0]["retry_pending"])
+        self.assertEqual(summary["provider_states"]["fixture"]["reason"], "retry_after")
+        self.run_two_providers(bad, healthy, sleep=sleeping)
+        self.assertEqual(bad.call_count, 1)
+        sleeping.assert_not_called()
+
+    def test_short_retry_after_wait_is_bounded_and_survives_interrupted_sleep(self):
+        self.prepare()
+        bad = Mock(return_value={"status": "service_error", "response": "", "retryable": True, "retry_after": 7})
+        with self.assertRaises(KeyboardInterrupt):
+            runner.run_evaluation(self.output, code_revision="test-commit", responders={"mock": bad},
+                                  sleep=Mock(side_effect=KeyboardInterrupt()))
+        self.assertEqual(bad.call_count, 1)
+        self.assertEqual(runner.summarize_evaluation(self.output)["n_ambiguous"], 0)
+        good, sleeping = Mock(return_value=self.response), Mock()
+        result = runner.run_evaluation(self.output, code_revision="test-commit", responders={"mock": good}, sleep=sleeping)
+        sleeping.assert_called_once()
+        self.assertTrue(0 < sleeping.call_args.args[0] <= 7)
+        self.assertEqual((result["n_calls"], result["n_completed"]), (5, 4))
+
+    def test_retry_exhaustion_cooldown_expires_without_resending_terminal_item(self):
+        self.prepare(max_attempts=1)
+        bad = Mock(return_value={"status": "service_error", "response": "", "retryable": True})
+        summary = self.run_saved(bad)
+        self.assertEqual(bad.call_count, 1)
+        self.run_saved(bad)
+        self.assertEqual(bad.call_count, 1)
+        after = datetime.fromisoformat(summary["provider_states"]["fixture"]["not_before_utc"]) + timedelta(seconds=1)
+        good = Mock(return_value=self.response)
+        with patch.object(runner, "datetime", wraps=datetime) as clock:
+            clock.now.return_value = after
+            result = self.run_saved(good)
+        self.assertEqual(good.call_count, 3)
+        self.assertEqual((result["n_calls"], result["n_completed"]), (4, 3))
+        self.assertEqual(result["records"][0]["status"], "service_error")
+
+    def test_runtime_ceiling_preserves_prior_spend_and_cannot_raise_saved_cap(self):
+        self.prepare(reserve_per_call_usd=.1, budget_usd=.3)
+        first = self.run_saved(max_new_calls=1)
+        self.assertAlmostEqual(first["charged_or_reserved_usd"], .1)
+        blocked = Mock(return_value=self.response)
+        no_room = self.run_saved(blocked, max_total_cost_usd=.1)
+        blocked.assert_not_called()
+        self.assertEqual(no_room["n_calls"], 1)
+        second = self.run_saved(max_total_cost_usd=.2)
+        self.assertEqual(second["n_calls"], 2)
+        self.assertAlmostEqual(second["charged_or_reserved_usd"], .2)
+        final = self.run_saved(max_total_cost_usd=99)
+        self.assertEqual(final["n_calls"], 3)
+        self.assertAlmostEqual(final["charged_or_reserved_usd"], .3)
+        self.assertEqual(final["effective_budget_usd"], .3)
+
+    def test_runtime_ceiling_rejects_invalid_values_and_accepts_zero(self):
+        self.prepare(reserve_per_call_usd=.1, budget_usd=1)
+        for value in (-1, float("nan"), float("inf"), True, "1"):
+            with self.subTest(value=value), self.assertRaisesRegex(ValueError, "finite and nonnegative"):
+                self.run_saved(max_total_cost_usd=value)
+        responder = Mock(return_value=self.response)
+        self.assertEqual(self.run_saved(responder, max_total_cost_usd=0)["n_calls"], 0)
+        responder.assert_not_called()
 
     def test_nonretryable_and_incomplete_do_not_retry(self):
         self.prepare(max_attempts=3)

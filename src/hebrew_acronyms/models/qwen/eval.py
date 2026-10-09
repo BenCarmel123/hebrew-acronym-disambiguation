@@ -99,8 +99,9 @@ def ollama_response(prompt, *, model, expected_digest, base_url="http://localhos
         result["digest_after"] = after["digest"]
         if after["digest"] != expected_digest or payload.get("model") != model:
             raise ValueError("Ollama model identity changed or response model differs")
-    except Exception as error:
-        result.update(identity_status="unverified", identity_error=f"{type(error).__name__}: {error}")
+    except Exception:
+        # HTTP exception strings can contain URLs, credentials or response bodies.
+        result.update(identity_status="unverified", identity_error="Ollama post-request model identity check failed")
     result["error"] = "; ".join(message for message in
                                (result["completion_error"], result["identity_error"]) if message) or None
     return result

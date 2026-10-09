@@ -1,5 +1,6 @@
 """Mocked provider records, exact configuration and safe preflight; no paid calls."""
 import importlib
+from datetime import datetime, timezone
 import json
 import os
 import unittest
@@ -9,6 +10,8 @@ import requests
 
 from hebrew_acronyms.models.anthropic import eval as anthropic
 from hebrew_acronyms.models.openai import eval as openai
+from hebrew_acronyms.models.gemini import eval as gemini
+from hebrew_acronyms.models.common.errors import retry_after_seconds
 
 
 def http(payload, status=200, headers=None):
@@ -18,7 +21,8 @@ def http(payload, status=200, headers=None):
 class ProviderAdapterTests(unittest.TestCase):
     def setUp(self):
         self.secret = "invented-provider-secret-never-save"
-        env = patch.dict(os.environ, {"OPENAI_API_KEY": self.secret, "ANTHROPIC_API_KEY": self.secret})
+        env = patch.dict(os.environ, {"OPENAI_API_KEY": self.secret, "ANTHROPIC_API_KEY": self.secret,
+                                    "GEMINI_API_KEY": self.secret})
         env.start()
         self.addCleanup(env.stop)
 
@@ -95,7 +99,7 @@ class ProviderAdapterTests(unittest.TestCase):
                 with patch.object(backend.requests, "post", return_value=http(payload)):
                     self.assertEqual(call("prompt", model=backend.MODEL)["status"], expected)
 
-    def test_credentials_never_saved_and_http_errors_not_decoded(self):
+    def test_credentials_never_saved_and_http_errors_emit_only_safe_diagnostics(self):
         for backend, call, _ in self.cases():
             payload = self.payload(backend, "answer " + self.secret)
             payload["usage"][self.secret] = [{"nested": self.secret}]
@@ -108,10 +112,106 @@ class ProviderAdapterTests(unittest.TestCase):
                 with patch.object(backend.requests, "post", return_value=response) as post:
                     result = call("prompt", model=backend.MODEL)
                 post.assert_called_once()
-                response.json.assert_not_called()
+                response.json.assert_called_once()
                 self.assertNotIn(self.secret, json.dumps(result))
                 self.assertEqual(result["retryable"], retryable)
-                self.assertEqual(result["retry_after"], "2")
+                self.assertEqual(result["retry_after"], 2)
+
+    def test_quota_billing_and_rate_diagnostics_are_distinct_and_sanitized(self):
+        cases = [
+            (openai, openai.openai_response, openai.MODEL, 429,
+             {"code": "insufficient_quota"}, "quota_exhausted", True),
+            (openai, openai.openai_response, openai.MODEL, 429,
+             {"code": "rate_limit_exceeded"}, "rate_limit", False),
+            (anthropic, anthropic.anthropic_response, anthropic.MODEL, 400,
+             {"type": "invalid_request_error", "message": "Your credit balance is too low to access the Anthropic API"},
+             "billing_blocked", True),
+            (anthropic, anthropic.anthropic_response, anthropic.MODEL, 429,
+             {"type": "rate_limit_error"}, "rate_limit", False),
+            (gemini, gemini.gemini_response, "gemini-3.8-flash", 402,
+             {}, "billing_blocked", True),
+        ]
+        for backend, call, model, status, error, expected, blocked in cases:
+            error = {**error, "message": error.get("message", "") + " " + self.secret,
+                     "unrecognized_sensitive_field": "private account value",
+                     "nested": [{"other_provider_key": "invented-other-provider-secret"}]}
+            with self.subTest(provider=backend.__name__, category=expected), patch.object(
+                    backend.requests, "post", return_value=http({"error": error}, status)) as post:
+                result = call("prompt", model=model)
+            post.assert_called_once()
+            self.assertEqual(result["error_category"], expected)
+            self.assertEqual(result["provider_blocked"], blocked)
+            self.assertEqual(result["retryable"], not blocked)
+            self.assertNotIn(self.secret, json.dumps(result))
+            self.assertNotIn("private account value", json.dumps(result))
+            self.assertNotIn("invented-other-provider-secret", json.dumps(result))
+
+    def test_gemini_quota_details_rate_and_unknown_429(self):
+        cases = [
+            ({"quotaId": "GenerateRequestsPerDayPerProjectPerModel"}, "quota_exhausted", True),
+            ({"quotaId": "GenerateRequestsPerMinutePerProjectPerModel", "quotaValue": "0"}, "quota_exhausted", True),
+            ({"quotaId": "GenerateRequestsPerMinutePerProjectPerModel", "quotaValue": "20"}, "rate_limit", False),
+            ({"quotaId": "unrecognized", "quotaValue": False}, "rate_or_quota_unknown", False),
+            ({}, "rate_or_quota_unknown", False),
+        ]
+        for violation, expected, blocked in cases:
+            payload = {"error": {"status": "RESOURCE_EXHAUSTED", "message": self.secret, "details": [
+                {"@type": "type.googleapis.com/google.rpc.QuotaFailure", "violations": [violation]},
+                {"@type": "type.googleapis.com/google.rpc.RetryInfo", "retryDelay": "19.5s"},
+            ]}}
+            with self.subTest(violation=violation), patch.object(gemini.requests, "post", return_value=http(payload, 429)) as post:
+                result = gemini.gemini_response("prompt", model="gemini-3.8-flash")
+            post.assert_called_once()
+            self.assertEqual(result["error_category"], expected)
+            self.assertEqual(result["provider_blocked"], blocked)
+            self.assertEqual(result["retryable"], not blocked)
+            self.assertEqual(result["retry_after"], 19.5)
+            self.assertNotIn(self.secret, json.dumps(result))
+        payload = {"error": {"details": [{"@type": "type.googleapis.com/google.rpc.ErrorInfo", "reason": "BILLING_DISABLED"}]}}
+        with patch.object(gemini.requests, "post", return_value=http(payload, 403)):
+            result = gemini.gemini_response("prompt", model="gemini-3.8-flash")
+        self.assertEqual(result["error_category"], "billing_blocked")
+        payload = {"error": {"status": "RESOURCE_EXHAUSTED", "message":
+            "Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: fixture"}}
+        with patch.object(gemini.requests, "post", return_value=http(payload, 429)):
+            result = gemini.gemini_response("prompt", model="gemini-3.8-flash")
+        self.assertEqual(result["error_category"], "quota_exhausted")
+        self.assertTrue(result["provider_blocked"])
+        self.assertNotIn("generativelanguage.googleapis.com", json.dumps(result))
+
+    def test_malformed_error_and_headers_preserve_uncertainty_without_raw_data(self):
+        for backend, call, model in [(openai, openai.openai_response, openai.MODEL),
+                                     (anthropic, anthropic.anthropic_response, anthropic.MODEL),
+                                     (gemini, gemini.gemini_response, "gemini-3.8-flash")]:
+            for payload in ([], {"error": "private account value"}, {"error": {"status": "RESOURCE_EXHAUSTED"}}):
+                with patch.object(backend.requests, "post", return_value=http(payload, 429,
+                                  {"Retry-After": self.secret, "request-id": "private account value"})):
+                    result = call("prompt", model=model)
+                self.assertEqual(result["error_category"], "rate_or_quota_unknown")
+                self.assertFalse(result["provider_blocked"])
+                self.assertTrue(result["retryable"])
+                self.assertIsNone(result["retry_after"])
+                self.assertNotIn(self.secret, json.dumps(result))
+                self.assertNotIn("private account value", json.dumps(result))
+            response = http(None, 429)
+            response.json.side_effect = ValueError(self.secret)
+            with patch.object(backend.requests, "post", return_value=response):
+                result = call("prompt", model=model)
+            self.assertEqual(result["error_category"], "rate_or_quota_unknown")
+            self.assertNotIn(self.secret, json.dumps(result))
+
+    def test_retry_after_numeric_date_and_invalid_headers(self):
+        now = datetime(2026, 10, 9, 12, 0, tzinfo=timezone.utc)
+        self.assertEqual(retry_after_seconds("Fri, 09 Oct 2026 12:01:30 GMT", now=now), 90)
+        self.assertEqual(retry_after_seconds("Fri, 09 Oct 2026 11:59:30 GMT", now=now), 0)
+        self.assertEqual(retry_after_seconds("90000"), 90000)  # Runner must stop, not shorten this.
+        self.assertEqual(retry_after_seconds("1.5"), 1.5)
+        for value in (None, True, {}, "-1", "nan", "inf", "1e999", self.secret, "x" * 129):
+            self.assertIsNone(retry_after_seconds(value))
+        with patch.object(openai.requests, "post", return_value=http({}, 429,
+                          {"Retry-After": "Fri, 09 Oct 2099 12:01:30 GMT"})):
+            result = openai.openai_response("prompt", model=openai.MODEL)
+        self.assertGreater(result["retry_after"], 120)
 
     def test_timeouts_decode_errors_and_missing_credentials_are_sanitized(self):
         for backend, call, _ in self.cases():
