@@ -38,12 +38,20 @@ requirements and the existing weights' incomplete training provenance. The new
 395-item checkpoint inference uses an explicitly recorded first-occurrence target
 policy; these derived spans are not human annotations.
 
-[Saved test results](results/test_results.md) are historical measurements. New
-collection and human review are incomplete; offline software tests do not establish
-live Colab operation or model quality. Automatic scores, output-quality flags and
-human semantic judgments are distinct evidence. A run must retain failures and
-identify its inputs, scoring rule and review coverage before comparison with
-[earlier summaries](results/all_arms_summary.md).
+## Saved results
+
+Open [experimental_study.ipynb](notebooks/experimental_study.ipynb) for the current
+methods, tables, figures, coverage and limitations. Its committed outputs are
+readable without executing cells. Default execution loads the bundled
+[saved evidence](saved-results/README.md); it makes no model requests and requires
+neither API accounts nor weights. The optional development demonstration is disabled
+and contributes no test observations.
+
+The test analysis preserves separate collection runs and full 395-item denominators,
+including technical failures. Gemini has a development pilot but no test result in
+this release. Human semantic review is pending; automatic scores do not replace it.
+Earlier measurements under [results/](results/test_results.md) remain historical
+sources and are not silently pooled with the identified collection.
 
 ## Project structure
 
@@ -65,15 +73,14 @@ identify its inputs, scoring rule and review coverage before comparison with
 Create an isolated environment from the repository root:
 
 ```bash
-python3.12 -m venv .venv
+python3.13 -m venv .venv
 .venv/bin/python -m pip install -e . jupyterlab ipykernel
 .venv/bin/python -m pip check
 .venv/bin/python -m jupyter lab notebooks/experimental_study.ipynb
 ```
 
-Select the `.venv` kernel. The main notebook loads the identified saved-result
-bundle when present and otherwise uses an invented-data preview; neither default
-sends model requests. Dependencies are pinned in `requirements.txt` through
+Select the `.venv` kernel. The main notebook validates and analyzes the bundled saved results.
+Missing or altered evidence raises an error; there is no private-directory fallback. Dependencies are pinned in `requirements.txt` through
 `pyproject.toml`; the full transitive environment is not locked. Model execution
 requires explicit settings and the corresponding local model or API credentials.
 Keep secrets in local environment configuration or Colab Secrets, outside Git.
