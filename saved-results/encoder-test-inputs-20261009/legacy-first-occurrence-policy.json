@@ -1,0 +1,13 @@
+{
+  "policy": "legacy_first_occurrence",
+  "authorization": "Shaked explicitly delegated target selection in the current execution conversation on 2026-10-09",
+  "human_target_annotations": false,
+  "used_gold_or_predictions_for_target_selection": false,
+  "reference_function": "models/common/pairs.py:find_span",
+  "reference_revision": "1e45a2662a16fe68acec7511b7cd0cd0bc8228de",
+  "n_items": 395,
+  "source_sha256": "6185f241bbaf681556c231080819a07b3233a30a04fd91b1149c685977a092a2",
+  "derived_sha256": "bb81dc88da77368b50a0b532bcfba241d97da92b03697b1de9ac1a0c21204cb9",
+  "all_original_fields_preserved": true,
+  "historical_prediction_lineage_proven": false
+}

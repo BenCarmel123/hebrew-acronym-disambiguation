@@ -2,7 +2,7 @@
 
 Use the [main study notebook](../notebooks/experimental_study.ipynb) for checkpoint
 inspection and dev prediction. Local installation and service setup are in the
-[README](../README.md#local-setup). The [training appendix](../notebooks/train_dictabert.ipynb)
+[README](../README.md#install-and-check). The [training appendix](../notebooks/train_dictabert.ipynb)
 remains separate; checkpoint loading does not train the model.
 
 Each checkpoint consists of a weights file and its original `<checkpoint>.json`, which records:
@@ -108,3 +108,23 @@ and then records all test selection predictions incrementally. It does not train
 download weights, or perform generation. Exact candidate accuracy retains all
 395 items in the denominator; raw scores, failures, checkpoint reconstruction and
 source identities are saved together. An existing run directory is never overwritten.
+
+
+## Retrieving the identified test checkpoint
+
+Saved-result analysis requires no checkpoint. To reproduce inference separately,
+request the existing `dictabert-crossenc-study_v1-newtrain-seed43-20261003.pt`
+artifact from the project authors through their authorized storage channel. No
+public weight download is included or implied by this repository. Verify SHA-256
+`23bbff0324a7ce4d9d4a24a9ebfb87a4f6ac296bf1f1ce1bd25126c09260267f`
+before using the existing Colab state-dictionary loader; the filename does not
+verify the historical training seed.
+
+The fresh inference used `dicta-il/dictabert` snapshot
+`8884c6db002aba4002ee638fe4070c92e9ffbbf1`. Its tokenizer/configuration hashes,
+strict-load evidence and unresolved training fields are retained in
+[saved checkpoint reconstruction](../saved-results/study-runs/dictabert-test-20261009-f49c3b5/checkpoint-reconstruction.json).
+Use the separately supplied, hash-matched local snapshot and checkpoint with the
+[training/inference appendix](../notebooks/train_dictabert.ipynb); do not substitute
+unidentified weights. Original absolute paths in this evidence document collection
+provenance only and are not analysis dependencies.
