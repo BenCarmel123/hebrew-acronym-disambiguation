@@ -1,11 +1,11 @@
 \section{Evaluation}
 \label{sec:eval}
 \subsection{Scoring}
-All systems are scored on the same 395 items. A selection is correct when the chosen candidate equals the reference expansion. An LLM answer to a selection prompt must be one uppercase letter in the displayed range, and anything else, such as ``A.'', counts as wrong. Generated answers are judged by hand, and valid variants of the same expansion, such as \heb{שקל חדש} and \heb{שקלים חדשים}, count as correct. Accuracy is the share of correct items,
+All systems are scored on the same 381 items. A selection is correct when the chosen candidate equals the reference expansion. An LLM answer to a selection prompt must be one uppercase letter in the displayed range, and anything else, such as ``A.'', counts as wrong. Generated answers are judged by hand, and valid variants of the same expansion, such as \heb{שקל חדש} and \heb{שקלים חדשים}, count as correct. Accuracy is the share of correct items,
 \begin{equation}
 \mathrm{Acc}=\frac{1}{N}\sum_{i=1}^{N}c_i,
 \end{equation}
-where $c_i=1$ if item $i$ is correct and $N=395$. Failed or invalid responses count as wrong and stay in the denominator.
+where $c_i=1$ if item $i$ is correct and $N=381$. Failed or invalid responses count as wrong and stay in the denominator.
 
 \subsection{Reference points and variability}
 % TODO: after Shaked finishes the manual judging, rerun the selection arms a few times with fixed seeds and report the spread; add bootstrap confidence intervals from the per-item results.
