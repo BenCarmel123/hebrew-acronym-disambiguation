@@ -1,0 +1,147 @@
+"""Offline contracts for saved test comparison; all examples are invented."""
+import csv
+import hashlib
+import json
+from pathlib import Path
+import shutil
+import tempfile
+import unittest
+from unittest.mock import patch
+
+from hebrew_acronyms import staged_evaluation as staged
+from hebrew_acronyms import test_evaluation as evaluation
+from hebrew_acronyms.saved_test_comparison import compare_saved_tests, result_table
+from hebrew_acronyms.test_baselines import run_test_baselines
+
+
+class SavedTestComparisonTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+        self.test = self.root / "test_items.csv"
+        self.dev = self.root / "dev.csv"
+        for path, count in ((self.test, 395), (self.dev, 10)):
+            with path.open("w", newline="") as stream:
+                writer = csv.DictWriter(stream, fieldnames=["item_id", "acronym", "sentence", "gold_expansion", "candidates"])
+                writer.writeheader()
+                writer.writerows({"item_id": f"item-{i}", "acronym": "אבג", "sentence": "הקשר אבג לדוגמה",
+                                  "gold_expansion": "אחד", "candidates": "אחד|שניים"} for i in range(count))
+        candidates = self.root / "candidate_table.csv"
+        candidates.write_text("acronym,expansion,rank,mined_items\nאבג,אחד,1,1\nאבג,שניים,2,0\n")
+        self.sources, self.expected, self.directories = [], {}, []
+        rates = {name: {"input": 1, "output": 1} for name in staged.SYSTEM_NAMES}
+        reserves = dict.fromkeys(staged.SYSTEM_NAMES, .01)
+        network = patch("socket.socket.connect", side_effect=AssertionError("Network forbidden"))
+        network.start()
+        self.addCleanup(network.stop)
+        prior = 4.0
+        for index, (name, model, settings) in enumerate((
+                ("openai", "gpt-4.1-mini-2025-04-14", {"timeout": 120, "max_output_tokens": 512, "temperature": 0}),
+                ("anthropic", "claude-haiku-5-5", {"timeout": 120, "max_output_tokens": 1024, "effort": "low"}))):
+            root = self.root / f"session-{index}"
+            session = staged.prepare_session(root, self.dev, self.test, code_revision="a" * 40,
+                                             prior_spend_ils=prior, rates=rates, reserves=reserves)
+            system = {"name": name, "provider": name, "model": model, "settings": settings}
+            manifest = staged._prepare(root, session, system, "full_test", None)
+            directory = root / name / "full-test"
+            response = {"status": "incomplete_response", "response": "אחד", "finish_reason": "length",
+                        "identity_status": "verified", "usage_metadata": {"prompt_tokens": 10, "completion_tokens": 2}}
+            if index:
+                response = {"status": "response_received", "response": "אחד", "finish_reason": "end_turn"}
+            with patch.object(evaluation, "_call", return_value=response):
+                evaluation.run_evaluation(directory, code_revision="a" * 40, max_new_calls=1)
+            self.sources.append((root, session["identity_sha256"]))
+            self.expected[name] = manifest["run_id"]
+            self.directories.append(directory)
+            prior = staged.session_summary(root)["total_accounted_ils"]
+        run_test_baselines(self.test, candidates, self.sources[0][0] / "baselines", code_revision="a" * 40)
+
+    def compare(self):
+        return compare_saved_tests(self.sources, self.expected)
+
+    def mutate_manifest(self, mutation):
+        directory = self.directories[1]
+        path = directory / "manifest.json"
+        manifest = json.loads(path.read_text())
+        mutation(manifest["identity"])
+        manifest["identity_sha256"] = evaluation._hash(manifest["identity"])
+        path.write_text(json.dumps(manifest))
+        journal = directory / "attempts.jsonl"
+        events = [json.loads(line) for line in journal.read_text().splitlines()]
+        for event in events:
+            event["identity_sha256"] = manifest["identity_sha256"]
+        journal.write_text("".join(json.dumps(e) + "\n" for e in events))
+
+    def test_complete_denominators_and_cost_carry_without_writes(self):
+        before = {p: p.read_bytes() for p in self.root.rglob("*") if p.is_file()}
+        result = self.compare()
+        self.assertEqual(result["unique_attempts"], 2)
+        self.assertTrue(all(m["n_items"] == 395 for m in result["metrics"]))
+        self.assertEqual(len(result["failures"]), 1579)
+        self.assertAlmostEqual(result["cost"]["token_cost_ils"], .000048)
+        self.assertAlmostEqual(result["cost"]["uncertain_attempt_allowances_ils"], .04)
+        self.assertAlmostEqual(result["cost"]["total_accounted_ils"], 4.040048)
+        self.assertEqual(before, {p: p.read_bytes() for p in self.root.rglob("*") if p.is_file()})
+
+    def test_duplicate_session_copy_is_rejected(self):
+        copied = self.root / "copy"
+        shutil.copytree(self.sources[0][0], copied)
+        self.sources.append((copied, self.sources[0][1]))
+        with self.assertRaisesRegex(ValueError, "Duplicate session"):
+            self.compare()
+
+    def test_duplicate_attempt_across_runs_is_rejected(self):
+        first = json.loads((self.directories[0] / "attempts.jsonl").read_text().splitlines()[0])["attempt_id"]
+        path = self.directories[1] / "attempts.jsonl"
+        events = [json.loads(line) for line in path.read_text().splitlines()]
+        for event in events:
+            event["attempt_id"] = first
+        path.write_text("".join(json.dumps(e) + "\n" for e in events))
+        with self.assertRaisesRegex(ValueError, "Duplicate attempt"):
+            self.compare()
+
+    def test_prompt_candidate_order_and_input_mismatches_are_rejected(self):
+        original = {p: p.read_bytes() for p in self.directories[1].iterdir() if p.is_file()}
+        def prompt(identity):
+            identity["requests"][0]["prompt"] += "changed"
+            identity["requests"][0]["prompt_sha256"] = hashlib.sha256(identity["requests"][0]["prompt"].encode()).hexdigest()
+        for mutation in (prompt,
+                         lambda i: i["requests"][1]["shown_order"].reverse(),
+                         lambda i: i["rows"][0].update(sentence="different input"),
+                         lambda i: i.update(protocol="different protocol")):
+            with self.subTest(mutation=mutation):
+                for path, data in original.items():
+                    path.write_bytes(data)
+                self.mutate_manifest(mutation)
+                with self.assertRaisesRegex(ValueError, "Test items, protocol, prompts or candidate orders differ"):
+                    self.compare()
+
+    def test_wrong_prior_and_wrong_run_are_rejected(self):
+        path = self.sources[1][0] / "session.json"
+        session = json.loads(path.read_text())
+        session["identity"]["prior_spend_ils"] += 4
+        session["identity_sha256"] = evaluation._hash(session["identity"])
+        path.write_text(json.dumps(session))
+        self.sources[1] = (self.sources[1][0], session["identity_sha256"])
+        with self.assertRaisesRegex(ValueError, "Prior expenditure"):
+            self.compare()
+
+    def test_expected_run_id_and_baseline_gold_are_checked(self):
+        self.expected["openai"] = "incorrect"
+        with self.assertRaisesRegex(ValueError, "Unexpected"):
+            self.compare()
+        self.expected["openai"] = evaluation._load_manifest(self.directories[0])["run_id"]
+        path = self.sources[0][0] / "baselines/baselines.json"
+        baseline = json.loads(path.read_text())
+        baseline["details"][0]["gold"] = "different"
+        path.write_text(json.dumps(baseline))
+        with self.assertRaisesRegex(ValueError, "Baseline"):
+            self.compare()
+
+    def test_table_escapes_model_text(self):
+        self.assertIn("&lt;script&gt;", result_table([{"answer": "<script>"}], {"answer": "Answer"}))
+
+
+if __name__ == "__main__":
+    unittest.main()
