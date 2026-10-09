@@ -60,11 +60,21 @@ def http_error_diagnostics(response, *, provider):
     quota = rate = billing = False
     if provider == "OpenAI":
         quota = bool(codes & {"insufficient_quota", "quota_exceeded"})
-        billing = bool(codes & {"billing_hard_limit_reached", "billing_not_active"})
+        billing = bool(codes & {"billing_hard_limit_reached", "billing_not_active",
+                               "project_spend_limit_exceeded", "organization_spend_limit_exceeded",
+                               "organization_usage_limit_exceeded", "credit_balance_exhausted"})
         rate = "rate_limit_exceeded" in codes
     elif provider == "Anthropic":
+        details = error.get("details")
+        spend_limit = (status == 429 and isinstance(details, dict)
+                       and details.get("error_code") == "enforced_spend_limit_reached")
+        specified_limit = (status == 400 and error.get("type") == "invalid_request_error"
+                           and message.startswith((
+                               "you have reached your specified api usage limits",
+                               "you have reached your specified workspace api usage limits")))
         billing = ("credit balance is too low" in message or
-                   bool(codes & {"billing_error", "credit_balance_too_low"}))
+                   bool(codes & {"billing_error", "credit_balance_too_low"})
+                   or spend_limit or specified_limit)
         rate = "rate_limit_error" in codes
     elif provider == "Gemini":
         # Some Gemini responses put the zero allocation only in the message.
