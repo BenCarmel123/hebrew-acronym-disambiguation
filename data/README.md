@@ -26,7 +26,7 @@ Invented engineering inputs live in [tests/fixtures/](../tests/fixtures), outsid
 |---|---:|---:|
 | `splits/train_items.csv` | 3,115 | 435 |
 | `splits/dev_items.csv` | 289 | 55 |
-| `splits/test_items.csv` | 395 | 60 |
+| `splits/test_items.csv` | 381 | 60 |
 | `splits/all_items.csv` | 4,649 | 550 |
 | `mined/candidate_table.csv` | 2,702 | 638 |
 | `mined/acronym_items.csv` | 3,386 | 546 |
@@ -35,7 +35,7 @@ Invented engineering inputs live in [tests/fixtures/](../tests/fixtures), outsid
 | Text category | Train | Dev | Test | Meaning |
 |---|---:|---:|---:|---|
 | `wiki_substituted` | 2,456 | 281 | 0 | A spelled-out expansion was replaced with the acronym. |
-| `knesset` | 455 | 0 | 267 | Observed parliamentary text with recorded review. |
+| `knesset` | 455 | 0 | 253 | Observed parliamentary text with recorded review. |
 | `manual` | 142 | 2 | 87 | Authored text; authorship must be read from `source` and `label_origin`. |
 | `wiki_natural` | 54 | 0 | 41 | Observed Wikipedia acronym usage. |
 | `wiki_deglossed` | 8 | 6 | 0 | Observed usage with an adjacent explanation removed. |
@@ -70,8 +70,8 @@ authored text is not observed usage. Neither filenames nor categories settle the
 ## Structural limitations
 
 - Acronym types and exact `(acronym, sentence)` pairs are disjoint across the three splits.
-  Documents are not: nonempty `(source, page_title)` overlap is 24 for train/dev and 64
-  for train/test. This is a fact about the stored files, not approval of that split rule.
+  Documents are not: nonempty `(source, page_title)` overlap is 24 for train/dev and 60
+  for train/test (0 for dev/test). This is a fact about the stored files, not approval of that split rule.
 - Seven IDs occur in both train and dev for different content: `ha-03333`, `ha-03334`,
   `ha-03335`, `ha-03337`, `ha-03344`, `ha-03349`, `ha-03355`. The aggregate also has seven
   duplicated IDs. Do not join these files on `item_id` alone.
