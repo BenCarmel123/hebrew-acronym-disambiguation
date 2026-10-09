@@ -1,6 +1,10 @@
 % pdfLaTeX version (no fontspec, no polyglossia): compile with the default pdfLaTeX compiler.
 \documentclass[11pt]{article}
-\usepackage[preprint]{acl_template/acl}
+% Paths are relative to the repository root, because Overleaf compiles from there.
+\makeatletter
+\def\bibliographystyle#1{\AtBeginDocument{\if@filesw\immediate\write\@auxout{\string\bibstyle{paper/acl_template/acl_natbib}}\fi}}
+\makeatother
+\usepackage[preprint]{paper/acl_template/acl}
 \usepackage{times}
 \usepackage{latexsym}
 \usepackage[utf8]{inputenc}
@@ -219,7 +223,7 @@ We report four reference points: random choice among the candidates; the candida
 % Skeleton following Vered Shwartz's advice: state the findings first, give results in full
 % and in an easy format, add examples, stay concise, do not oversell, report unflattering results.
 % TODO: every XX below is a manually judged generation score; fill them in and recheck each claim.
-Table~\ref{tab:test-results} gives accuracy for all systems on the 395 test items, and Figure~\ref{fig:generate-vs-select} compares the two formats for each LLM. Three results stand out. Selection beats generation for both LLMs. Fine-tuning improves the encoder. The fine-tuned encoder beats the small LLM, but not the proprietary LLM when that LLM selects from candidates. Sections~\ref{sec:res-formats} to~\ref{sec:res-errors} give the details.
+Table~\ref{tab:test-results} and Figure~\ref{fig:arm-comparison} give accuracy for all systems on the 395 test items, and Figure~\ref{fig:generate-vs-select} compares the two formats for each LLM. Three results stand out. Selection beats generation for both LLMs. Fine-tuning improves the encoder. The fine-tuned encoder beats the small LLM, but not the proprietary LLM when that LLM selects from candidates. Sections~\ref{sec:res-formats} to~\ref{sec:res-errors} give the details.
 
 \begin{table}[t]
 \centering\small
@@ -248,7 +252,15 @@ Gemini, selection & 93.7\% & 0.5\% \\
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\linewidth]{figures/generate_vs_select.pdf}
+\includegraphics[width=\linewidth]{paper/figures/arm_comparison.pdf}
+\caption{Accuracy of all systems on the test set, sorted, with the baselines and the oracle as reference lines. % TODO: regenerate with the judged generation scores
+}
+\label{fig:arm-comparison}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{paper/figures/generate_vs_select.pdf}
 \caption{Accuracy under free generation and under candidate selection, for each LLM. % TODO: regenerate with the judged generation scores
 }
 \label{fig:generate-vs-select}
@@ -316,5 +328,5 @@ Case & Example \\
 OpenAI Codex (a GPT-6-based assistant) substantially assisted implementation, software checks, literature checking, manuscript drafting and editing, and PDF inspection. AI assistance also informed recorded author annotation decisions. The 136 Claude-authored training examples are identified separately from natural text. Software and presentation checks are distinct from the separately recorded DictaBERT, Qwen and Gemini development runs. Detailed assistance and annotation provenance are documented in the repository. Author contributions and personal reflections remain to be completed by the authors.
 
 \label{bodyend}
-\bibliography{references}
+\bibliography{paper/references}
 \end{document}
