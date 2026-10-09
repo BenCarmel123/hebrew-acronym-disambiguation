@@ -570,6 +570,8 @@ def make_server(dataset, annotations, port=8765, qa=False):
                     raise ValueError("Import too large")
                 payload = json.loads(self.rfile.read(length))
                 if self.path.startswith("/api/short/") and short:
+                    if self.path.rsplit("/", 1)[-1] in {"group-open", "group-save", "group-details"}:
+                        raise ValueError("הבדיקה חזרה למשפטים נפרדים. יש לרענן את העמוד; העבודה השמורה נשמרה.")
                     result = short.transact(self.path.rsplit("/", 1)[-1], payload)
                     if masked_protocol and "summary" in result:
                         from .human_review_scoring_audit import enrich_summary

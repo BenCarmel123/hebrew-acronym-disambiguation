@@ -12,11 +12,8 @@
   const REVIEW_STATUSES={human:'שיפוט אנושי קיים',pending:'ממתינה לבדיקה',exacttrim:'סוננה מכנית — התאמה מלאה',technical:'סוננה מכנית — נרמול טכני מצומצם',missing:'אין תשובה / כשל טכני מתועד'};
   function isContinuation(state){return Boolean(state.queues);}
   function canShowFull(state,summary,explicitFull=false){return (!isContinuation(state)||explicitFull)&&Boolean(state.revealed||state.exposed)&&summary.masked===false;}
-  function isGroupView(view){return view==='groups'||view==='group_foreign';}
-  function groupBackendView(view){return view==='group_foreign'?'foreign':'all';}
-  function defaultView(state){return Array.isArray(state.group_queue)?'groups':'all';}
-  function queueIds(state,view='all'){return isGroupView(view)?state.group_queues?.[groupBackendView(view)]||state.group_queue||[]:state.queues?state.queues[view]||[]:state.queue||[];}
-  function firstIncomplete(state){return Array.isArray(state.group_queue)?state.group_queue[0]:isContinuation(state)?queueIds(state)[0]:state.queue.find(id=>state.records[id]?.completion?.status!=='complete');}
+  function queueIds(state,view='all'){return state.queues?state.queues[view]||[]:state.queue||[];}
+  function firstIncomplete(state){return isContinuation(state)?queueIds(state)[0]:state.queue.find(id=>state.records[id]?.completion?.status!=='complete');}
   function nextQueueId(before,current,remaining){const later=before.slice(before.indexOf(current)+1);return later.find(id=>remaining.includes(id))||remaining.find(id=>id!==current);}
   function editableAnswer(answer,view='all'){return view!=='filtered'&&!FILTER_STATUSES.includes(answer.review_status);}
   function renderFilteredAnswer(answer){
@@ -27,7 +24,7 @@
     if(counts.source_answers===undefined)return '';
     const rows=[['human_answers','נשפטו בידי אדם, כולל ״לא בטוח״'],['exacttrim_answers','סוננו: התאמה מלאה לאחר הסרת רווחים בקצוות'],['technical_answers','סוננו: התאמה לאחר נרמול טכני מצומצם'],['missing_answers','אין תשובה / כשל טכני מתועד'],['pending_answers','תשובות שממתינות לבדיקה']];
     const sum=rows.reduce((n,[key])=>n+Number(counts[key]||0),0),decisions=Number(counts.pending_decisions||0);
-    return `<section class="card"><h3>תשובות המקור והעבודה שנותרה</h3><table><tbody><tr><th>תשובות המקור</th><td>${Number(counts.source_answers)}</td></tr>${rows.map(([key,label])=>`<tr><td>${label}</td><td>${Number(counts[key]||0)}</td></tr>`).join('')}<tr><th>סכום הקבוצות הראשיות</th><td>${sum}</td></tr></tbody></table><p><strong>${decisions}</strong> הקשרי תשובה ממתינים להכרעה.</p>${counts.grouped_pending_decisions!==undefined?`<p>${Number(counts.grouped_pending_decisions)} קבוצות לתצוגה; בחירה משותפת עשויה לחסוך עד ${Number(counts.cross_context_savings||0)} פעולות, בהתאם לחריגים. כל ההקשרים עדיין דורשים קריאה.</p><p class="small">${Number(counts.human_decisions||0)} פעולות שיפוט שמורות מייצגות ${Number(counts.human_answers||0)} מופעי תשובה. החלת בחירה משותפת על כמה הקשרים אינה כמה הכרעות עצמאיות.</p>`:''}<p class="small">מופעים זהים באותו משפט חוסכים ${Number(counts.duplicate_savings||0)} הצגות נוספות; החיסכון אינו מופחת שוב מספירת המקור. ${Number(counts.foreign_pending_answers||0)} מהממתינות מכילות אותיות משפה אחרת — תכונה חופפת, לא קבוצה שמפחיתים שוב.</p><p class="small">אומדן גס: ${Math.ceil(decisions/2)}–${Math.ceil(decisions*1.5)} דקות, בהנחת חצי דקה עד דקה וחצי להכרעה. הסינון המכני אינו שיפוט אנושי, והבדיקה המורחבת אינה מדגם אקראי.</p></section>`;
+    return `<section class="card"><h3>תשובות המקור והעבודה שנותרה</h3><table><tbody><tr><th>תשובות המקור</th><td>${Number(counts.source_answers)}</td></tr>${rows.map(([key,label])=>`<tr><td>${label}</td><td>${Number(counts[key]||0)}</td></tr>`).join('')}<tr><th>סכום הקבוצות הראשיות</th><td>${sum}</td></tr></tbody></table><p><strong>${decisions}</strong> הכרעות אנושיות נדרשות כעת.</p><p class="small">מופעים זהים באותו משפט חוסכים ${Number(counts.duplicate_savings||0)} הצגות נוספות; החיסכון אינו מופחת שוב מספירת המקור. ${Number(counts.foreign_pending_answers||0)} מהממתינות מכילות אותיות משפה אחרת — תכונה חופפת, לא קבוצה שמפחיתים שוב.</p><p class="small">אומדן גס: ${Math.ceil(decisions/2)}–${Math.ceil(decisions*1.5)} דקות, בהנחת חצי דקה עד דקה וחצי להכרעה. הסינון המכני אינו שיפוט אנושי, והבדיקה המורחבת אינה מדגם אקראי.</p></section>`;
   }
   function progressFor(item,record={}){
     const labels=savedLabels(record);
@@ -49,16 +46,6 @@
   function renderMain(item,record={},view='all'){
     const labels=savedLabels(record);
     return `<article class="card context-card"><div class="sentence">${highlightedSentence(item)}</div><div class="context-meta"><span>קיצור: <strong>${esc(item.acronym)}</strong></span><span>ייחוס (עשוי להיות שגוי): <strong>${esc(item.gold??'לא זמין')}</strong></span>${item.prior_reused?'<span class="small" title="השיפוטים הקודמים נשמרו. אין צורך לבדוק שוב תשובה שכבר נשפטה; משלימים רק שיפוטים חסרים.">עבודה קודמת נשמרה</span>':''}</div></article><div class="answers">${item.answers.map(answer=>editableAnswer(answer,view)?renderMainAnswer(answer,labels[answer.id],record.judgments?.[answer.id]?.tags||[]):renderFilteredAnswer(answer)).join('')||'<p class="empty">אין כאן תשובות נוספות שדורשות שיפוט בתור הנוכחי.</p>'}</div><section class="optional compact-optional"><label><input id="suspect" type="checkbox" ${record.suspect?'checked':''}>חשד בייחוס / במשפט</label><label><input id="example" type="checkbox" ${record.example?'checked':''}>דוגמה למאמר</label><label for="note" class="sr-only">הערה קצרה (רשות)</label><textarea id="note" rows="1" placeholder="הערה (רשות)">${esc(record.note||'')}</textarea>${record.has_previous_note?'<span class="small" title="הערה קודמת נשמרה ותוצג לאחר החשיפה.">הערה קודמת שמורה</span>':''}</section>`;
-  }
-  function renderGroup(group){
-    const form=group.form||{},exceptions=form.exceptions||{},tags=form.tags||[];
-    return `<article class="card context-card"><div class="context-meta"><span>קיצור: <strong>${esc(group.acronym)}</strong></span><span>ייחוס (עשוי להיות שגוי): <strong>${esc(group.gold)}</strong></span><span>${group.contexts.length} הקשרים</span></div><div class="shared-answer"><strong>התשובה המשותפת</strong><div class="answer-text" dir="auto">${esc(group.text??'')}</div></div></article><section class="group-contexts" aria-label="כל המשפטים בקבוצה">${group.contexts.map((context,index)=>{const exception=exceptions[context.id]||{};return `<article class="group-context" data-group-context="${esc(context.id)}"><div class="group-sentence"><span class="context-number">${index+1}</span><div class="sentence">${highlightedSentence(context)}</div></div><div class="context-override"><label for="override-${esc(context.id)}">חריג למשפט ${index+1}</label><select id="override-${esc(context.id)}" data-context-override><option value="">כמו הבחירה המשותפת</option>${Object.entries({...LABELS,defer:'להשאיר להמשך'}).map(([value,label])=>`<option value="${value}" ${exception.label===value?'selected':''}>${label}</option>`).join('')}</select></div><div class="context-options"><label><input type="checkbox" data-context-suspect ${context.suspect?'checked':''}>חשד בייחוס / במשפט</label><label><input type="checkbox" data-context-example ${context.example?'checked':''}>דוגמה למאמר</label><label class="sr-only" for="context-note-${esc(context.id)}">הערה למשפט ${index+1}</label><input id="context-note-${esc(context.id)}" data-context-note type="text" value="${esc(context.note||'')}" placeholder="הערה (רשות)"></div></article>`;}).join('')}</section><section class="group-decision" tabindex="0" id="groupDecision"><h3>בחירה משותפת לכל המשפטים המוצגים</h3><p class="small">קרא את כל ההקשרים. החריגים גוברים על הבחירה המשותפת; ״להשאיר להמשך״ אינו מקבל שיפוט.</p><fieldset class="choices" data-group-label><legend class="sr-only">שיפוט משותף לכל ההקשרים</legend>${Object.entries(LABELS).map(([value,label],index)=>`<label class="choice"><input type="radio" name="group-label" value="${value}" ${form.label===value?'checked':''}><span><small aria-hidden="true">${index+1}</small> ${label} בכל ההקשרים</span></label>`).join('')}</fieldset><fieldset class="tag-chips" data-group-tags><legend>תגיות משותפות (רשות)</legend>${Object.entries(TAGS).map(([value,label])=>`<label class="tag-chip" title="${esc(TAG_HELP[value])}"><input type="checkbox" aria-label="${esc(label)}" value="${value}" ${tags.includes(value)?'checked':''}><span>${label}</span></label>`).join('')}</fieldset></section>`;
-  }
-  function groupExceptionLabel(previous,chosen,common){return !chosen&&!common&&previous?'defer':chosen;}
-  function buildGroupPayload(group,form,view='groups'){
-    const exceptions={},context_updates={};
-    for(const context of group.contexts){const supplied=form.contexts?.[context.id]||{};const override=groupExceptionLabel(group.form?.exceptions?.[context.id]?.label,supplied.override,form.label);if(override)exceptions[context.id]={label:override};context_updates[context.id]={suspect:supplied.suspect??Boolean(context.suspect),example:supplied.example??Boolean(context.example),note:supplied.note??context.note??''};}
-    return {group_id:group.id,open_id:group.open_id,view:groupBackendView(view),common_label:form.label||'',common_tags:form.tags||[],common_note:group.form?.note||'',exceptions,context_updates};
   }
   function shortcutIntent(event,activeId){
     if(event.repeat||event.ctrlKey||event.altKey||event.metaKey||event.shiftKey)return null;
@@ -107,7 +94,7 @@
     const recommendations=full&&summary.recommendations?.length?`<section class="card"><h3>המלצות לבדיקה ולהחלטה</h3><p class="small">לא שונה הניקוד הרשמי. תגית לצד פער אינה הוכחה לסיבת הפער; אלו הצעות לבדיקה ולא אימות עצמאי.</p>${summary.recommendations.map(r=>`<div class="recommendation">${typeof r==='string'?esc(r):`<h3>${esc(r.title||'הצעה לבדיקה')}</h3>${r.status?`<p class="small">${esc(r.status)}</p>`:''}<p><strong>כשל שהכלל עשוי לפתור:</strong> ${esc(r.possible_failure||'טרם פורט')}</p><p><strong>סיכון לקבלה שגויה:</strong> ${esc(r.false_acceptance_risk||'טרם פורט')}</p>${r.causal_limit?`<p class="small">${esc(r.causal_limit)}</p>`:''}${r.evidence?.length?`<p>מקרים לבדיקה:</p><ul>${r.evidence.map(e=>`<li><bdi>${esc(e.item_id)} / ${esc(e.answer_id)}</bdi> · ${esc(LABELS[e.label]||'טרם סומן')} · ציון שמור: ${esc(brief(e.auto_score))} · תגיות: ${esc(tagsText(e))}</li>`).join('')}</ul>`:'<p class="small">לא סומנו עדיין מקרים התומכים בכלל זה.</p>'}`}</div>`).join('')}${summary.next_step?`<p class="notice">${esc(summary.next_step)}</p>`:''}</section>`:'';
     return `${renderPartition(c)}${c.source_answers===undefined?`<div class="summary-counts"><div><strong>${c.reviewed_items??((c.complete_items||0)+(c.partial_items||0))}</strong> משפטים שנבדקו</div><div><strong>${c.complete_items||0}</strong> משפטים מלאים</div><div><strong>${c.partial_items||0}</strong> משפטים חלקיים</div><div><strong>${c.judged_answers||0}</strong> תשובות שסומנו מתוך ${c.total_answers||0}</div></div>`:''}<p class="small">${c.source_answers!==undefined?'״לא בטוח״ נשמר כשיפוט קיים בתור נפרד. סינון מכני אינו אישור אנושי.':'השלמה מתייחסת לשני שיפוטים בלבד, כולל ״לא בטוח״.'} תגיות והערות אינן חובה ואינן משלימות שיפוט חסר.</p><section class="card"><h3>תגיות שסומנו</h3><div class="tag-counts">${tagCounts}</div><p class="small">היעדר תגית פירושו ״לא סומן״. תגיות מוצגות גם כשאין פער בין השיפוט לניקוד.${c.source_answers!==undefined?' הספירה היא לפי מופעי תשובה; שיפוט יחיד שהוחל על מופעים זהים אינו כמה הכרעות עצמאיות.':''}</p></section>${sections.map(([key,title])=>`<section class="card"><h3>${title}</h3>${summary[key]?.length?summary[key].map(v=>renderCase(v,full)).join(''):'<p class="small">אין פריטים בסעיף זה.</p>'}</section>`).join('')}${full?`<section class="card"><h3>כל המקרים — כולל הסכמה בין השיפוט לניקוד</h3>${fullCasesTable(summary.cases||summary.all_cases||[])}</section>`:''}${full?renderFullComposition(summary.composition||summary.sample_composition):''}${rules}${recommendations}<section class="card"><h3>${c.source_answers!==undefined?'משפטים עם תשובות שממתינות לבדיקה':'משפטים שלא הושלמו'}</h3><p>${summary.incomplete_ids?.length?summary.incomplete_ids.map(esc).join(' · '):c.source_answers!==undefined&&c.pending_answers===0?'אין תשובות שממתינות לבדיקה; שיפוטי לא בטוח נשארים בתור החזרה.':c.source_answers===undefined&&c.complete_items===c.total_items?'כל המשפטים במסלול הושלמו.':'אפשר להמשיך בפריטים שטרם הושלמו.'}</p></section><section class="card"><h3>גבולות הסיכום</h3>${(Array.isArray(summary.limitations)?summary.limitations:[summary.limitations||'בדיקה איכותנית מצומצמת עם ייחוס מוצג. אין להסיק ממנה שיעורים לכל המאגר; סגנון התשובה עשוי לרמוז לזהות.']).map(text=>`<p>${esc(text)}</p>`).join('')}</section>`;
   }
-  const api={groupExceptionLabel,isGroupView,groupBackendView,defaultView,renderGroup,buildGroupPayload,shortcutIntent,nextActiveAnswer,canShowFull,isContinuation,queueIds,nextQueueId,editableAnswer,renderFilteredAnswer,renderPartition,judgmentPhaseText,TAGS,TAG_HELP,PHASES,tagsText,renderMaskedDetails,renderSummaryContent,fullCasesTable,LABELS,esc,labelOf,savedLabels,firstIncomplete,progressFor,highlightedSentence,renderMainAnswer,renderMain,renderCase};
+  const api={shortcutIntent,nextActiveAnswer,canShowFull,isContinuation,queueIds,nextQueueId,editableAnswer,renderFilteredAnswer,renderPartition,judgmentPhaseText,TAGS,TAG_HELP,PHASES,tagsText,renderMaskedDetails,renderSummaryContent,fullCasesTable,LABELS,esc,labelOf,savedLabels,firstIncomplete,progressFor,highlightedSentence,renderMainAnswer,renderMain,renderCase};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   root.ShortReview=api;
   if(typeof document==='undefined')return;
@@ -141,27 +128,22 @@
   function updateProgress(){
     const counts=state.counts||{},total=counts.total_items??state.queue.length;
     $('progress').textContent=isContinuation(state)?`${counts.pending_answers||0} תשובות ממתינות`:`${counts.complete_items||0} מתוך ${total} משפטים הושלמו`;
-    $('countDetail').textContent=isGroupView(view)?`${counts.grouped_pending_decisions??state.group_queue?.length??0} קבוצות · ${counts.pending_decisions||0} הקשרים לבדיקה`:isContinuation(state)?`${counts.pending_decisions||0} הכרעות נדרשות · ${counts.human_answers||0} תשובות עם שיפוט אנושי`:`נבדקו ${counts.reviewed_items??((counts.complete_items||0)+(counts.partial_items||0))} · ${counts.partial_items||0} חלקיים`;
+    $('countDetail').textContent=isContinuation(state)?`${counts.pending_decisions||0} הכרעות נדרשות · ${counts.human_answers||0} תשובות עם שיפוט אנושי`:`נבדקו ${counts.reviewed_items??((counts.complete_items||0)+(counts.partial_items||0))} · ${counts.partial_items||0} חלקיים`;
     $('exposureNotice').hidden=!(state.revealed||state.exposed||state.prior_exposure);
     $('exposureNotice').textContent=isContinuation(state)?'החשיפות הקודמות נשמרו; הזהויות והניקוד מוסתרים כעת.':state.revealed||state.exposed?'התוצאות כבר נחשפו. שינויים חדשים יתועדו לאחר חשיפה; תמונת המצב שלפניה נשמרת.':'העבודה והחשיפות מהפרוטוקול הקודם נשמרו. אין לראות בשיפוטים הקודמים שיפוט חדש ללא חשיפה.';
     $('reviewer').textContent=`מתייג/ת: ${state.reviewer||'לא זמין'}`;
     $('queueView').value=view;
-    $('queueHint').textContent={groups:'תשובה זהה לגמרי, אותו קיצור ואותו ייחוס. כל ההקשרים מוצגים; רק בחירה שלך מחילה שיפוט משותף.',group_foreign:'קבוצות ממתינות עם אותיות משפה אחרת; אין תגית או שיפוט אוטומטיים.',all:'כל תשובה שטרם נשפטה ולא סוננה נמצאת כאן. ״לא בטוח״ נמצא בתור נפרד.',foreign:'אותיות משפה אחרת הן סימון מכני בלבד; אין כאן שיפוט או תגית ג׳יבריש אוטומטיים.',unsure:'שיפוטים קיימים שסומנו ״לא בטוח״. חזרה אליהם היא בחירה נפרדת.',suspicions:'מקרים עם חשד לייחוס או למשפט נשארים נגישים גם כאשר תשובה סוננה.',filtered:'עיון בלבד בתשובות שסוננו; אפשר להחזיר תשובה לתור הממתינות.'}[view];
+    $('queueHint').textContent={all:'כל תשובה שטרם נשפטה ולא סוננה נמצאת כאן. ״לא בטוח״ נמצא בתור נפרד.',foreign:'אותיות משפה אחרת הן סימון מכני בלבד; אין כאן שיפוט או תגית ג׳יבריש אוטומטיים.',unsure:'שיפוטים קיימים שסומנו ״לא בטוח״. חזרה אליהם היא בחירה נפרדת.',suspicions:'מקרים עם חשד לייחוס או למשפט נשארים נגישים גם כאשר תשובה סוננה.',filtered:'עיון בלבד בתשובות שסוננו; אפשר להחזיר תשובה לתור הממתינות.'}[view];
     $('queueView').title=$('queueHint').textContent;
     if(currentItem){
-      const p=isGroupView(view)?{judged:currentItem.contexts.filter(c=>c.answer_ids?.every(id=>labelOf(state.records[c.id]?.judgments?.[id]))).length,total:currentItem.contexts.length}:progressFor(currentItem,state.records[currentItem.id]);
-      $('itemProgress').textContent=isGroupView(view)?`${p.judged}/${p.total} הקשרים עם שיפוט שמור`:view==='filtered'?'עיון במסוננות — אין צורך לשפוט כאן':`${p.judged}/${p.total} הכרעות בכרטיסים המוצגים נשמרו`;
-      $('position').textContent=currentPosition>=0?`${isGroupView(view)?'קבוצה':'משפט'} ${currentPosition+1} מתוך ${routeIds.length} בתור`:'המשפט הנוכחי';
+      const p=progressFor(currentItem,state.records[currentItem.id]);
+      $('itemProgress').textContent=view==='filtered'?'עיון במסוננות — אין צורך לשפוט כאן':`${p.judged}/${p.total} הכרעות בכרטיסים המוצגים נשמרו`;
+      $('position').textContent=currentPosition>=0?`משפט ${currentPosition+1} מתוך ${routeIds.length} בתור`:'המשפט הנוכחי';
       $('previous').disabled=currentPosition<=0;
       $('saveNext').textContent=view==='filtered'?'הבא ←':'שמירה והבא ←';
     } else {$('itemProgress').textContent='';$('position').textContent='';}
   }
   function formPayload(){
-    if(isGroupView(view)){
-      const contexts={};
-      for(const row of $('itemView').querySelectorAll('[data-group-context]'))contexts[row.dataset.groupContext]={override:row.querySelector('[data-context-override]').value,suspect:row.querySelector('[data-context-suspect]').checked,example:row.querySelector('[data-context-example]').checked,note:row.querySelector('[data-context-note]').value};
-      return buildGroupPayload(currentItem,{label:$('itemView').querySelector('[data-group-label] input:checked')?.value||'',tags:[...$('itemView').querySelectorAll('[data-group-tags] input:checked')].map(el=>el.value),contexts},view);
-    }
     const judgments={},tags={};
     for(const group of document.querySelectorAll('[data-answer]'))judgments[group.dataset.answer]=group.querySelector('input[type=radio]:checked')?.value||'';
     for(const group of document.querySelectorAll('[data-tags-answer]'))tags[group.dataset.tagsAnswer]=[...group.querySelectorAll('input:checked')].map(el=>el.value);
@@ -172,8 +154,7 @@
     if(!dirty||!currentItem)return;
     const payload=formPayload(),savedItem=currentItem.id,savedVersion=editVersion;
     status('שומר…');
-    const result=await request(isGroupView(view)?'/api/short/group-save':'/api/short/save',{revision:state.revision,...payload});
-    if(isGroupView(view)){state=result.state;if(currentItem?.id===savedItem)currentItem=result.group;}else state=result;
+    state=await request('/api/short/save',{revision:state.revision,...payload});
     if(currentItem?.id===savedItem&&editVersion===savedVersion)dirty=false;
     lastError=null;updateProgress();status(dirty?'השינוי הקודם נשמר · שינויים נוספים ממתינים לשמירה…':'נשמר בדיסק · אפשר להמשיך או לעצור');
   }
@@ -184,16 +165,16 @@
     const selected=rows.find(row=>row.dataset.rowAnswer===id);
     activeAnswerId=selected?id:null;
     for(const row of rows){const active=row===selected;row.classList.toggle('active-row',active);row.setAttribute('aria-current',active?'true':'false');}
-    const code=currentItem?.answers?.find(answer=>answer.id===activeAnswerId)?.code;
+    const code=currentItem?.answers.find(answer=>answer.id===activeAnswerId)?.code;
     $('activeRowHint').textContent=code?`1–3: תשובה ${code}`:'';
     if(focus&&selected)selected.focus({preventScroll:true});
   }
   function renderItem(){
-    $('itemView').innerHTML=isGroupView(view)?renderGroup(currentItem):renderMain(currentItem,state.records[currentItem.id],view);
+    $('itemView').innerHTML=renderMain(currentItem,state.records[currentItem.id],view);
     $('itemView').querySelectorAll('[data-row-answer]').forEach(row=>{row.addEventListener('click',()=>setActiveAnswer(row.dataset.rowAnswer));row.addEventListener('focusin',()=>setActiveAnswer(row.dataset.rowAnswer));});
-    const ids=(currentItem.answers||[]).filter(answer=>editableAnswer(answer,view)).map(answer=>answer.id),labels=savedLabels(state.records[currentItem.id]);
-    if(isGroupView(view)){activeAnswerId='group-common';$('activeRowHint').textContent='1–3: לכל ההקשרים';}else setActiveAnswer(ids.find(id=>!Object.hasOwn(LABELS,labels[id]))||ids[0],true);
-    $('itemView').querySelectorAll('input,textarea,select').forEach(element=>element.addEventListener('input',event=>{if(isGroupView(view)&&event?.target?.matches('[data-context-override]')){const select=event.target,id=select.closest('[data-group-context]').dataset.groupContext;select.value=groupExceptionLabel(currentItem.form?.exceptions?.[id]?.label,select.value,$('itemView').querySelector('[data-group-label] input:checked')?.value||'');}markDirty();}));
+    const ids=currentItem.answers.filter(answer=>editableAnswer(answer,view)).map(answer=>answer.id),labels=savedLabels(state.records[currentItem.id]);
+    setActiveAnswer(ids.find(id=>!Object.hasOwn(LABELS,labels[id]))||ids[0],true);
+    $('itemView').querySelectorAll('input,textarea').forEach(element=>element.addEventListener('input',markDirty));
     $('itemView').querySelectorAll('[data-restore-answer]').forEach(button=>button.onclick=()=>run(async()=>{const id=currentItem.id;await flush();state=await request('/api/short/restore',{revision:state.revision,item_id:id,answer_id:button.dataset.restoreAnswer});view='all';routeIds=queueIds(state,view).slice();await openItem(id);status('התשובה הוחזרה לבדיקה; לא נוצר שיפוט אנושי אוטומטי.');}));
     updateProgress();showScreen('reviewScreen');
   }
@@ -201,12 +182,12 @@
     await flush();
     if(!id){activeAnswerId=null;$('activeRowHint').textContent='';currentItem=null;currentPosition=-1;dirty=false;$('itemView').innerHTML='<p class="empty">אין תשובות בתור שנבחר. אפשר לבחור ״כל התשובות הממתינות״ או לפתוח סיכום.</p>';$('saveNext').disabled=true;$('previous').disabled=true;$('detailsButton').disabled=true;updateProgress();showScreen('reviewScreen');status('התור שנבחר ריק · כל העבודה נשמרה');return;}
     status('טוען פריט…');
-    const result=await request(isGroupView(view)?'/api/short/group-open':'/api/short/open',isGroupView(view)?{revision:state.revision,group_id:id,view:groupBackendView(view)}:{revision:state.revision,item_id:id,view});
-    state=result.state;currentItem=isGroupView(view)?result.group:result.item;currentPosition=routeIds.indexOf(id);dirty=false;lastError=null;$('saveNext').disabled=false;$('detailsButton').disabled=false;renderItem();
+    const result=await request('/api/short/open',{revision:state.revision,item_id:id,view});
+    state=result.state;currentItem=result.item;currentPosition=routeIds.indexOf(id);dirty=false;lastError=null;$('saveNext').disabled=false;$('detailsButton').disabled=false;renderItem();
     status('העבודה השמורה נטענה · שינויים נשמרים אוטומטית בדיסק');
   }
   async function switchView(nextView){await flush();view=nextView;routeIds=queueIds(state,view).slice();await openItem(routeIds[0]);}
-  function renderDetails(details){$('detailsView').innerHTML=details.contexts?details.contexts.map((context,index)=>`<section class="card"><h3>משפט ${index+1}</h3><p>${esc(context.sentence)}</p>${renderMaskedDetails(context)}</section>`).join(''):renderMaskedDetails(details);}
+  function renderDetails(details){$('detailsView').innerHTML=renderMaskedDetails(details);}
   function renderSummary(summary,explicitFull=false){
     const full=canShowFull(state,summary,explicitFull);
     $('summaryTitle').textContent=full?'סיכום לאחר חשיפת התוצאות':'סיכום ביניים מוסתר';
@@ -225,7 +206,7 @@
   async function init(){
     try{
       const [initial,session]=await Promise.all([request('/api/short/state'),request('/api/session')]);
-      state=initial;$('qaBanner').hidden=!session.qa;view=defaultView(state);routeIds=queueIds(state,view).slice();updateProgress();const next=firstIncomplete(state);if(isContinuation(state)||next||!state.queue.length)await openItem(next);else await openSummary();
+      state=initial;$('qaBanner').hidden=!session.qa;view='all';routeIds=queueIds(state,view).slice();updateProgress();const next=firstIncomplete(state);if(isContinuation(state)||next||!state.queue.length)await openItem(next);else await openSummary();
     }catch(error){showError(error);if(!currentItem)showScreen('startupError');}
   }
   $('previous').onclick=()=>run(()=>openItem(routeIds[currentPosition-1]));
@@ -233,7 +214,7 @@
   $('filteredButton').onclick=()=>run(()=>switchView('filtered'));
   $('saveNext').onclick=()=>run(async()=>{const before=routeIds.slice(),id=currentItem.id;await flush();const remaining=queueIds(state,view);const next=isContinuation(state)?nextQueueId(before,id,remaining):before[before.indexOf(id)+1];routeIds=remaining.slice();if(next)await openItem(next);else await openSummary();});
   $('stopSummary').onclick=()=>run(openSummary);
-  $('detailsButton').onclick=()=>run(async()=>{await flush();const result=await request(isGroupView(view)?'/api/short/group-details':'/api/short/details',isGroupView(view)?{revision:state.revision,group_id:currentItem.id,open_id:currentItem.open_id}:{revision:state.revision,item_id:currentItem.id});state=result.state;renderDetails(result.details);showScreen('detailsScreen');status('פתיחת הפרטים תועדה · העבודה נשמרה');window.scrollTo({top:0});});
+  $('detailsButton').onclick=()=>run(async()=>{await flush();const result=await request('/api/short/details',{revision:state.revision,item_id:currentItem.id});state=result.state;renderDetails(result.details);showScreen('detailsScreen');status('פתיחת הפרטים תועדה · העבודה נשמרה');window.scrollTo({top:0});});
   $('backDetails').onclick=()=>{showScreen('reviewScreen');window.scrollTo({top:0});};
   $('backSummary').onclick=()=>run(async()=>{if(!currentItem){routeIds=queueIds(state,view).slice();await openItem(routeIds[0]);}else showScreen('reviewScreen');window.scrollTo({top:0});});
   $('exportAnnotations').onclick=()=>run(()=>download('/api/short/export.json','short-review-masked-annotations.json'));
@@ -246,7 +227,6 @@
     if($('reviewScreen').hidden||document.querySelector('main').inert)return;
     const intent=shortcutIntent(event,activeAnswerId);if(!intent)return;
     if(intent.type==='next'){if($('saveNext').disabled)return;event.preventDefault();$('saveNext').onclick();return;}
-    if(isGroupView(view)){const radio=$('itemView').querySelector(`[data-group-label] input[value="${intent.label}"]`);if(radio){event.preventDefault();radio.checked=true;markDirty();}return;}
     const rows=[...$('itemView').querySelectorAll('[data-row-answer]')],row=rows.find(row=>row.dataset.rowAnswer===intent.answerId);
     const radio=row?.querySelector(`input[type=radio][value="${intent.label}"]`);if(!radio)return;
     event.preventDefault();radio.checked=true;markDirty();

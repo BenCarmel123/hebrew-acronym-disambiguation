@@ -57,6 +57,13 @@ class ContinuationHttpTests(unittest.TestCase):
         self.assertEqual(20, len(self.data['short_plan']['queue']))
         self.assertEqual(self.previous, (self.folder / 'annotations.short-v2.json').read_bytes())
 
+    def test_retired_cross_context_actions_cannot_write_from_old_browser_tabs(self):
+        before = copy.deepcopy(self.server.short_store.state)
+        for action in ('group-open', 'group-save', 'group-details'):
+            code, body = self.call('/api/short/' + action, {'revision': before['revision']})
+            self.assertEqual(400, code, body)
+            self.assertEqual(before, self.server.short_store.state)
+
     def test_legacy_routes_blocked_and_masked_summary_remains_safe(self):
         for route in ('/api/data', '/api/state', '/api/export.json', '/legacy', '/api/short/full-export.json'):
             self.assertEqual(403, self.call(route)[0], route)
