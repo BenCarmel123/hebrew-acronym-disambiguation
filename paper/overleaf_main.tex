@@ -1,0 +1,317 @@
+% pdfLaTeX version (no fontspec, no polyglossia): compile with the default pdfLaTeX compiler.
+\documentclass[11pt]{article}
+\usepackage[preprint]{acl_template/acl}
+\usepackage[utf8]{inputenc}
+\usepackage[LHE,T1]{fontenc}
+\usepackage[hebrew,english]{babel}
+\usepackage{microtype}
+\usepackage{booktabs,graphicx,amsmath,array}
+\newcommand{\heb}[1]{\R{#1}}
+\newcommand{\repo}[2]{\href{https://github.com/BenCarmel123/hebrew-acronym-disambiguation/blob/04ec31754421e4a96d6b66122cb0a2fca428471d/#1}{#2}}
+\newcommand{\codebase}[2]{\href{https://github.com/BenCarmel123/hebrew-acronym-disambiguation/blob/04ec31754421e4a96d6b66122cb0a2fca428471d/#1}{#2}}
+\newif\ifpaperresults
+\paperresultsfalse
+\title{Hebrew Acronym Expansion in Context:\\Free Generation and Candidate Selection}
+\author{Ben Carmel \quad Yair Ben David \quad Shaked Schnarch \\
+Tel Aviv University \\
+\small NLP course project --- working draft, 3 October 2026}
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Hebrew acronyms are often ambiguous, and language models can resolve them either by generating an expansion or by selecting from candidate expansions. However, prior work has not directly compared these formats on the same occurrences. We evaluate both on a human-reviewed held-out test set of Hebrew sentences, most of them natural, whose acronym forms never appear in training, comparing two LLMs with a pre-trained Hebrew BERT-based encoder, both before and after fine-tuning. Candidate selection substantially outperforms free generation across models, and fine-tuning further improves encoder performance. The fine-tuned encoder outperforms the smaller LLM in both formats and the proprietary LLM in free generation, but not in candidate selection. We judge generated answers by hand, so valid variants of the same expansion count as correct.
+\end{abstract}
+
+% TODO: replace XX with the manually judged generation accuracies; recheck the claims that depend on them.
+% ============================================================
+\section{Introduction}
+% ============================================================
+An acronym is a short written form that stands for a longer expression. In Hebrew, acronyms are written with a quotation mark before the last letter, as in \heb{ח״כ} (\heb{חבר כנסת}, ``member of parliament''), and they are common in news, parliamentary and everyday text. Many acronyms are ambiguous. For example, \heb{מט״ח} can mean \heb{מטבע חוץ} (foreign currency) or \heb{המרכז לטכנולוגיה חינוכית} (the educational technology center). Only the surrounding sentence tells the reader which one is meant.
+
+Hebrew makes this problem harder than it is in many languages. Short words are written without vowels, so unrelated expansions often share the same letters. Prefixes such as ``in'', ``to'' and ``the'' attach directly to the word, so the acronym in a sentence may differ from its dictionary form. Hebrew also has far fewer resources than English, so a system cannot rely on large annotated corpora.
+
+A language model can expand an acronym in two ways. In \emph{free generation}, it reads the sentence and writes the expansion. In \emph{candidate selection}, it is also given a list of possible expansions and picks one. Generation can produce an answer that is not on any list, but it can also produce a wrong or unsupported one. Selection limits the answer to the list, so it depends on the list being complete. Prior work has not directly compared the two formats on the same occurrences.
+
+We run this comparison on a human-reviewed held-out test set of 395 Hebrew sentences. Most (78\%) occur naturally, in parliamentary proceedings and on Wikipedia, and the rest were written by an LLM to add a second sense to types that had only one. We test a small LLM, a proprietary LLM, and a pre-trained Hebrew encoder, which we evaluate both before and after fine-tuning. All systems see the same sentence and the same marked acronym. No acronym form in the test set appears in training, so the encoder is tested on acronyms it has never seen.
+
+Our findings are as follows. First, candidate selection outperforms free generation for both LLMs: accuracy rises from XX\% to 59.5\% for the small LLM, and from XX\% to 93.7\% for the proprietary one. Second, fine-tuning helps. Training the encoder on fewer than 3,000 examples raises its candidate-selection accuracy from 65.1\% to 72.4\%, so candidate selection can be learned. Third, the fine-tuned encoder's selection accuracy (72.4\%) is higher than the small LLM's selection (59.5\%) and the proprietary LLM's generation (XX\%), but lower than that LLM's selection (93.7\%). A small fine-tuned model can therefore outperform larger language models in some settings, though not the strongest LLM when it is given candidates. Generated answers are judged by hand, so variants of the same expansion, such as \heb{שקל חדש} and \heb{שקלים חדשים}, count as correct.
+
+% ============================================================
+\section{Related Work}
+\label{sec:related-work}
+% ============================================================
+\paragraph{Hebrew acronyms.}
+HAADS disambiguates abbreviations in Hebrew and Aramaic Jewish Law documents \citep{hacohenkerner2010haads}. \citet{jacobs2020acronyms} build an acronym dictionary for Modern Hebrew from unannotated text and use context to choose among its entries. These are the closest works to ours, and they show that finding expansions and choosing between them are separate problems. Both predate modern language models, so neither tells us how an LLM or a fine-tuned encoder performs. Both also treat the task as choosing from a dictionary, and neither asks what happens when a model must write the expansion itself. We study only the choosing step, from a marked acronym and a given list of expansions, in both formats.
+
+\paragraph{LLMs and Hebrew word ambiguity.}
+\citet{liang2026cognates} test 16 LLMs, including Qwen2.5-7B and a Hebrew-capable model, on Arabic--Hebrew word pairs whose similar forms hide different meanings. They find that models lean on surface-form similarity, and that context and model size help only for some models. Two annotators checked the word labels, with agreement measured on a 10\% sample. All of their tasks are multiple choice, and they note that this may not reflect open-ended settings such as generation. Their task is cognates, not acronyms, and they do not compare formats. We make that comparison for Hebrew acronyms.
+
+\paragraph{Selecting from candidates.}
+\citet{chen2023gladis} introduce GLADIS, an English acronym benchmark whose test acronyms do not appear in training. Their model, AcroBERT, reads the context and one candidate together and learns to tell matching pairs from non-matching ones. Our encoder follows the same idea but is trained differently, with a binary match label for each pair. GLADIS has two weaknesses for our purpose. It covers only English and only selection, so it cannot show how selection compares with free generation. It also builds many evaluation sentences by replacing a full expression with its acronym, so those sentences were not written with an acronym. We use mostly naturally occurring test sentences and keep substituted sentences for training.
+
+\paragraph{Judging generated answers.}
+A generated answer can be right without matching the reference string, so the way answers are judged changes the score. \citet{agrawal2022large} ask GPT-3 to expand clinical abbreviations without choices, then map each answer to the candidate with the highest character overlap. In English clinical notes this works well (86\% accuracy on one benchmark), but the score is tied to the candidate list, and it is unknown whether character overlap suits Hebrew, where prefixes and inflection change a word's surface form. \citet{meconi2025large} test LLMs on word senses in two ways: selecting among supplied definitions, and generating definitions or explanations that an expert annotator rates by hand. They find that the best LLMs match supervised systems at selection, and that shuffling the candidates hurts smaller models. Their two settings use different items and different scoring, and they study word senses, not acronyms. We judge generated answers by hand and count valid variants of the same expansion, such as \heb{שקל חדש} and \heb{שקלים חדשים}, as correct. We also shuffle the candidate order.
+
+\paragraph{The gap.}
+To our knowledge, no earlier work compares free generation with candidate selection for Hebrew acronyms on the same occurrences, across a small LLM, a proprietary LLM and a fine-tuned encoder. We make this comparison on a human-reviewed test set whose acronym forms are absent from training.
+
+% ============================================================
+\section{Task and Data}
+\label{sec:data}
+% ============================================================
+\subsection{The unit of prediction}
+Each item $i$ has the six elements listed in Table~\ref{tab:notation}. The span identifies one occurrence even when the sentence contains several abbreviations. We keep $r_i=x_i[s_i]$, including any attached prefix, and mark the span with \texttt{[ACR]} and \texttt{[/ACR]}.
+
+\begin{table}[t]
+\centering\small
+\begin{tabular}{@{}cp{0.78\columnwidth}@{}}
+\toprule
+Symbol & Meaning \\
+\midrule
+$a_i$ & Acronym type, used only for grouping, never as model input \\
+$x_i$ & Sentence \\
+$s_i$ & Half-open character span of the target in $x_i$ \\
+$r_i$ & Raw target text, $x_i[s_i]$, with any attached prefix \\
+$C_i$ & Candidate expansions (the inventory) \\
+$y_i$ & Reference expansion \\
+\bottomrule
+\end{tabular}
+\caption{Elements of an item.}
+\label{tab:notation}
+\end{table}
+
+Generation predicts an expansion from $(x_i,s_i,r_i)$, without candidates. Selection picks one member of $C_i$ for the same marked sentence. Both are compared with the reference $y_i$, which is also the training label. The intended answer is a true expansion of the acronym, not just a description of what it refers to.
+
+Formally, the two formats differ in their output space:
+\begin{equation}
+\hat{y}^{\mathrm{gen}}=f(x,s)\in\Sigma^{*},\qquad \hat{y}^{\mathrm{sel}}=\operatorname*{arg\,max}_{c\in C}\mathrm{score}(x,s,c),
+\end{equation}
+where $\Sigma^{*}$ is the set of all Hebrew strings, so generation may return any string, while selection returns one candidate in $C$.
+
+Table~\ref{tab:example} illustrates the interface with a constructed example, not a dataset item.
+\begin{table}[t]
+\centering\small
+\begin{tabular}{@{}p{0.22\columnwidth}p{0.71\columnwidth}@{}}
+\toprule
+Sentence & \heb{ח״כ נשא נאום במליאה.} \\
+Target & \heb{ח״כ} (the first token) \\
+Generation & A short expansion, e.g.\ \heb{חבר כנסת} \\
+Selection & A letter assigned to one supplied candidate \\
+\bottomrule
+\end{tabular}
+\caption{Illustrative input and answer formats. The sentence means ``A member of parliament gave a speech in the plenum.'' The target is shown separately here for readability; both tasks receive it marked inside the sentence. The example makes no claim about system accuracy.}
+\label{tab:example}
+\end{table}
+
+\subsection{Sources and construction}
+Candidate expansions come from Hebrew Wikipedia abbreviation and disambiguation pages and from Wiktionary. We merged the two sources and reviewed near-duplicate expansions by hand, which left 2,702 candidate rows for 638 acronym types. Sentences come from Hebrew Wikipedia article text and from the Knesset plenary corpus (HaifaCLGroup/KnessetCorpus). We kept only sentences of 40 to 200 characters with a clear acronym boundary, allowing attached Hebrew prefixes, and we removed sentences with glosses, explicit definitions or other acronyms. A dictionary entry does not show that a sense occurs in context, so candidate sources and sentence labels are kept separate.
+
+Sentences are of four kinds. \emph{Natural} sentences contain the acronym as written. \emph{Substituted} sentences come from Wikipedia: a spelled-out expansion was replaced with the acronym, and the removed expression is a weak label. \emph{Deglossed} sentences are natural sentences with an adjacent explanation removed. \emph{Claude-authored} sentences were written by an LLM to add senses to types that had few. Substituted and authored sentences give labels cheaply, but they need not read like naturally abbreviated text.
+
+\subsection{Train, development and test sets}
+Table~\ref{tab:data} shows how the three sets differ in size and in the kind of sentence they contain.
+
+\begin{table}[t]
+\centering\small
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+Quantity & Train & Dev & Test \\
+\midrule
+Items & 2,829 & 62 & 395 \\
+Acronym types & 434 & 11 & 60 \\
+\midrule
+Substituted Wikipedia & 2,316 & 0 & 0 \\
+Natural Knesset & 319 & 62 & 267 \\
+Natural Wikipedia & 50 & 0 & 41 \\
+Deglossed Wikipedia & 8 & 0 & 0 \\
+Claude-authored & 136 & 0 & 87 \\
+\bottomrule
+\end{tabular}
+\caption{Items by set and by kind of sentence. Every item has at least two candidates.}
+\label{tab:data}
+\end{table}
+
+\paragraph{Train.} The encoder trains on 2,829 items, which give 12,684 sentence--candidate pairs. Most items are substituted, so most labels are weak. Stored labels were reused without comprehensive reannotation.
+
+\paragraph{Development.} Development holds 62 natural Knesset items for 11 types, and we use it only to select the encoder checkpoint. Of its labels, 42 reuse an earlier human review of the same sentence, and 20 are AI-assisted author decisions, so this is not independent annotation.
+
+\paragraph{Test.} The test set has 395 items for 60 types, and a human reviewer went over the entire set. For the Knesset sentences, the review compared each label with the candidate list: of 1,045 mined sentences, 941 were confirmed, 100 were corrected and four were dropped. All 267 Knesset test items come from this pool (234 confirmed, 33 corrected). The 87 Claude-authored items add three sentences each to 29 types whose reviewed Knesset examples all shared one sense. A single reviewer did the work, so we have no agreement estimate.
+
+\subsection{Separation of the sets}
+\label{sec:separation}
+Preparation checked item identity, target boundaries and candidate structure. These checks show structural validity, not that a label is correct. We split by acronym type. The test set shares no acronym form or sentence string with train or dev, and train and dev share none either. Documents are not fully separated: train and dev share three documents (three train and five dev items), and test shares four Knesset protocols with train (five train and 14 test items). Prefixed variants of one acronym can also fall in different sets: train has \heb{מד״ר} and dev has \heb{בד״ר}. The split therefore does not show generalization to wholly unseen acronym families.
+
+% ============================================================
+\section{Systems and Experimental Design}
+\label{sec:systems}
+% ============================================================
+Table~\ref{tab:systems} defines the five arms. Both LLMs get the same prompt for each task, and selection shows the candidates in the same seeded, shuffled order for every item. These controls align inputs but do not make the systems equivalent. The models also differ greatly in size: DictaBERT has about 0.2B parameters, 35 times fewer than the 7B Qwen model. Gemini's size is not public.
+
+\begin{table}[t]
+\centering\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+System & Candidates & Output \\
+\midrule
+DictaBERT ranker & Yes & Top candidate \\
+Qwen generation & No & Expansion text \\
+Qwen selection & Yes & Candidate letter \\
+Gemini generation & No & Expansion text \\
+Gemini selection & Yes & Candidate letter \\
+\bottomrule
+\end{tabular}
+\caption{All arms receive a sentence and marked target. Only DictaBERT receives task-specific supervised training.}
+\label{tab:systems}
+\end{table}
+
+\subsection{Supervised Hebrew candidate ranker}
+DictaBERT is a pretrained Hebrew encoder \citep{shmidman2023dictabert}. Our implementation is a \emph{cross-encoder}: the marked sentence and one candidate are encoded jointly, so their tokens can attend to each other. A dropout layer and a linear head turn the pooled representation into a scalar score. Candidates are scored independently, and prediction chooses the highest score within the item's candidates.
+
+For each training item, the reference candidate is positive and the other candidates are negative. The objective is binary cross-entropy on the pair scores, with the symbols defined in Table~\ref{tab:loss-notation}:
+\begin{equation}
+\mathcal{L}=-\frac{1}{M}\sum_{j=1}^{M}\big[z_j\log p_j+(1-z_j)\log(1-p_j)\big].
+\end{equation}
+AdamW updates the whole model, with no adapter.
+
+\begin{table}[t]
+\centering\small
+\begin{tabular}{@{}cp{0.78\columnwidth}@{}}
+\toprule
+Symbol & Meaning \\
+\midrule
+$M$ & Number of sentence--candidate pairs \\
+$u_j$ & Score of pair $j$ \\
+$p_j$ & $\sigma(u_j)$, the match probability, with $\sigma$ the sigmoid function \\
+$z_j$ & Label of pair $j$: 1 for the reference candidate, 0 otherwise \\
+\bottomrule
+\end{tabular}
+\caption{Symbols in the training loss.}
+\label{tab:loss-notation}
+\end{table}
+
+Training used dropout 0.1, learning rate $2\times10^{-5}$, pair batch size 16 and one epoch, and kept the checkpoint with the lowest development pair loss. The checkpoint comes from the authors' Colab run based on \texttt{dicta-il/dictabert}. The seed (42) was set after model initialization, so it does not control initialization, and we could not verify the executed settings from a complete training log. Each pair is the marked sentence followed by the candidate, joined by BERT special tokens, with a limit of 256 tokens. Long contexts are cropped while keeping the target and candidate. The LLMs receive the full sentence.
+
+\subsection{Prompted language models}
+The generation prompt, written in Hebrew, asks for the expansion of the marked acronym in a few words, without explanation. The selection prompt lists lettered candidates and asks for exactly one letter. Neither includes examples or the answer. We use \texttt{qwen2.5:7b} \citep{qwen2025technical} through Ollama with Q4\_K\_M quantization, and \texttt{gemini-3.8-flash} with low thinking. Each item gets one request per task. We set no decoding options for Qwen, and low thinking is not disabled thinking, so neither run is deterministic. Full prompts and raw answers are in the repository.
+
+% ============================================================
+\section{Evaluation}
+\label{sec:eval}
+% ============================================================
+\subsection{Scoring}
+All systems are scored on the same 395 items. A selection is correct when the chosen candidate equals the reference expansion. An LLM answer to a selection prompt must be one uppercase letter in the displayed range, and anything else, such as ``A.'', counts as wrong. Generated answers are judged by hand, and valid variants of the same expansion, such as \heb{שקל חדש} and \heb{שקלים חדשים}, count as correct. Accuracy is the share of correct items,
+\begin{equation}
+\mathrm{Acc}=\frac{1}{N}\sum_{i=1}^{N}c_i,
+\end{equation}
+where $c_i=1$ if item $i$ is correct and $N=395$. Failed or invalid responses count as wrong and stay in the denominator.
+
+\subsection{Reference points and variability}
+% TODO: after Shaked finishes the manual judging, rerun the selection arms a few times with fixed seeds and report the spread; add bootstrap confidence intervals from the per-item results.
+We report four reference points: random choice among the candidates; the candidate with the most Wikipedia hits (most frequent); the candidate that yielded the most mined sentences (most mined); and an oracle that is right whenever the reference is among the candidates. The order in which candidates are shown was shuffled with seed 42. Each system was run once, and we report no decoding variability or seed variability, so small differences should not be over-read. Items from the same type or document are not independent, which also limits what the results can show. The \codebase{src/hebrew_acronyms/models/common/eval.py}{shared evaluator} holds the scoring code.
+
+% ============================================================
+\section{Results and Discussion}
+\label{sec:results}
+% ============================================================
+% Skeleton following Vered Shwartz's advice: state the findings first, give results in full
+% and in an easy format, add examples, stay concise, do not oversell, report unflattering results.
+% TODO: every XX below is a manually judged generation score; fill them in and recheck each claim.
+Table~\ref{tab:test-results} gives accuracy for all systems on the 395 test items, and Figure~\ref{fig:generate-vs-select} compares the two formats for each LLM. Three results stand out. Selection beats generation for both LLMs. Fine-tuning improves the encoder. The fine-tuned encoder beats the small LLM, but not the proprietary LLM when that LLM selects from candidates. Sections~\ref{sec:res-formats} to~\ref{sec:res-errors} give the details.
+
+\begin{table}[t]
+\centering\small
+\begin{tabular}{lrr}
+\toprule
+System & Accuracy & Invalid \\
+\midrule
+Random & 23.4\% & -- \\
+Most frequent & 38.2\% & -- \\
+Most mined & 48.9\% & -- \\
+Oracle & 100.0\% & -- \\
+\midrule
+DictaBERT (untrained) & 65.1\% & -- \\
+DictaBERT (fine-tuned) & 72.4\% & -- \\
+\midrule
+Qwen 2.5 7B, generation & XX\% & XX\% \\
+Qwen 2.5 7B, selection & 59.5\% & 0.8\% \\
+Gemini, generation & XX\% & XX\% \\
+Gemini, selection & 93.7\% & 0.5\% \\
+\bottomrule
+\end{tabular}
+\caption{Test accuracy (395 items). For selection, an invalid answer is not a single valid letter. % TODO: define invalid for judged generation
+}
+\label{tab:test-results}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/generate_vs_select.pdf}
+\caption{Accuracy under free generation and under candidate selection, for each LLM. % TODO: regenerate with the judged generation scores
+}
+\label{fig:generate-vs-select}
+\end{figure}
+
+\subsection{Generation versus selection}
+\label{sec:res-formats}
+Candidate selection beats free generation for both LLMs. Accuracy rises from XX\% to 59.5\% for Qwen and from XX\% to 93.7\% for Gemini. % TODO: one sentence on why, from the error analysis, e.g. where generated answers go wrong
+Because selection is constrained to the inventory, this gain also depends on the inventory containing the right answer, which holds for every test item (the oracle is 100\%).
+
+\subsection{Fine-tuning and the encoder}
+\label{sec:res-encoder}
+Fine-tuning raises the encoder from 65.1\% to 72.4\%, a gain of 7.3 points from fewer than 3,000 training items. The fine-tuned encoder beats Qwen's selection (59.5\%) and Gemini's generation (XX\%). It trails Gemini's selection (93.7\%) by 21.3 points. So a model about 35 times smaller than Qwen can beat Qwen at selection, but it does not match the best system. We ran each system once, so we cannot say how stable the 7.3-point gain is.
+
+\subsection{Results by kind of sentence}
+\label{sec:res-source}
+% TODO: add a table of accuracy for each system on the 267 Knesset, 41 Wikipedia and 87 Claude-authored items, and one sentence on whether authored items are easier or harder.
+Because 22\% of the test items were written by an LLM, we report accuracy separately for each kind of sentence in Table~\ref{tab:res-source}.
+
+\begin{table}[t]
+\centering\small
+\begin{tabular}{lrrr}
+\toprule
+System & Knesset & Wikipedia & Authored \\
+\midrule
+% TODO: fill in from the per-item results
+\bottomrule
+\end{tabular}
+\caption{Test accuracy by kind of sentence (267, 41 and 87 items).}
+\label{tab:res-source}
+\end{table}
+
+\subsection{Examples and errors}
+\label{sec:res-errors}
+% TODO: add three to five short examples in a table: a generated answer judged correct as a variant (\heb{שקל חדש} vs \heb{שקלים חדשים}), a generated answer judged wrong, a selection error by Gemini, and a selection error by the encoder.
+Table~\ref{tab:res-examples} shows examples of correct variants and of errors.
+
+\begin{table}[t]
+\centering\small
+\begin{tabular}{p{0.2\columnwidth}p{0.7\columnwidth}}
+\toprule
+Case & Example \\
+\midrule
+% TODO
+\bottomrule
+\end{tabular}
+\caption{Examples of generated answers and selection errors.}
+\label{tab:res-examples}
+\end{table}
+
+% ============================================================
+\section{Limitations}
+% ============================================================
+\textbf{Test set.} 87 of the 395 test items (22\%) were written by an LLM, not observed in text, and a single human reviewer checked the labels, so we have no agreement estimate. No acronym form or sentence is shared between the test set and training. Some test acronyms may still be prefixed variants of training acronyms: a rough automatic check flags 15 such pairs, which we have not reviewed. The test set also shares four Knesset protocols with training (five training items and 14 test items), because we split by acronym type and not by document. We did not re-run the systems to measure the effect of this overlap.
+
+\textbf{Training and development.} Training is mostly substituted Wikipedia sentences and includes LLM-written text, while the test set is mostly natural parliamentary text, so domain, construction and acronym mix differ together. Whether the models saw the test sentences in pretraining is unknown. The development set has only 62 items for 11 types, and it has label defects: one \heb{מט״ח} sentence about the educational technology center is labeled foreign currency. We use it only to choose a checkpoint, but these defects may have affected that choice.
+
+\textbf{Labels and inventories.} Named uses need an annotation decision. In development, we accept \heb{רבי משה בן מימון} as the expansion of \heb{רמב״ם} even in hospital and street contexts, which is a local convention, not a general rule. An inventory may also omit a valid expansion, so matching the stored label can reward or penalize a system unfairly.
+
+\textbf{Comparison.} Candidate access is tied to the response format, and the systems also differ in supervision, architecture and size, so the results do not isolate the effect of candidate information. We tested only two LLMs, each run once, so we cannot say how far the findings hold for other models or settings.
+
+% ============================================================
+\section*{AI Disclosure and Reflection}
+% ============================================================
+OpenAI Codex (a GPT-6-based assistant) substantially assisted implementation, software checks, literature checking, manuscript drafting and editing, and PDF inspection. AI assistance also informed recorded author annotation decisions. The 136 Claude-authored training examples are identified separately from natural text. Software and presentation checks are distinct from the separately recorded DictaBERT, Qwen and Gemini development runs. Detailed assistance and annotation provenance are documented in the repository. Author contributions and personal reflections remain to be completed by the authors.
+
+\label{bodyend}
+\bibliography{references}
+\end{document}
