@@ -27,15 +27,16 @@ incomplete reconstruction of later additions.
 
 LLMs perform both tasks on the same items. Candidate order is fixed per item and
 recorded for reuse and recovery; labels beyond Z preserve all candidates, including
-the two test items with 30 candidates. The evaluation package includes Qwen2.5 7B
-through Ollama, Gemini, GPT-4.1 mini and Claude Haiku 5.5 adapters. Exact model IDs,
+the two test items with 30 candidates. The evaluation package includes Qwen2.5 7B and 14B
+through Ollama, Gemini, GPT-4.1 mini, Claude Haiku 5.5 and Grok 4.7 adapters. Exact model IDs,
 settings, returned versions and response usage are recorded in each run.
 
 Encoder comparisons distinguish trained DictaBERT candidate scoring from an
 untrained DictaBERT similarity baseline. Four deterministic baselines are also
 available. The [checkpoint documentation](docs/checkpoints.md) records loading
-requirements and the existing weights' incomplete training provenance. Fresh
-strict encoder evaluation still requires qualified target spans for the test data.
+requirements and the existing weights' incomplete training provenance. The new
+395-item checkpoint inference uses an explicitly recorded first-occurrence target
+policy; these derived spans are not human annotations.
 
 [Saved test results](results/test_results.md) are historical measurements. New
 collection and human review are incomplete; offline software tests do not establish
@@ -70,8 +71,9 @@ python3.12 -m venv .venv
 .venv/bin/python -m jupyter lab notebooks/experimental_study.ipynb
 ```
 
-Select the `.venv` kernel. The development notebook defaults to an invented-data
-preview with no model calls. Dependencies are pinned in `requirements.txt` through
+Select the `.venv` kernel. The main notebook loads the identified saved-result
+bundle when present and otherwise uses an invented-data preview; neither default
+sends model requests. Dependencies are pinned in `requirements.txt` through
 `pyproject.toml`; the full transitive environment is not locked. Model execution
 requires explicit settings and the corresponding local model or API credentials.
 Keep secrets in local environment configuration or Colab Secrets, outside Git.

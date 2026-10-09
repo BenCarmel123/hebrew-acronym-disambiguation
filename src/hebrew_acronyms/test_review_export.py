@@ -106,3 +106,79 @@ def export_review(run_sources, output_path):
     with output_path.open('x', encoding='utf-8') as handle:
         json.dump(bundle, handle, ensure_ascii=False, indent=2)
     return bundle
+
+
+def review_coverage(data_path, annotations_path):
+    """Read explicit completed judgments, keeping automatic and human labels apart."""
+    dataset = json.loads(Path(data_path).read_text())
+    path = Path(annotations_path)
+    annotations = json.loads(path.read_text()) if path.exists() else None
+    if annotations is not None and (
+            annotations.get('schema_version') != 'human-review-v2'
+            or annotations.get('dataset_id') != dataset['dataset_id']
+            or annotations.get('provenance') != dataset['provenance']):
+        raise ValueError('Human review source or schema mismatch')
+    records = annotations.get('records', {}) if annotations else {}
+    items = {item['id']: item for item in dataset['items']}
+    if len(items) != len(dataset['items']) or set(records) - set(items):
+        raise ValueError('Duplicate or unknown review item')
+    groups, timestamps, starts = {}, [], []
+    for item_id, item in items.items():
+        record = records.get(item_id, {})
+        complete = record.get('completion', {}).get('status') == 'complete'
+        reviewed = record.get('reviewed') or {}
+        if complete and (not reviewed.get('annotator') or reviewed != record.get('draft')):
+            raise ValueError('Completed review lacks a matching explicit snapshot')
+        for answer in item['answers']:
+            binding = answer['binding']
+            if (binding['response_sha256'] != hashlib.sha256(answer['raw'].encode()).hexdigest()
+                    or answer['id'] != digest(binding)):
+                raise ValueError('Review answer identity differs from response text')
+            key = (answer['system_id'], answer['task'], binding['run_id'])
+            group = groups.setdefault(key, Counter(system=key[0], task=key[1], run_id=key[2]))
+            group['total'] += 1
+            group['technical_failures'] += int(answer['technical_failure'])
+            positive = bool(answer['auto_score'])
+            group['automatic_positive_total' if positive else 'automatic_nonpositive_total'] += 1
+            judgment = reviewed.get('answers', {}).get(answer['id'], {}) if complete else {}
+            quality = judgment.get('quality', '')
+            if quality and (judgment.get('system_id') != answer['system_id']
+                            or quality not in {'correct', 'wrong', 'partial', 'undecidable', 'no_answer'}):
+                raise ValueError('Human judgment does not match its answer')
+            if not quality:
+                group['not_reviewed'] += 1
+                continue
+            group['reviewed'] += 1
+            group['human_' + quality] += 1
+            group['automatic_positive_reviewed' if positive else 'automatic_nonpositive_reviewed'] += 1
+            if not answer['technical_failure']:
+                if not positive and quality == 'correct':
+                    group['automatic_nonpositive_human_correct'] += 1
+                if positive and quality == 'wrong':
+                    group['automatic_positive_human_wrong'] += 1
+            timestamps.append(reviewed['updated_at'])
+            initial = record.get('initial_interpretation') or {}
+            if initial.get('captured_at'):
+                starts.append(initial['captured_at'])
+    fields = ('automatic_positive_total', 'automatic_nonpositive_total', 'technical_failures',
+              'reviewed', 'not_reviewed', 'human_correct', 'human_wrong', 'human_partial',
+              'human_undecidable', 'human_no_answer', 'automatic_positive_reviewed',
+              'automatic_nonpositive_reviewed', 'automatic_nonpositive_human_correct',
+              'automatic_positive_human_wrong')
+    rows = []
+    for group in groups.values():
+        row = dict(group)
+        row.update({field: group[field] for field in fields})
+        row['unresolved'] = group['not_reviewed'] + group['human_undecidable']
+        rows.append(row)
+    pace = None
+    if len(timestamps) >= 20 and starts:
+        from datetime import datetime
+        end = sorted(timestamps)[19]
+        elapsed = (datetime.fromisoformat(end) - datetime.fromisoformat(min(starts))).total_seconds()
+        if elapsed > 0:
+            pace = {'first_20_wall_minutes': elapsed / 60,
+                    'remaining_wall_minutes_estimate': elapsed / 20 / 60 * sum(r['not_reviewed'] for r in rows),
+                    'note': 'Wall-clock estimate includes breaks; the initial queue is not a representative sample.'}
+    return {'rows': rows, 'pace': pace, 'annotations_present': annotations is not None,
+            'source_identity': dataset['source_identity']}

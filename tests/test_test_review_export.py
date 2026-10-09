@@ -1,10 +1,11 @@
 """Review export checks with invented answers and no model calls."""
 from pathlib import Path
+import json
 import tempfile
 import unittest
 from unittest.mock import patch
 
-from hebrew_acronyms.test_review_export import export_review
+from hebrew_acronyms.test_review_export import export_review, review_coverage
 
 
 class ReviewExportTests(unittest.TestCase):
@@ -56,3 +57,49 @@ class ReviewExportTests(unittest.TestCase):
         with self.assertRaises(FileExistsError):
             self.export('existing.json')
         self.assertEqual(path.read_text(), 'preserve')
+
+    def test_coverage_without_judgments_keeps_full_denominators(self):
+        self.export('review.json')
+        result = review_coverage(self.root / 'review.json', self.root / 'absent.json')
+        self.assertFalse(result['annotations_present'])
+        self.assertIsNone(result['pace'])
+        self.assertEqual(sum(r['total'] for r in result['rows']), 790)
+        self.assertEqual(sum(r['unresolved'] for r in result['rows']), 790)
+        self.assertEqual(sum(r['reviewed'] for r in result['rows']), 0)
+
+    def test_only_explicit_completed_labels_are_counted_and_bound_to_source(self):
+        data = self.export('review.json')
+        item = next(i for i in data['items'] if not i['answers'][0]['auto_score'])
+        answer = item['answers'][0]
+        annotation = {'annotator': 'fixture reviewer', 'updated_at': '2026-10-09T10:01:00+00:00',
+                      'answers': {answer['id']: {'quality': 'correct', 'system_id': answer['system_id']}}}
+        record = {'completion': {'status': 'partial'}, 'draft': annotation, 'reviewed': annotation}
+        bundle = {'schema_version': 'human-review-v2', 'dataset_id': data['dataset_id'],
+                  'provenance': data['provenance'], 'records': {item['id']: record}}
+        path = self.root / 'labels.json'
+        path.write_text(json.dumps(bundle))
+        self.assertEqual(sum(r['reviewed'] for r in review_coverage(self.root/'review.json', path)['rows']), 0)
+        record['completion']['status'] = 'complete'
+        path.write_text(json.dumps(bundle))
+        rows = review_coverage(self.root/'review.json', path)['rows']
+        self.assertEqual(sum(r['reviewed'] for r in rows), 1)
+        self.assertEqual(sum(r['automatic_nonpositive_human_correct'] for r in rows), 1)
+        bundle['dataset_id'] = 'different-source'
+        path.write_text(json.dumps(bundle))
+        with self.assertRaisesRegex(ValueError, 'source or schema mismatch'):
+            review_coverage(self.root/'review.json', path)
+
+    def test_changed_response_cannot_retain_an_old_judgment_identity(self):
+        data = self.export('review.json')
+        data['items'][0]['answers'][0]['raw'] = 'changed response'
+        (self.root/'review.json').write_text(json.dumps(data))
+        with self.assertRaisesRegex(ValueError, 'identity differs'):
+            review_coverage(self.root/'review.json', self.root/'absent.json')
+
+    def test_all_positive_group_retains_zero_negative_denominator(self):
+        for record in self.records:
+            record['correct'] = True
+        self.export('positive-only.json')
+        rows = review_coverage(self.root/'positive-only.json', self.root/'absent.json')['rows']
+        self.assertTrue(all(row['automatic_nonpositive_total'] == 0 for row in rows))
+        self.assertEqual(sum(row['automatic_positive_total'] for row in rows), 790)

@@ -43,34 +43,86 @@ def _test_signature(identity):
                      for r in requests]}
 
 
-def compare_saved_tests(session_sources, expected_test_runs):
+def compare_saved_tests(session_sources, expected_test_runs, *, diagnostic_sources=(), continuation_sources=()):
     """Read chronological (directory, session hash) pairs; never call models or write.
 
     expected_test_runs maps each selected system to its original full-test run ID.
     Session prior spending must carry the preceding total exactly once. The first
     session's prior allocation remains explicit rather than being reconstructed.
+    Explicit continuations may add new runs to an earlier session only when all
+    previously counted manifests and attempt journals are byte-identical.
     """
     if not session_sources or not expected_test_runs:
         raise ValueError("Provide identified sessions and expected test run IDs")
-    roots = [Path(path).resolve() for path, _ in session_sources]
+    # One separately journalled xAI HTTP diagnostic was made between sessions.
+    diagnostics = []
+    seen_diagnostics = set()
+    for directory, start_hash, finish_hash in diagnostic_sources:
+        directory = Path(directory)
+        start_bytes = (directory / "diagnostic.jsonl").read_bytes()
+        finish_bytes = (directory / "recovered-finish.json").read_bytes()
+        if (hashlib.sha256(start_bytes).hexdigest() != start_hash
+                or hashlib.sha256(finish_bytes).hexdigest() != finish_hash):
+            raise ValueError("Diagnostic evidence hash mismatch")
+        if (start_hash, finish_hash) in seen_diagnostics:
+            raise ValueError("Duplicate diagnostic")
+        seen_diagnostics.add((start_hash, finish_hash))
+        start, finish = json.loads(start_bytes), json.loads(finish_bytes)
+        result = finish["result"]
+        reserve = start["reserved_ils"]
+        if (start["event"] != "start" or start["max_requests"] != 1
+                or finish["event"] != "finish_recovered_from_kernel"
+                or result["attempts"] != 1 or result["http_status"] != 400
+                or result["usage_metadata"] is not None
+                or not isinstance(reserve, (int, float)) or isinstance(reserve, bool)
+                or not math.isfinite(reserve) or reserve <= 0
+                or not math.isclose(finish["accounted_ils_including_reserve"],
+                                    start["prior_accounted_ils"] + reserve, abs_tol=1e-9)):
+            raise ValueError("Unsupported diagnostic accounting evidence")
+        diagnostics.append((directory, start))
+    all_sources = [*session_sources, *continuation_sources]
+    roots = [Path(path).resolve() for path, _ in all_sources]
     if len(set(roots)) != len(roots):
         raise ValueError("Duplicate session directory")
     sessions, models, metrics, failures, pilots, costs = [], [], [], [], [], []
     seen_sessions, seen_runs, seen_attempts = set(), set(), set()
     found_tests, signature, reference_identity = {}, None, None
     total, initial_prior, measured, uncertain = None, None, 0.0, 0.0
-    baseline_paths = []
-    for root, (_, expected_session) in zip(roots, session_sources):
+    baseline_paths, original_roots = [], {}
+    for index, (root, (_, expected_session)) in enumerate(zip(roots, all_sources)):
+        continuation = index >= len(session_sources)
+        old_run_ids = {}
         session = json.loads((root / "session.json").read_text())
         identity = session["identity"]
         if session["identity_sha256"] != expected_session or evaluation._hash(identity) != expected_session:
             raise ValueError("Session identity mismatch")
-        if expected_session in seen_sessions:
+        if continuation:
+            original = original_roots.get(expected_session)
+            if original is None:
+                raise ValueError("Continuation requires an earlier identified snapshot")
+            if (root / "session.json").read_bytes() != (original / "session.json").read_bytes():
+                raise ValueError("Continuation changed its original session")
+            for old in [*original.glob("*/*/manifest.json"), *original.rglob("attempts*.jsonl")]:
+                new = root / old.relative_to(original)
+                if not new.is_file() or new.read_bytes() != old.read_bytes():
+                    raise ValueError("Continuation changed previously counted evidence")
+                if old.name == "manifest.json":
+                    old_run_ids[json.loads(old.read_text())["run_id"]] = old.relative_to(original)
+                    if ({q.name for q in old.parent.glob("attempts*.jsonl")}
+                            != {q.name for q in new.parent.glob("attempts*.jsonl")}):
+                        raise ValueError("Continuation changed previously counted journals")
+            new_manifests = [p for p in root.glob("*/*/manifest.json")
+                             if json.loads(p.read_text())["run_id"] not in old_run_ids]
+            if not new_manifests:
+                raise ValueError("Continuation contains no new run")
+        elif expected_session in seen_sessions:
             raise ValueError("Duplicate session identity")
+        else:
+            original_roots[expected_session] = root
         seen_sessions.add(expected_session)
         if total is None:
             total = initial_prior = identity["prior_spend_ils"]
-        elif not math.isclose(identity["prior_spend_ils"], total, rel_tol=0, abs_tol=1e-9):
+        elif not continuation and not math.isclose(identity["prior_spend_ils"], total, rel_tol=0, abs_tol=1e-9):
             raise ValueError("Prior expenditure does not match the preceding cumulative total")
         if reference_identity is None:
             reference_identity = identity
@@ -110,6 +162,10 @@ def compare_saved_tests(session_sources, expected_test_runs):
                     or run["rates_usd_per_million"] != {name: identity["rates"][name]}
                     or run["reserve_per_call_usd"] != {name: identity["reserves"][name]}):
                 raise ValueError("Run does not match its collection session")
+            if continuation and manifest["run_id"] in old_run_ids:
+                if path.relative_to(root) != old_run_ids[manifest["run_id"]]:
+                    raise ValueError("Duplicate run ID in continuation")
+                continue
             if manifest["run_id"] in seen_runs:
                 raise ValueError("Duplicate run ID")
             seen_runs.add(manifest["run_id"])
@@ -163,11 +219,27 @@ def compare_saved_tests(session_sources, expected_test_runs):
         total += (session_measured + session_uncertain) * conversion
         costs.append({"session": common["session"] if manifests else root.name,
                       "prior_ils": identity["prior_spend_ils"], "new_token_cost_ils": session_measured * conversion,
-                      "new_uncertain_ils": session_uncertain * conversion, "cumulative_ils": total})
+                      "new_uncertain_ils": session_uncertain * conversion, "cumulative_ils": total, "continuation": continuation})
         sessions.append({"path": str(root), "identity_sha256": expected_session,
                          "collection_revision": identity["code_revision"]})
         if (root / "baselines/baselines.json").exists():
             baseline_paths.append(root / "baselines/baselines.json")
+        session_name = root.name if root.name != "extracted" else root.parent.name
+        for directory, start in list(diagnostics):
+            if start["source_session"] != session_name:
+                continue
+            if (start["source_revision"] != identity["code_revision"]
+                    or not math.isclose(start["prior_accounted_ils"], total, rel_tol=0, abs_tol=1e-9)):
+                raise ValueError("Diagnostic prior or collection revision mismatch")
+            reserve = start["reserved_ils"]
+            costs.append({"session": session_name + "/xai-http-diagnostic", "prior_ils": total,
+                          "new_token_cost_ils": 0.0, "new_uncertain_ils": reserve,
+                          "cumulative_ils": total + reserve})
+            total += reserve
+            uncertain += reserve
+            diagnostics.remove((directory, start))
+    if diagnostics:
+        raise ValueError("Diagnostic source session not found")
     if found_tests != expected_test_runs:
         raise ValueError("Missing expected full-test run")
     if not baseline_paths:
@@ -189,7 +261,7 @@ def compare_saved_tests(session_sources, expected_test_runs):
             "baseline_path": str(baseline_paths[0]), "test_source_sha256": signature["source_sha256"],
             "cost": {"initial_prior_allocation_ils": initial_prior, "token_cost_ils": measured,
                      "uncertain_attempt_allowances_ils": uncertain, "total_accounted_ils": total},
-            "unique_attempts": len(seen_attempts), "test_runs": found_tests}
+            "unique_attempts": len(seen_attempts), "diagnostic_requests": len(seen_diagnostics), "test_runs": found_tests}
 
 
 def result_table(rows, columns):
