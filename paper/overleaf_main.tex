@@ -13,6 +13,14 @@
 \usepackage{microtype}
 \usepackage{inconsolata}
 \usepackage{booktabs,graphicx,amsmath,array}
+% The default Hebrew font (Jerusalem) is larger than Times, so scale it down.
+\DeclareFontFamily{LHE}{cmr}{\hyphenchar\font45}
+\DeclareFontShape{LHE}{cmr}{m}{n}{<-> s*[0.76] jerus10}{}
+\DeclareFontShape{LHE}{cmr}{bx}{n}{<-> s*[0.76] deads10}{}
+% pdfLaTeX has no mapping for the Hebrew gershayim (U+05F4), so print it as a double quote.
+\DeclareUnicodeCharacter{05F4}{\char34}
+% Let columns end unevenly instead of stretching the space between paragraphs.
+\raggedbottom
 \newcommand{\heb}[1]{\R{#1}}
 \newcommand{\repo}[2]{\href{https://github.com/BenCarmel123/hebrew-acronym-disambiguation/blob/04ec31754421e4a96d6b66122cb0a2fca428471d/#1}{#2}}
 \newcommand{\codebase}[2]{\href{https://github.com/BenCarmel123/hebrew-acronym-disambiguation/blob/04ec31754421e4a96d6b66122cb0a2fca428471d/#1}{#2}}
@@ -314,13 +322,13 @@ Case & Example \\
 % ============================================================
 \section{Limitations}
 % ============================================================
-\textbf{Test set.} 87 of the 395 test items (22\%) were written by an LLM, not observed in text, and a single human reviewer checked the labels, so we have no agreement estimate. No acronym form or sentence is shared between the test set and training. Some test acronyms may still be prefixed variants of training acronyms: a rough automatic check flags 15 such pairs, which we have not reviewed. The test set also shares four Knesset protocols with training (five training items and 14 test items), because we split by acronym type and not by document. We did not re-run the systems to measure the effect of this overlap.
+\paragraph{Test set.} 87 of the 395 test items (22\%) were written by an LLM, not observed in text, and a single human reviewer checked the labels, so we have no agreement estimate. No acronym form or sentence is shared between the test set and training. Some test acronyms may still be prefixed variants of training acronyms: a rough automatic check flags 15 such pairs, which we have not reviewed. The test set also shares four Knesset protocols with training (five training items and 14 test items), because we split by acronym type and not by document. We did not re-run the systems to measure the effect of this overlap.
 
-\textbf{Training and development.} Training is mostly substituted Wikipedia sentences and includes LLM-written text, while the test set is mostly natural parliamentary text, so domain, construction and acronym mix differ together. Whether the models saw the test sentences in pretraining is unknown. The development set has only 62 items for 11 types, and it has label defects: one \heb{מט״ח} sentence about the educational technology center is labeled foreign currency. We use it only to choose a checkpoint, but these defects may have affected that choice.
+\paragraph{Training and development.} Training is mostly substituted Wikipedia sentences and includes LLM-written text, while the test set is mostly natural parliamentary text, so domain, construction and acronym mix differ together. Whether the models saw the test sentences in pretraining is unknown. The development set has only 62 items for 11 types, and it has label defects: one \heb{מט״ח} sentence about the educational technology center is labeled foreign currency. We use it only to choose a checkpoint, but these defects may have affected that choice.
 
-\textbf{Labels and inventories.} Named uses need an annotation decision. In development, we accept \heb{רבי משה בן מימון} as the expansion of \heb{רמב״ם} even in hospital and street contexts, which is a local convention, not a general rule. An inventory may also omit a valid expansion, so matching the stored label can reward or penalize a system unfairly.
+\paragraph{Labels and inventories.} Named uses need an annotation decision. In development, we accept \heb{רבי משה בן מימון} as the expansion of \heb{רמב״ם} even in hospital and street contexts, which is a local convention, not a general rule. An inventory may also omit a valid expansion, so matching the stored label can reward or penalize a system unfairly.
 
-\textbf{Comparison.} Candidate access is tied to the response format, and the systems also differ in supervision, architecture and size, so the results do not isolate the effect of candidate information. We tested only two LLMs, each run once, so we cannot say how far the findings hold for other models or settings.
+\paragraph{Comparison.} Candidate access is tied to the response format, and the systems also differ in supervision, architecture and size, so the results do not isolate the effect of candidate information. We tested only two LLMs, each run once, so we cannot say how far the findings hold for other models or settings.
 
 % ============================================================
 \section*{AI Disclosure and Reflection}
