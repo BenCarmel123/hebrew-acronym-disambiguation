@@ -16,9 +16,9 @@ separately: natural text is not automatically a verified label, and authored tex
 is not observed usage.
 
 The stored test split contains **395 items across 60 acronym types**: 267 Knesset,
-41 Wikipedia and 87 Claude-authored sentences. The qualified development cohort
-used by the reproducible evaluation contains 62 items. Historical development
-files describe a different cohort and are not interchangeable with it. The
+41 Wikipedia and 87 Claude-authored sentences. The research/encoder dev cohort
+(`data/study_v1/encoder_inputs/dev.csv`) contains 62 items; the test notebook's
+pilot uses the first ten of the 289 items in `data/splits/dev_items.csv`. The
 [data inventory](data/README.md) and [dataset card](data/mined/DATASET_CARD.md)
 document training inputs, construction, review evidence and limitations, including
 incomplete reconstruction of later additions.
