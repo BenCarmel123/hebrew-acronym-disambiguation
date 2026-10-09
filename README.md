@@ -204,15 +204,28 @@ including institutional uses, before interpreting these diagnostic development s
 
 ## Continuation review of all generation answers (current protocol)
 
-The compact work screen keeps the sentence and reference above one or two remaining
-answer rows, with inline judgments and optional tags. Use **1** = fits context,
+The default continuation view groups pending answers with exactly the same raw text,
+acronym and reference across sentences (`exact-cross-context-v1`). It shows the answer once
+and every full context. An explicit common judgment applies to the displayed contexts;
+each context can override it or be deferred. No judgment is inferred from string
+equality. Previously judged or mechanically filtered answers are not enrolled.
+Group saves retain their shared action provenance and per-context decisions; they
+are not independent judgments. Notes and concern/example flags remain per sentence.
+At introduction, 566 separate context decisions become 469 groups (36 recurring
+groups and 433 singletons), saving up to 97 common-label actions before exceptions.
+Reading all contexts is still necessary. Nothing is removed from source coverage.
+
+The original per-sentence view remains available in the queue selector. Its compact
+screen keeps the sentence and reference above one or two remaining answer rows,
+with inline judgments and optional tags. Use **1** = fits context,
 **2** = does not fit, **3** = unsure for the highlighted answer row; then **Enter**
 to save and move on. The active row moves to the next unanswered response. Shortcuts
 do not run while typing a note or choosing a queue, and never infer tags or labels.
 Mouse controls remain available. Longer explanations are in case details; answer
 text, context, and reference are not shortened. This interface change does not alter
-the protocol, filtering, previous work or exposure history. Exact duplicate responses
-within a sentence were already combined; no cross-sentence judgments are propagated.
+filtering, previous work or exposure history. Exact duplicate responses within a
+sentence were already combined. Cross-sentence application now requires the explicit
+group judgment described above, with all affected contexts visible.
 The remaining decisions still take reading time, so a one-hour completion is not
 promised. Stopping preserves partial coverage and a masked summary.
 
@@ -238,11 +251,12 @@ At migration: 790 source answers = 40 previously judged + 181 trim-exact filtere
 Three byte-identical pairs within the same sentence require one presentation each,
 leaving 566 human decisions. This duplicate saving is not subtracted a second time
 from source coverage. The shared decision has one decision ID applied to its source
-occurrences; they are not independent judgments. Identical strings in different
-sentences are never merged. Nonidentical strings are never merged semantically.
+occurrences; they are not independent judgments. The later grouping extension allows
+an explicit shared judgment across displayed contexts with the same acronym and
+reference. Nonidentical strings are never merged semantically.
 
-The default queue contains all pending work. Each case shows only its one or two
-remaining answer cards. Optional tags, concern/example flags, note, autosave and
+The default grouped queue contains all pending work. The per-sentence queue shows
+only its one or two remaining answer cards. Optional tags, concern/example flags, note, autosave and
 save-and-next remain. Counts refer to answer occurrences and required decisions,
 not only sentence completion. Separate views provide answers containing letters
 from another script, existing unsure judgments, and reference/context concerns.

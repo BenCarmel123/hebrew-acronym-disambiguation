@@ -253,6 +253,11 @@ class MaskedStore:
         event = {'time': now(), 'action': action, 'item_id': item_id, 'revision': candidate['revision'],
                  'protocol_version': self.protocol, 'record': candidate['records'].get(item_id),
                  'reveal_event': candidate['reveal_events'][-1:] if action == 'reveal' else []}
+        if action in {'group-open', 'group-save', 'group-details'}:
+            group_event = candidate['cross_context_events'][-1]
+            event['group_event'] = copy.deepcopy(group_event)
+            event['records'] = {key: copy.deepcopy(candidate['records'][key]) for key in group_event['item_ids']}
+            event['group_session'] = copy.deepcopy(candidate['cross_context_sessions'][group_event['open_id']])
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with self.path.with_suffix('.history.jsonl').open('a', encoding='utf-8') as out:
             out.write(json.dumps(event, ensure_ascii=False) + '\n'); out.flush(); os.fsync(out.fileno())
@@ -634,6 +639,184 @@ class ContinuationStore(MaskedStore):
     def queues(self):
         return {view: [i for i in self.plan['queue'] if self.selected_ids(i, view)] for view in self.views}
 
+    def group_key(self, item_id, answer_id):
+        item = self.items[item_id]
+        return (item.get('acronym'), item.get('gold'), self.answers[item_id][answer_id].get('raw'))
+
+    def group_id(self, key):
+        return hmac.new(self.state['backup_secret'].encode(), digest(['exact-cross-context-v1', key]).encode(), hashlib.sha256).hexdigest()[:32]
+
+    def group_index(self, view='all'):
+        result = {}
+        for item_id in self.plan['queue']:
+            for slot in self.state['presentation'][item_id]:
+                aid = slot['answer_id']
+                entry = self.state['inventory'][item_id][aid]
+                if entry['status'] != 'pending' or (view == 'foreign' and not entry['foreign_letters']):
+                    continue
+                key = self.group_key(item_id, aid)
+                gid = self.group_id(key)
+                group = result.setdefault(gid, {'key': key, 'members': {}})
+                group['members'].setdefault(item_id, []).append(aid)
+        return result
+
+    def _member_fingerprint(self, judgment):
+        return {key: copy.deepcopy(judgment.get(key)) for key in (
+            'label', 'tags', 'label_updated_at', 'tags_updated_at', 'cross_context')}
+
+    def public_group(self, session):
+        acronym, gold, raw = session['key']
+        contexts = []
+        for item_id, aids in session['members'].items():
+            r = self.state['records'].get(item_id, self.blank())
+            tokens = {s['answer_id']: s['token'] for s in self.state['presentation'][item_id]}
+            contexts.append({'id': item_id, 'sentence': self.items[item_id]['sentence'],
+                'target_spans': copy.deepcopy(self.items[item_id].get('target_spans', [])),
+                'occurrence_count': len(aids), 'answer_ids': [tokens[aid] for aid in aids],
+                'suspect': r['suspect'], 'example': r['example'], 'note': r['note']})
+        return {'id': session['group_id'], 'open_id': session['open_id'], 'acronym': acronym, 'gold': gold, 'text': raw,
+                'contexts': contexts, 'form': copy.deepcopy(session['form']), 'grouping_version': 'exact-cross-context-v1'}
+
+    def _group_session(self, payload):
+        gid, opened = payload.get('group_id'), payload.get('open_id')
+        session = self.state.get('cross_context_sessions', {}).get(opened)
+        if (not session or session['group_id'] != gid
+                or self.state.get('cross_context_active', {}).get(gid) != opened):
+            raise ValueError('Open this group again before saving; its displayed membership has changed')
+        return session
+
+    def group_transact(self, action, payload):
+        view = payload.get('view', 'all')
+        if view not in {'all', 'foreign'}:
+            raise ValueError('Unknown grouped view')
+        candidate = copy.deepcopy(self.state)
+        if action == 'group-open':
+            gid = payload.get('group_id')
+            group = self.group_index(view).get(gid)
+            if not group:
+                raise ValueError('This group has no pending answers in the selected view')
+            opened = secrets.token_hex(16)
+            session = {'open_id': opened, 'group_id': gid, 'version': 'exact-cross-context-v1', 'view': view,
+                       'key': list(group['key']), 'members': copy.deepcopy(group['members']), 'opened_at': now(),
+                       'form': {'label': '', 'tags': [], 'note': '', 'exceptions': {}}, 'expected': {}, 'expected_context': {},
+                       'context_phases': {i: self.phase(i) for i in group['members']}}
+            for item_id, aids in session['members'].items():
+                r = candidate['records'].setdefault(item_id, self.blank())
+                # Every displayed context/reference is explicitly logged, before any common decision.
+                r['exposure'].setdefault('reference_and_generation', {'at': now(), 'protocol': self.protocol,
+                    'independent_attempt': False, 'phase': self.phase(item_id)})
+                r['exposure'].setdefault('cross_context_groups', {})[opened] = {
+                    'at': now(), 'group_id': gid, 'phase': self.phase(item_id), 'reference_presented': True}
+                session['expected'][item_id] = {aid: self._member_fingerprint(r['judgments'].get(aid, {})) for aid in aids}
+                session['expected_context'][item_id] = {key: copy.deepcopy(r[key]) for key in ('note', 'suspect', 'example')}
+            candidate.setdefault('cross_context_sessions', {})[opened] = session
+            candidate.setdefault('cross_context_active', {})[gid] = opened
+        else:
+            original_session = self._group_session(payload)
+            opened = original_session['open_id']; gid = original_session['group_id']
+            session = candidate['cross_context_sessions'][opened]
+            if action == 'group-details':
+                for item_id in session['members']:
+                    candidate['records'][item_id]['exposure'].setdefault('candidates', {
+                        'at': now(), 'phase': self.phase(item_id), 'reason': 'explicit_group_details'})
+            elif action == 'group-save':
+                exceptions = payload.get('exceptions', {})
+                updates = payload.get('context_updates', {})
+                if (not isinstance(exceptions, dict) or not isinstance(updates, dict)
+                        or not (set(exceptions) | set(updates)).issubset(session['members'])):
+                    raise ValueError('Unknown or undisplayed context')
+                if 'members' in payload:
+                    raise ValueError('Group membership is fixed by the saved open session')
+                label = payload.get('common_label', '')
+                tags = payload.get('common_tags', session['form']['tags'])
+                note = payload.get('common_note', session['form']['note'])
+                if not isinstance(label, str) or label not in LABELS | {''}:
+                    raise ValueError('Invalid common judgment')
+                if not isinstance(tags, list) or any(not isinstance(t, str) or t not in TAGS for t in tags) or not isinstance(note, str):
+                    raise ValueError('Invalid common tags or note')
+                tags = sorted(set(tags))
+                apply_tags = tags != session['form']['tags'] or payload.get('apply_tags') is True
+                apply_note = note != session['form']['note']
+                common_decision = session.get('common_decision_id') if label == session['form']['label'] else None
+                common_decision = common_decision or secrets.token_hex(16)
+                action_id = secrets.token_hex(16)
+                stamp = now()
+                for item_id, aids in session['members'].items():
+                    r = candidate['records'][item_id]
+                    if any(r[key] != session['expected_context'][item_id][key] for key in ('note', 'suspect', 'example')):
+                        raise ValueError('Context notes or flags changed outside this group; reload before saving')
+                    exception = exceptions.get(item_id, {})
+                    update = updates.get(item_id, {})
+                    if not isinstance(exception, dict) or not isinstance(update, dict):
+                        raise ValueError('Invalid context override')
+                    if not set(exception).issubset({'label', 'tags', 'note', 'suspect', 'example'}) or not set(update).issubset({'note', 'suspect', 'example'}):
+                        raise ValueError('Unknown context override field')
+                    choice = exception.get('label', label)
+                    if not isinstance(choice, str) or choice not in LABELS | {'', 'defer'}:
+                        raise ValueError('Invalid context judgment')
+                    context_tags = exception.get('tags', tags)
+                    if not isinstance(context_tags, list) or any(not isinstance(t, str) or t not in TAGS for t in context_tags):
+                        raise ValueError('Invalid context tags')
+                    context_tags = sorted(set(context_tags))
+                    kind = 'defer' if choice == 'defer' else 'exception' if 'label' in exception else 'common'
+                    effective = '' if choice == 'defer' else choice
+                    old_first = r['judgments'].get(aids[0], {})
+                    prior_link = (old_first.get('cross_context') or {})
+                    decision = (old_first.get('decision_id') if old_first.get('label', '') == effective
+                                and prior_link.get('kind') == kind else None) or secrets.token_hex(16)
+                    for aid in aids:
+                        current = self.state['records'].get(item_id, {}).get('judgments', {}).get(aid, {})
+                        if self.group_key(item_id, aid) != tuple(session['key']):
+                            raise ValueError('Source context/answer no longer matches this exact group')
+                        if self._member_fingerprint(current) != session['expected'][item_id][aid]:
+                            raise ValueError('A displayed answer was edited outside this group; reload without overwriting it')
+                        if (current.get('label') in LABELS and (current.get('cross_context') or {}).get('open_id') != opened):
+                            raise ValueError('Existing human judgment cannot be overwritten by a new group')
+                        if self.state['inventory'][item_id][aid]['status'] not in {'pending', 'human'}:
+                            raise ValueError('Filtered answer cannot be judged through a group')
+                        j = r['judgments'].setdefault(aid, {})
+                        j.setdefault('label', ''); j.setdefault('tags', []); j.setdefault('tag_status', 'not_marked')
+                        for field in ('label_phase', 'tags_phase', 'label_updated_at', 'tags_updated_at'):
+                            j.setdefault(field, None)
+                        # Blank common form is a draft; only explicit defer can withdraw this session's own label.
+                        write_label = bool(choice) or choice == 'defer'
+                        if write_label and j.get('label', '') != effective:
+                            j.update(label=effective, label_phase=self.phase(item_id), label_updated_at=stamp,
+                                     annotator=self.state['reviewer'], origin=self.protocol,
+                                     exposure_evidence=self.current_evidence(item_id))
+                        if (apply_tags or 'tags' in exception) and j['tags'] != context_tags:
+                            j.update(tags=context_tags, tag_status='marked' if context_tags else 'not_marked',
+                                     tags_phase=self.phase(item_id), tags_updated_at=stamp,
+                                     tags_exposure_evidence=self.current_evidence(item_id))
+                        if write_label:
+                            j.update(decision_id=decision, occurrence_count=len(aids), applied_to_original_answers=list(aids),
+                                     decision_origin='explicit_cross_context_common_with_exceptions',
+                                     cross_context={'version': 'exact-cross-context-v1', 'group_id': gid, 'open_id': opened,
+                                         'shared_action_id': action_id, 'common_decision_id': common_decision,
+                                         'context_decision_id': decision, 'context_id': item_id, 'kind': kind,
+                                         'at': stamp, 'displayed_context_count': len(session['members'])})
+                        session['expected'][item_id][aid] = self._member_fingerprint(j)
+                    if apply_note and 'note' not in exception and 'note' not in update:
+                        r['note'] = note
+                    for source in (exception, update):
+                        for field in ('note', 'suspect', 'example'):
+                            if field in source:
+                                r[field] = copy.deepcopy(source[field])
+                    r.update(updated_at=stamp, edit_phase=self.phase(item_id))
+                    session['expected_context'][item_id] = {key: copy.deepcopy(r[key]) for key in ('note', 'suspect', 'example')}
+                session.update(form={'label': label, 'tags': tags, 'note': note, 'exceptions': copy.deepcopy(exceptions)},
+                               common_decision_id=common_decision, saved_at=stamp)
+            else:
+                raise ValueError('Unknown grouped action')
+        candidate.setdefault('cross_context_events', []).append({'at': now(), 'action': action,
+            'group_id': gid, 'open_id': opened, 'version': 'exact-cross-context-v1', 'item_ids': list(session['members'])})
+        state = self.commit(candidate, action)
+        if action == 'group-details':
+            return {'state': state, 'details': {'masked': True, 'contexts': [
+                {'id': item_id, 'sentence': self.items[item_id]['sentence'], 'candidates': copy.deepcopy(self.items[item_id].get('candidates', []))}
+                for item_id in session['members']]}}
+        return {'state': state, 'group': self.public_group(self.state['cross_context_sessions'][opened])}
+
     def counts(self, records=None):
         inventory = self.state['inventory']
         statuses = Counter(entry['status'] for answers in inventory.values() for entry in answers.values())
@@ -650,6 +833,7 @@ class ContinuationStore(MaskedStore):
         historical_answers = 0
         decisions = set()
         continuation_decisions = set()
+        shared_common_actions, group_context_judgments, group_exceptions = set(), set(), set()
         for item_id, record in self.state['records'].items():
             for aid, judgment in record['judgments'].items():
                 if judgment.get('label') not in LABELS:
@@ -657,13 +841,24 @@ class ContinuationStore(MaskedStore):
                 old = self.state['previous_v2_snapshot']['records'].get(item_id, {}).get('judgments', {}).get(aid, {})
                 inherited = old.get('label') == judgment.get('label') and old.get('label_updated_at') == judgment.get('label_updated_at')
                 historical_answers += inherited
-                key = (item_id, judgment.get('decision_id') or aid)
+                cross = (judgment.get('cross_context') or {})
+                if cross.get('kind') in {'common', 'exception'}:
+                    group_context_judgments.add((item_id, cross.get('context_decision_id')))
+                    if cross['kind'] == 'common':
+                        shared_common_actions.add(cross.get('common_decision_id'))
+                    else:
+                        group_exceptions.add((item_id, cross.get('context_decision_id')))
+                key = ('cross_context_common', cross['common_decision_id']) if cross.get('kind') == 'common' and cross.get('common_decision_id') else (item_id, judgment.get('decision_id') or aid)
                 decisions.add(key)
                 if not inherited:
                     continuation_decisions.add(key)
         base.update(judged_answers=statuses['human'], historical_human_answers=historical_answers,
                     continuation_human_answers=statuses['human'] - historical_answers,
-                    human_decisions=len(decisions), continuation_human_decisions=len(continuation_decisions))
+                    human_decisions=len(decisions), continuation_human_decisions=len(continuation_decisions),
+                    grouped_pending_decisions=len(self.group_index()),
+                    cross_context_savings=base['pending_decisions']-len(self.group_index()),
+                    shared_common_actions=len(shared_common_actions), group_context_judgments=len(group_context_judgments),
+                    group_exception_decisions=len(group_exceptions))
         return base
 
     def snapshot(self):
@@ -672,7 +867,10 @@ class ContinuationStore(MaskedStore):
             result.update(queues=self.queues(), queue=self.queues()['all'], rules_version=FILTER_VERSION,
                           historical_revealed=self.state['historical_revealed'],
                           prior_exposure=result['prior_exposure'] or self.state['historical_revealed'],
-                          initial_counts=copy.deepcopy(self.state['initial_counts']))
+                          initial_counts=copy.deepcopy(self.state['initial_counts']),
+                          group_queue=list(self.group_index()),
+                          group_queues={view: list(self.group_index(view)) for view in ('all', 'foreign')},
+                          grouping_version='exact-cross-context-v1')
             return result
 
     def public_records(self, records):
@@ -689,7 +887,8 @@ class ContinuationStore(MaskedStore):
                     human_origin='historical' if inherited else 'continuation' if j.get('label') in LABELS else None,
                     decision_id=j.get('decision_id'), occurrence_count=j.get('occurrence_count', 1),
                     label_exposure_status=(j.get('exposure_evidence') or {}).get('status'),
-                    tags_exposure_status=(j.get('tags_exposure_evidence') or {}).get('status'))
+                    tags_exposure_status=(j.get('tags_exposure_evidence') or {}).get('status'),
+                    cross_context=copy.deepcopy(j.get('cross_context')))
         return result
 
     def export(self, masked=True):
@@ -709,8 +908,16 @@ class ContinuationStore(MaskedStore):
                         'original_text': self.answers[item_id][slot['answer_id']].get('raw'), 'gold': self.items[item_id].get('gold'),
                         'restored': entry['restored'], 'foreign_letters': entry['foreign_letters'],
                         'human_origin': human.get('human_origin'), 'decision_id': human.get('decision_id'),
-                        'occurrence_count': human.get('occurrence_count', 1)}
-            result.update(answer_ledger=ledger, source_identity=self.state['source_identity'])
+                        'occurrence_count': human.get('occurrence_count', 1), 'cross_context': copy.deepcopy(human.get('cross_context'))}
+            public_sessions = copy.deepcopy(self.state.get('cross_context_sessions', {}))
+            for session in public_sessions.values():
+                for item_id, aids in session['members'].items():
+                    tokens = {slot['answer_id']: slot['token'] for slot in self.state['presentation'][item_id]}
+                    session['members'][item_id] = [tokens[aid] for aid in aids]
+                    session['expected'][item_id] = {tokens[aid]: value for aid, value in session['expected'][item_id].items()}
+            result.update(answer_ledger=ledger, source_identity=self.state['source_identity'],
+                          cross_context_sessions=public_sessions,
+                          cross_context_active=copy.deepcopy(self.state.get('cross_context_active', {})))
             result.pop('backup_mac', None)
             result['backup_mac'] = hmac.new(self.state['backup_secret'].encode(), digest(result).encode(), hashlib.sha256).hexdigest()
             return result
@@ -749,7 +956,7 @@ class ContinuationStore(MaskedStore):
                     historical_judgment = self.state['previous_v2_snapshot']['records'].get(item_id, {}).get('judgments', {}).get(aid, {})
                     j.update({key: copy.deepcopy(supplied.get(key)) for key in (
                         'label', 'tags', 'tag_status', 'label_phase', 'tags_phase', 'label_updated_at', 'tags_updated_at',
-                        'decision_id', 'occurrence_count')})
+                        'decision_id', 'occurrence_count', 'cross_context')})
                     for evidence_key, fields, status_key in (
                             ('exposure_evidence', ('label', 'label_phase', 'label_updated_at'), 'label_exposure_status'),
                             ('tags_exposure_evidence', ('tags', 'tags_phase', 'tags_updated_at'), 'tags_exposure_status')):
@@ -773,6 +980,14 @@ class ContinuationStore(MaskedStore):
                 for key in ('note', 'suspect', 'example'):
                     r[key] = copy.deepcopy(public[key])
                 r.update(edit_phase=self.phase(item_id), updated_at=now(), restored_at=now())
+            for opened, supplied_session in bundle.get('cross_context_sessions', {}).items():
+                restored_session = copy.deepcopy(supplied_session)
+                for item_id, tokens in restored_session['members'].items():
+                    mapping = {slot['token']: slot['answer_id'] for slot in self.state['presentation'][item_id]}
+                    restored_session['members'][item_id] = [mapping[token] for token in tokens]
+                    restored_session['expected'][item_id] = {mapping[token]: value for token, value in restored_session['expected'][item_id].items()}
+                candidate.setdefault('cross_context_sessions', {})[opened] = restored_session
+            candidate.setdefault('cross_context_active', {}).update(bundle.get('cross_context_active', {}))
             candidate['inventory'] = self.make_inventory(candidate)
             self.validate(candidate)
             atomic_json(self.path.with_name(self.path.name + '.before-restore-' + secrets.token_hex(6) + '.json'), self.state)
@@ -799,6 +1014,14 @@ class ContinuationStore(MaskedStore):
         if candidate['previous_v2_snapshot'] != self.state['previous_v2_snapshot'] or candidate['previous_v2_history'] != self.state['previous_v2_history']:
             raise ValueError('Previous study archive is immutable')
         if action == 'save':
+            for aid, judgment in candidate['records'][item_id]['judgments'].items():
+                old = self.state['records'].get(item_id, {}).get('judgments', {}).get(aid, {})
+                link = old.get('cross_context')
+                if link and old.get('label') != judgment.get('label'):
+                    judgment.setdefault('cross_context_history', []).append(copy.deepcopy(link))
+                    judgment['cross_context'] = dict(link, kind='individual_edit', individual_edit_at=now())
+                elif link and old.get('tags') != judgment.get('tags'):
+                    judgment['cross_context'] = dict(link, individual_tags_edited_at=now())
             for slots in getattr(self, '_decision_groups', {}).values():
                 aids = [slot['answer_id'] for slot in slots]
                 judgments = candidate['records'][item_id]['judgments']
@@ -820,6 +1043,8 @@ class ContinuationStore(MaskedStore):
             if view not in self.views:
                 raise ValueError('Unknown continuation view')
             self._view = view
+            if action in {'group-open', 'group-save', 'group-details'}:
+                return self.group_transact(action, payload)
             if action == 'restore':
                 item_id = payload.get('item_id')
                 if item_id not in self.answers:
@@ -883,7 +1108,8 @@ class ContinuationStore(MaskedStore):
             entry = self.state['inventory'][item_id][slot['answer_id']]
             j = self.state['records'][item_id]['judgments'].get(slot['answer_id'], {})
             shown.update(review_status=entry['status'], foreign_letters=entry['foreign_letters'],
-                         decision_id=j.get('decision_id'), occurrence_count=j.get('occurrence_count', 1))
+                         decision_id=j.get('decision_id'), occurrence_count=j.get('occurrence_count', 1),
+                         cross_context=copy.deepcopy(j.get('cross_context')))
             if entry['status'] in {'exacttrim', 'technical', 'missing'}:
                 shown.update(filter_rule=entry['filter_rule'], rules_version=FILTER_VERSION)
             if not masked:
@@ -906,7 +1132,11 @@ class ContinuationStore(MaskedStore):
                 raise ValueError('Explicit continuation reveal required')
             result = super().summary(True)
             result.update(masked=bool(masked), inventory_counts=self.counts(), initial_counts=copy.deepcopy(self.state['initial_counts']), rules_version=FILTER_VERSION, incomplete_ids=self.queues()['all'], tag_count_unit='answer_occurrences',
-                          tag_count_note='ספירת תגיות לפי מופעי תשובה; שיפוט יחיד על טקסט זהה עשוי לחול על שני מופעים.')
+                          grouping_version='exact-cross-context-v1',
+                          tag_count_note='ספירת תגיות לפי מופעי תשובה; שיפוט משותף מפורש עשוי לחול על כמה מופעים והקשרים.',
+                          grouping_note='קיבוץ רק לפי טקסט תשובה, קיצור וייחוס זהים בדיוק; השיפוט המשותף הוא החלטה אנושית לאחר הצגת כל ההקשרים. חריגים מתועדים בנפרד, ואין לספור הקשרים כהכרעות עצמאיות.')
+            if self.state.get('cross_context_sessions'):
+                result['limitations'] += ' ' + result['grouping_note']
             if not masked:
                 cases = [self.case(i, False) for i in self.plan['queue'] if i in self.state['records']]
                 result['cases'] = cases
@@ -925,7 +1155,10 @@ class ContinuationStore(MaskedStore):
         text += '\n\n## תור ההמשך\n\n' + '\n'.join(f'- {label}: {counts[key]}' for key, label in (
             ('source_answers', 'תשובות מקור'), ('human_answers', 'שיפוטים אנושיים קיימים'), ('exacttrim_answers', 'סוננו בהתאמה מלאה'),
             ('technical_answers', 'סוננו בנרמול טכני מצומצם'), ('missing_answers', 'אין תשובה או כשל מתועד'),
-            ('pending_answers', 'תשובות שנותרו'), ('duplicate_savings', 'מופעים זהים שחוסכים הכרעה נוספת'), ('pending_decisions', 'הכרעות שנותרו')))
+            ('pending_answers', 'תשובות שנותרו'), ('duplicate_savings', 'מופעים זהים שחוסכים הכרעה נוספת'), ('pending_decisions', 'הכרעות לפי הקשרים שנותרו'),
+            ('grouped_pending_decisions', 'קבוצות מדויקות שנותרו'), ('shared_common_actions', 'הכרעות משותפות שנשמרו'),
+            ('group_context_judgments', 'הקשרים שאליהם הוחלו הכרעות קבוצתיות'), ('group_exception_decisions', 'הכרעות חריגות להקשר')))
+        text += '\n\n' + self.summary(True)['grouping_note'] + '\n' + self.summary(True)['tag_count_note']
         if not masked:
             full = self.summary(False)
             text += '\n\n## תוצאות לאחר חשיפה\n'

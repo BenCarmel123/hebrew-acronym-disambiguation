@@ -201,7 +201,7 @@ test('partition keeps duplicate savings and foreign letters separate from primar
   assert.ok(html.includes('<th>סכום הקבוצות הראשיות</th><td>790</td>'));
   assert.ok(html.includes('30 הצגות נוספות'));
   assert.ok(html.includes('20 מהממתינות'));
-  assert.ok(html.includes('<strong>360</strong> הכרעות'));
+  assert.ok(html.includes('<strong>360</strong> הקשרי תשובה'));
 });
 test('historical reveal does not automatically unmask continuation summary',()=>{
   const state={revealed:true,queues:{all:[]}};
@@ -227,7 +227,7 @@ test('Enter queues SaveNext during autosave and persists edits made while the ea
   }
   let label='',tags=[],debounce,serverRevision=0;
   const main=element('main'),qualityInput=element('qualityInput'),tagInput=element('tagInput');
-  element('itemView').querySelectorAll=selector=>selector==='input,textarea'?[qualityInput,tagInput]:[];
+  element('itemView').querySelectorAll=selector=>selector==='input,textarea,select'?[qualityInput,tagInput]:[];
   const group={dataset:{answer:'opaque-1'},querySelector(){return label?{value:label}:null;}};
   const tagGroup={dataset:{tagsAnswer:'opaque-1'},querySelectorAll(){return tags.map(value=>({value}));}};
   const document={getElementById:element,querySelector:()=>main,querySelectorAll:selector=>selector==='[data-answer]'?[group]:selector==='[data-tags-answer]'?[tagGroup]:[]};
@@ -304,4 +304,77 @@ test('compact rows share sentence context and preserve original response whitesp
   assert.ok(html.includes('  מענה\nמקורי  '));
   assert.ok(!html.includes('tag-help'));
   assert.ok(html.includes('ייחוס (עשוי להיות שגוי)'));
+});
+
+const groupedFixture={id:'opaque-group',open_id:'frozen-open',acronym:'אב״ג',gold:'ייחוס משותף',text:'תשובה משותפת',contexts:[{id:'context-a',sentence:'משפט ראשון בשלמותו.',answer_ids:['opaque-a'],suspect:true,note:'הערה קיימת'},{id:'context-b',sentence:'משפט שני בהקשר אחר.',answer_ids:['opaque-b','opaque-c'],example:true}],form:{label:'',tags:[],exceptions:{}}};
+test('group mode is default only with backend support and queues remain independently selectable',()=>{
+ const state={group_queue:['g1','g2'],group_queues:{all:['g1','g2'],foreign:['g2']},queue:['i1'],queues:{all:['i1'],unsure:['i2']}};
+ assert.equal(ui.defaultView(state),'groups');assert.equal(ui.firstIncomplete(state),'g1');
+ assert.deepEqual(ui.queueIds(state,'group_foreign'),['g2']);assert.deepEqual(ui.queueIds(state,'all'),['i1']);assert.deepEqual(ui.queueIds(state,'unsure'),['i2']);
+ assert.equal(ui.defaultView({queue:[]}),'all');
+});
+test('group page displays every full context before explicit common choices without metadata or preselected labels',()=>{
+ const html=ui.renderGroup({...groupedFixture,model:'HIDDEN_MODEL',auto_score:true,source:'HIDDEN_SOURCE'});
+ assert.equal((html.match(/תשובה משותפת/g)||[]).length,1);
+ for(const context of groupedFixture.contexts){assert.ok(html.includes(context.sentence));assert.ok(html.indexOf(context.sentence)<html.indexOf('data-group-label'));}
+ assert.equal((html.match(/name="group-label"/g)||[]).length,3);
+ assert.ok(!/name="group-label"[^>]*checked/.test(html));assert.ok(!/data-group-tags[\s\S]*checked/.test(html));
+ assert.ok(html.includes('בכל ההקשרים'));assert.ok(html.includes('להשאיר להמשך'));
+ for(const secret of ['HIDDEN_MODEL','HIDDEN_SOURCE','auto_score','opaque-a'])assert.ok(!html.includes(secret));
+});
+test('group payload binds explicit common judgment and exceptions only to frozen session contexts',()=>{
+ const payload=ui.buildGroupPayload(groupedFixture,{label:'fits',tags:['spelling'],contexts:{'context-a':{override:'not_fits',note:'תיקון'},'context-b':{override:'defer'},unrelated:{override:'fits'}}},'group_foreign');
+ assert.equal(payload.open_id,'frozen-open');assert.equal(payload.view,'foreign');assert.equal(payload.common_label,'fits');assert.deepEqual(payload.common_tags,['spelling']);
+ assert.deepEqual(payload.exceptions,{'context-a':{label:'not_fits'},'context-b':{label:'defer'}});
+ assert.deepEqual(payload.context_updates['context-a'],{note:'תיקון',suspect:true,example:false});
+ assert.equal(payload.context_updates['context-b'].example,true);assert.ok(!Object.hasOwn(payload.context_updates,'unrelated'));
+});
+test('tags and notes never create a common label and reopened pending contexts start blank',()=>{
+ const payload=ui.buildGroupPayload(groupedFixture,{tags:['gibberish'],contexts:{'context-a':{note:'רק הערה'}}});
+ assert.equal(payload.common_label,'');assert.deepEqual(payload.exceptions,{});
+ const saved=ui.renderGroup({...groupedFixture,form:{label:'fits',tags:['spelling'],exceptions:{'context-b':{label:'defer'}}}});
+ assert.match(saved,/value="fits" checked/);assert.match(saved,/value="defer" selected/);
+ assert.doesNotMatch(ui.renderGroup(groupedFixture),/name="group-label"[^>]*checked/);
+});
+test('clearing a saved exception without a common choice explicitly defers instead of hiding a retained judgment',()=>{
+ assert.equal(ui.groupExceptionLabel('fits','',''),'defer');assert.equal(ui.groupExceptionLabel('fits','','unsure'),'');
+ const group={...groupedFixture,form:{label:'',exceptions:{'context-a':{label:'fits'}}}};
+ assert.deepEqual(ui.buildGroupPayload(group,{label:'',contexts:{'context-a':{override:''}}}).exceptions,{'context-a':{label:'defer'}});
+});
+test('group savings and recorded actions are distinct from underlying answer occurrences',()=>{
+ const html=ui.renderPartition({source_answers:790,human_answers:40,pending_decisions:569,grouped_pending_decisions:469,cross_context_savings:100,human_decisions:35});
+ assert.ok(html.includes('469 קבוצות'));assert.ok(html.includes('עד 100 פעולות'));assert.ok(html.includes('35 פעולות שיפוט שמורות מייצגות 40 מופעי תשובה'));
+});
+
+test('group keyboard and SaveNext preserve frozen membership, overrides and edits during delayed autosave',async()=>{
+ const vm=require('node:vm'),source=fs.readFileSync(path.join(__dirname,'../src/hebrew_acronyms/human_review_web/short.js'),'utf8');
+ const elements=new Map();
+ function element(id){if(!elements.has(id))elements.set(id,{value:'',checked:false,hidden:false,disabled:false,inert:false,innerHTML:'',textContent:'',listeners:{},addEventListener(type,fn){this.listeners[type]=fn;},querySelectorAll(){return [];}});return elements.get(id);}
+ let label='',tags=[],debounce,revision=0;const events={},opened=[],saves=[],waiting=[],main=element('main'),tagInput=element('tagInput');
+ const contexts=groupedFixture.contexts.map(context=>({dataset:{groupContext:context.id},fields:{'[data-context-override]':{value:context.id==='context-b'?'defer':''},'[data-context-suspect]':{checked:Boolean(context.suspect)},'[data-context-example]':{checked:Boolean(context.example)},'[data-context-note]':{value:context.note||''}},querySelector(selector){return this.fields[selector];}}));
+ element('itemView').querySelectorAll=selector=>selector==='input,textarea,select'?[tagInput]:selector==='[data-group-context]'?contexts:selector==='[data-group-tags] input:checked'?tags.map(value=>({value})):[];
+ element('itemView').querySelector=selector=>{
+  if(selector==='[data-group-label] input:checked')return label?{value:label}:null;
+  const match=selector.match(/data-group-label.*value="([^"]+)"/);return match?{set checked(value){if(value)label=match[1];}}:null;
+ };
+ const state=()=>({protocol_version:'qualitative-generation-v3',revision,queue:[],group_queue:saves.length?['next-group']:['opaque-group','next-group'],group_queues:{all:saves.length?['next-group']:['opaque-group','next-group'],foreign:[]},queues:{all:[],unsure:[],foreign:[],suspicions:[],filtered:[]},records:{},counts:{pending_answers:2,pending_decisions:2,grouped_pending_decisions:2},revealed:false});
+ const fetch=async(url,options)=>{
+  const payload=options?.body?JSON.parse(options.body):null;
+  if(url==='/api/short/state')return {ok:true,json:async()=>state()};
+  if(url==='/api/session')return {ok:true,json:async()=>({qa:true})};
+  if(url==='/api/short/group-open'){opened.push(payload.group_id);revision++;return {ok:true,json:async()=>({state:state(),group:{...groupedFixture,id:payload.group_id}})};}
+  if(url==='/api/short/group-save'){saves.push(payload);return new Promise(resolve=>waiting.push(()=>{revision++;resolve({ok:true,json:async()=>({state:state(),group:{...groupedFixture,form:{label:payload.common_label,tags:payload.common_tags,exceptions:payload.exceptions}}})});}));}
+  throw Error('Unexpected request '+url);
+ };
+ vm.runInNewContext(source,{document:{getElementById:element,querySelector:()=>main,querySelectorAll:()=>[]},fetch,setTimeout:fn=>{debounce=fn;return 1;},clearTimeout(){},window:{addEventListener(type,fn){events[type]=fn;},scrollTo(){}},console});
+ async function until(predicate){for(let n=0;n<30&&!predicate();n++)await new Promise(resolve=>setImmediate(resolve));assert.ok(predicate(),element('saveStatus').textContent);}
+ await until(()=>opened.length===1&&Boolean(tagInput.listeners.input)&&!main.inert);
+ events.keydown({key:'1',target:{tagName:'SECTION'},preventDefault(){}});assert.equal(label,'fits');debounce();await until(()=>saves.length===1);
+ assert.equal(main.inert,false);tags=['spelling'];tagInput.listeners.input();contexts[0].fields['[data-context-note]'].value='עודכן בזמן שמירה';tagInput.listeners.input();
+ events.keydown({key:'2',target:{tagName:'SELECT'},preventDefault(){throw Error('Select typing must not judge');}});assert.equal(label,'fits');
+ events.keydown({key:'Enter',target:{tagName:'SECTION'},preventDefault(){}});assert.equal(main.inert,true);
+ waiting.shift()();await until(()=>saves.length===2);
+ assert.equal(opened.length,1);assert.equal(saves[0].open_id,'frozen-open');assert.equal(saves[1].open_id,'frozen-open');
+ assert.deepEqual(saves[0].common_tags,[]);assert.deepEqual(saves[1].common_tags,['spelling']);assert.equal(saves[1].context_updates['context-a'].note,'עודכן בזמן שמירה');assert.equal(saves[1].exceptions['context-b'].label,'defer');
+ waiting.shift()();await until(()=>opened.length===2&&!main.inert);assert.deepEqual(opened,['opaque-group','next-group']);
 });
