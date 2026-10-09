@@ -94,6 +94,7 @@ def _validate_system(system, fixture):
         "qwen": {"timeout", "options", "expected_digest", "base_url"},
         "openai": {"timeout", "max_output_tokens", "temperature"},
         "anthropic": {"timeout", "max_output_tokens", "effort"},
+        "xai": {"timeout", "max_output_tokens", "effort"},
     }
     if system["provider"] not in allowed or not set(settings) <= allowed[system["provider"]]:
         raise ValueError("Unknown provider or unsupported settings; never store credentials in the manifest")
@@ -114,6 +115,9 @@ def _validate_system(system, fixture):
         if system["provider"] == "openai":
             from hebrew_acronyms.models.openai.eval import validate_openai_settings
             validate_openai_settings(system["model"], **settings)
+        elif system["provider"] == "xai":
+            from hebrew_acronyms.models.xai.eval import validate_xai_settings
+            validate_xai_settings(system["model"], **settings)
         else:
             from hebrew_acronyms.models.anthropic.eval import validate_anthropic_settings
             validate_anthropic_settings(system["model"], **settings)
@@ -283,6 +287,8 @@ def _call(system, prompt):
         from hebrew_acronyms.models.openai.eval import openai_response as request
     elif provider == "anthropic":
         from hebrew_acronyms.models.anthropic.eval import anthropic_response as request
+    elif provider == "xai":
+        from hebrew_acronyms.models.xai.eval import xai_response as request
     else:
         raise ValueError("Fixture execution requires injected responders")
     return request(prompt, model=system["model"], **system["settings"])
@@ -462,6 +468,22 @@ def _usage(response, provider):
               zip(("input_tokens", "output_tokens", "thinking_tokens", "cached_input_tokens"), keys)}
     if provider == "openai":
         result["cached_input_tokens"] = (raw.get("prompt_tokens_details") or {}).get("cached_tokens", 0)
+    if provider == "xai":
+        # Responses output_tokens includes reasoning. Validate the accounting
+        # identity before separating it for the existing cost calculation.
+        details = raw.get("output_tokens_details") or {}
+        cached = raw.get("input_tokens_details") or {}
+        if not isinstance(details, dict) or not isinstance(cached, dict):
+            return None
+        thinking = details.get("reasoning_tokens", 0)
+        if (type(thinking) is not int or thinking < 0
+                or type(result["output_tokens"]) is not int or thinking > result["output_tokens"]
+                or type(result["input_tokens"]) is not int
+                or raw.get("total_tokens") != result["input_tokens"] + result["output_tokens"]):
+            return None
+        result["output_tokens"] -= thinking
+        result["thinking_tokens"] = thinking
+        result["cached_input_tokens"] = cached.get("cached_tokens", 0)
     if provider == "anthropic":
         # Claude input_tokens excludes cached input; charge all cache at ordinary
         # input rate conservatively for this simple estimate.

@@ -16,6 +16,8 @@ never send them in chat or put them in a notebook cell.
 | Google | In [AI Studio](https://aistudio.google.com/api-keys), create/select the project and create its API key. Check its billing/quota before running. | `GEMINI_API_KEY` | `gemini-3.8-flash` |
 | OpenAI | Open the API dashboard's [API keys](https://platform.openai.com/api-keys) page, create a project key and check API billing/credits. | `OPENAI_API_KEY` | `gpt-4.1-mini-2025-04-14` |
 | Anthropic | Open [Claude Console](https://platform.claude.com/), then **Settings → API keys → Create key**. Check API credit and spending limits. | `ANTHROPIC_API_KEY` | `claude-haiku-5-5` |
+| xAI | In [xAI Console](https://console.x.ai), select the key’s team and add prepaid credit. Keep automatic top-up disabled. | `XAI_API_KEY` | `grok-4.7`, low reasoning, no tools |
+| Qwen14 | No API account/key. Download only inside the Colab runtime. | None | `qwen2.5:14b`, Q4_K_M, plus resolved digest |
 | Qwen | No API account/key. The notebook installs Ollama and explicitly pulls `qwen2.5:7b` into the Colab runtime. | None | `qwen2.5:7b`, plus the resolved digest |
 
 These steps follow the official [Gemini key instructions](https://ai.google.dev/gemini-api/docs/api-key),
@@ -64,7 +66,7 @@ branch still requires the user's separate authorization.
 
 ## Run selected systems in stages
 
-The four system identities remain fixed. `SELECTED_SYSTEMS` chooses which to attempt
+The six system identities remain fixed within each new collection session. `SELECTED_SYSTEMS` chooses which to attempt
 in the current session; it does not change the shared protocol or erase previously
 attempted systems. A blocked provider must not prevent an available system from
 completing its own pilot and, if qualified, test run.
@@ -73,7 +75,7 @@ completing its own pilot and, if qualified, test run.
    runtime type → T4 GPU** if Qwen is selected and a free GPU is available. If no
    free GPU is available, assess CPU time or leave Qwen explicitly unrun; do not
    buy compute or replace it. Ollama installation and model download run only
-   when Qwen is selected.
+   when either Qwen system is selected.
 2. In the key-shaped **Secrets** panel add secrets for selected API providers and
    enable notebook access. Run setup, then approve the Google Drive mount. The
    [official Colab input/output notebook](https://colab.research.google.com/notebooks/io.ipynb)
@@ -428,3 +430,30 @@ initialization; it does not establish the original checkpoint's training seed.
 The [Qwen scale notebook](../notebooks/run_qwen_scale_colab.ipynb) is an optional
 32B/72B experiment with substantial GPU requirements, separate from the default
 test entry point; its existence is not evidence that those runs completed.
+
+## Additional collection systems
+
+The extended package adds `xai` and `qwen14` as separate systems. It defaults to
+those two selections, preserving the previous four systems' settings. Do not
+rerun completed systems when opening a new package. Existing `a319f9d` sessions,
+including the successful Gemini pilot, must resume using their original package.
+A new session carries previous total expenditure once, including uncertain costs.
+
+Grok 4.7 uses the Responses API, low reasoning effort, no tools, and a 1,024-token
+output cap. The [documented rates](https://docs.x.ai/developers/models/grok-4.7)
+are USD 2 input and USD 6 output per million tokens. Token-based accounting charges
+cached input conservatively at the full rate; returned provider cost ticks remain
+in the usage evidence. Reasoning tokens are included once, and inconsistent usage
+receives the existing uncertain-cost reserve. Model lookup alone does not establish
+billing or successful inference.
+
+Qwen14 uses temperature 0, seed 42 and 512 output tokens, as for Qwen7B.
+The [14B distribution](https://ollama.com/library/qwen2.5:14b) uses Q4_K_M;
+the notebook checks quantization and records its complete resolved digest,
+template and runtime settings before collection. Model weights are downloaded
+only into Colab. A missing free GPU or insufficient runtime memory is a reported
+resource limitation, not authorization to purchase compute or substitute a model.
+
+Comparison accepts the two explicitly identified collector implementations, while
+checking identical test inputs, prompts, candidate orders and scoring sources.
+Model configurations and collection revisions remain separate in the output.
