@@ -14,7 +14,8 @@ from pathlib import Path
 import re
 import subprocess
 
-EXPORT_VERSION = 'human-review-data-v1'
+EXPORT_VERSION = 'human-review-data-v2'
+SAMPLING_VERSION = 'human-review-sampling-v2'
 SEED = 'human-review-20261009-v1'
 SYSTEMS = [
     ('dictabert', 'מערכת א', 'DictaBERT ללא אימון משימתי', 'selection', 'candidate', 'results/dictabert/test_details.csv'),
@@ -164,6 +165,21 @@ def document_overlap(test: list[dict], train: list[dict]) -> dict:
             'key': ['source', 'page_title'], 'limitation': 'Exact nonempty source/document metadata overlap; not proof of checkpoint training exposure.'}
 
 
+def source_identity(provenance: dict) -> str:
+    """Identity of original sources, independent of local paths or queue plans."""
+    files = sorted([{key: f[key] for key in ('path', 'sha256', 'bytes')}
+                    for f in provenance['files']], key=lambda f: f['path'])
+    payload = {'repository': provenance.get('repository', ''), 'files': files}
+    return hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(',', ':'),
+                                     ensure_ascii=True).encode()).hexdigest()
+
+
+def sampling_identity(queues: dict, seed: str, size: int) -> str:
+    payload = {'version': SAMPLING_VERSION, 'queues': queues, 'seed': seed, 'size': size}
+    return hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(',', ':'),
+                                     ensure_ascii=True).encode()).hexdigest()
+
+
 def build_dataset(root: Path, sample_size: int = 20, seed: str = SEED) -> dict:
     root = root.resolve()
     test_path = 'data/splits/test_items.csv'
@@ -207,7 +223,7 @@ def build_dataset(root: Path, sample_size: int = 20, seed: str = SEED) -> dict:
                  if item['findings'] and item['id'] not in evaluation]
     for item in items:
         if item['id'] in evaluation:
-            item['selection_reasons'].append(f"מדגם כיול/הערכה קבוע: שכבה {item['sampling_stratum']}; דירוג SHA-256 עם seed מתועד, ללא שימוש בתוצאות לבחירה")
+            item['selection_reasons'].append(f"מדגם כיול קבוע: שכבה {item['sampling_stratum']}; דירוג SHA-256 עם seed מתועד, ללא שימוש בתוצאות לבחירה")
         elif item['id'] in diagnosis:
             item['selection_reasons'].append('תור אבחון מכני: ' + ', '.join(item['findings']))
     audit = {'item_count': len(items), 'acronym_count': len({r['acronym'] for r in rows}),
@@ -238,20 +254,22 @@ def build_dataset(root: Path, sample_size: int = 20, seed: str = SEED) -> dict:
     files = [{'path': p, 'sha256': hashlib.sha256((root / p).read_bytes()).hexdigest(),
               'bytes': (root / p).stat().st_size} for p in source_paths]
     commit = subprocess.check_output(['git', '-C', str(root), 'rev-parse', 'HEAD'], text=True).strip()
-    identity = json.dumps({'version': EXPORT_VERSION, 'files': files, 'seed': seed, 'sample_size': sample_size}, sort_keys=True).encode()
+    source_id = source_identity({'repository': 'https://github.com/BenCarmel123/hebrew-acronym-disambiguation', 'files': files})
+    queues = {'calibration': evaluation, 'evaluation': [], 'diagnosis': diagnosis}
+    plan_id = sampling_identity(queues, seed, sample_size)
     sample = [item for item in items if item['id'] in evaluation]
-    return {'schema_version': EXPORT_VERSION, 'dataset_id': hashlib.sha256(identity).hexdigest(),
+    return {'schema_version': EXPORT_VERSION, 'dataset_id': source_id, 'source_identity': source_id, 'sampling_plan_id': plan_id,
             'provenance': {'repository': 'https://github.com/BenCarmel123/hebrew-acronym-disambiguation',
                            'commit': commit, 'source_commit': subprocess.check_output(['git', '-C', str(root), 'log', '-1', '--format=%H', '--', *source_paths], text=True).strip(),
                            'source_root': str(root), 'files': files, 'audit': audit},
             'systems': [{'id': s[0], 'blind_id': s[1], 'name': s[2], 'task': s[3], 'response_type': s[4]} for s in SYSTEMS],
-            'queues': {'calibration': evaluation, 'evaluation': evaluation, 'diagnosis': diagnosis},
-            'sampling': {'seed': seed, 'size': sample_size, 'method': select_sample.__doc__,
-                         'calibration_is_evaluation_sample': True, 'diagnosis_excludes_evaluation': True,
+            'queues': queues,
+            'sampling': {'version': SAMPLING_VERSION, 'plan_id': plan_id, 'stage': 'calibration', 'evaluation_status': 'not_decided', 'seed': seed, 'size': sample_size, 'method': select_sample.__doc__,
+                         'calibration_is_evaluation_sample': False, 'diagnosis_excludes_calibration': True,
                          'strata': dict(Counter(item['sampling_stratum'] for item in sample)),
                          'sample_acronym_types': len({item['acronym'] for item in sample}),
                          'sample_items_with_automatic_success': sum(any(a['auto_score'] for a in item['answers']) for item in sample),
-                         'warning': 'מדגם כיסוי לא יחסי, 20 פריטי כיול; אין להסיק ממנו שיעור שגיאה כולל ללא התאמה. תור האבחון נבחר לפי ממצאים ואינו מדגם הערכה. הכיוונון נעשה לאחר חשיפה למבחן.'},
+                         'warning': f'כעת כיול בלבד: {sample_size} פריטים במדגם כיסוי לא יחסי. הערכת ההמשך טרם נקבעה. אין להסיק שיעור שגיאה כולל מתור הכיול או האבחון. הכיוונון נעשה לאחר חשיפה למבחן.'},
             'items': items}
 
 

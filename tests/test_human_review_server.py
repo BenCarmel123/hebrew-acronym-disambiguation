@@ -21,7 +21,7 @@ def fixture():
 
 def annotation():
     return {"schema_version": SCHEMA, "annotator": "QA only", "interpretation": 'אב״ג',
-            "prior_exposure": "unknown", "item_problems": [], "answers": {
+            "interpretation_kind": "interpretation", "prior_exposure": "unknown", "item_problems": [], "answers": {
                 "answer-1": {"system_id": "test", "quality": "", "format_ok": "", "disagrees_auto": ""}}}
 
 
@@ -40,7 +40,7 @@ class PersistenceTests(unittest.TestCase):
     def test_csv_roundtrip_preserves_blank_labels_and_review_status(self):
         self.update(action="review", annotation=annotation())
         text = self.store.export_csv()
-        self.assertIn("reviewed", text)
+        self.assertIn("draft", text)
         imported = self.store.csv_bundle(text)
         self.assertEqual(imported["records"], self.store.state["records"])
         reloaded = ReviewStore(fixture(), self.path)
@@ -48,7 +48,14 @@ class PersistenceTests(unittest.TestCase):
 
     def test_csv_does_not_silently_ignore_summary_edits(self):
         self.update(action="review", annotation=annotation())
-        text = self.store.export_csv().replace(",reviewed,,,", ",reviewed,correct,,")
+        import csv, io
+        rows = list(csv.DictReader(io.StringIO(self.store.export_csv().lstrip("\ufeff"))))
+        rows[0]["quality"] = "correct"
+        stream = io.StringIO()
+        writer = csv.DictWriter(stream, fieldnames=rows[0].keys())
+        writer.writeheader()
+        writer.writerows(rows)
+        text = stream.getvalue()
         with self.assertRaises(ValueError):
             self.store.csv_bundle(text)
 
@@ -62,6 +69,7 @@ class PersistenceTests(unittest.TestCase):
     def test_exposure_order_and_import_timestamps(self):
         with self.assertRaises(ValueError):
             self.update(action="expose", stage="responses")
+        self.update(action="draft", annotation=annotation())
         self.update(action="expose", stage="candidates")
         incoming = self.store.snapshot()
         incoming["records"]["fiction-1"]["exposure"]["candidates"] = ""

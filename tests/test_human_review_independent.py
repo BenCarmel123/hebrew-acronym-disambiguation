@@ -61,6 +61,7 @@ class IndependentPersistenceChecks(unittest.TestCase):
                      'items': [{'id': 'invented-1', 'answers': [{'id': 'a1', 'system_id': 'invented-system'}]}]}
         self.store = ReviewStore(self.data, self.path)
         self.annotation = {'schema_version': SCHEMA, 'annotator': 'Invented Fixture Reviewer',
+                           'interpretation_kind': 'none', 'interpretation': '',
                            'item_problems': ['valid'], 'answers': {'a1': {'system_id': 'invented-system',
                             'quality': 'correct', 'format_ok': 'no', 'disagrees_auto': 'yes'}}}
 
@@ -103,6 +104,7 @@ class IndependentPersistenceChecks(unittest.TestCase):
         self.assertEqual(self.path.read_bytes(), before)
 
     def test_exposure_persists_across_drafts_restart(self):
+        self.update('draft', annotation=self.annotation)
         for stage in ['candidates', 'gold', 'responses']:
             self.update('expose', stage=stage)
         self.update('draft', annotation=self.annotation)
@@ -110,6 +112,7 @@ class IndependentPersistenceChecks(unittest.TestCase):
                          {'candidates', 'gold', 'responses'})
 
     def test_identity_requires_saved_current_review(self):
+        self.update('draft', annotation=self.annotation)
         for stage in ['candidates', 'gold', 'responses']:
             self.update('expose', stage=stage)
         with self.assertRaises(ValueError):

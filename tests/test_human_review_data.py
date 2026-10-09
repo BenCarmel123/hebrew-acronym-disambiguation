@@ -1,7 +1,7 @@
 """Mechanical review-export tests with invented records; no semantic judgments."""
 import unittest
 from hebrew_acronyms.human_review_data import (
-    SYSTEMS, csv_bool, decode_letter, index_rows, make_answer, mechanical_spans, select_sample,
+    SYSTEMS, csv_bool, decode_letter, index_rows, make_answer, mechanical_spans, select_sample, source_identity, sampling_identity,
 )
 
 
@@ -81,6 +81,18 @@ class HumanReviewDataTests(unittest.TestCase):
         self.assertEqual(sample, select_sample(items, 20, 'fixed'))
         self.assertEqual(len(set(sample)), 20)
         self.assertEqual(len(select_sample(items, 40, 'fixed')), 35)
+
+    def test_source_identity_separate_from_queue_and_build_metadata(self):
+        provenance = {'repository': 'fixture', 'files': [
+            {'path': 'answers.csv', 'sha256': 'a' * 64, 'bytes': 10},
+            {'path': 'items.csv', 'sha256': 'b' * 64, 'bytes': 20}],
+            'source_root': '/one', 'commit': 'old'}
+        same = dict(provenance, source_root='/two', commit='new', files=list(reversed(provenance['files'])))
+        self.assertEqual(source_identity(provenance), source_identity(same))
+        changed = dict(provenance, files=[dict(provenance['files'][0], sha256='c' * 64), provenance['files'][1]])
+        self.assertNotEqual(source_identity(provenance), source_identity(changed))
+        self.assertNotEqual(sampling_identity({'calibration': ['i1']}, 'seed', 1),
+                            sampling_identity({'calibration': ['i1', 'i2']}, 'seed', 2))
 
 
 if __name__ == '__main__':

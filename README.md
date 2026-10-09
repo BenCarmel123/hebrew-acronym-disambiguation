@@ -204,51 +204,96 @@ including institutional uses, before interpreting these diagnostic development s
 
 ## Local human review of saved test answers
 
-The optional human-review tool reads existing predictions; it does not invoke models
-or modify research data. It serves a Hebrew RTL interface on loopback and stores
-human annotations separately. Install the package in a fresh environment. The
-review-only modules use the Python standard library, so an editable installation
-with `python -m pip install --no-deps -e .` is sufficient for this tool; this does not
-provide the model-training environment described above.
+The review-only tool serves existing answers in Hebrew on loopback. It does not
+invoke models or edit original research files. Its Python modules use the standard
+library; an isolated `python -m pip install --no-deps -e .` installation is sufficient.
+For this local delivery use the existing external review runtime and the supplied
+`Start Review.command` in the artifact folder. Keep its server running while working.
+Closing the browser retains disk annotations; reopening restores the current item.
 
-Build the immutable-source bundle and start the server with explicit paths:
+Build a new bundle at a fresh path, then start with explicit paths:
 
 ```bash
-python -m hebrew_acronyms.human_review_data --root . --output ../artifacts/human-review-20261009/review-data.json
-python -m hebrew_acronyms.human_review_server --data ../artifacts/human-review-20261009/review-data.json --annotations ../artifacts/human-review-20261009/annotations.json
+python -m hebrew_acronyms.human_review_data --root . --output ../artifacts/human-review-20261009/review-data-v2.json
+python -m hebrew_acronyms.human_review_server --data ../artifacts/human-review-20261009/review-data-v2.json --annotations ../artifacts/human-review-20261009/annotations.json
 ```
 
-Reuse the same frozen bundle while annotating. Changing source identity requires a
-separate annotation set, not rebuilding over an ongoing review. The source manifest
-records file hashes, the source revision, and the builder checkout revision.
+The current stage is the fixed 20-item **calibration** queue. Follow-up evaluation
+has not been defined; it is not a second copy of calibration. Source-balanced
+coverage and acronym-length proxies are deliberately disproportionate, so these
+items do not directly estimate benchmark-wide rates. The targeted diagnostic queue
+is separate. Decide further review scope after human calibration feedback.
 
-Launch the supplied local review launcher in the external artifact directory, or
-run `python -m hebrew_acronyms.human_review_server --help` for explicit data and
-annotation paths. Keep the server terminal open while reviewing; restart with the
-same paths to resume. The browser is a client, not the sole storage location.
+Enter the actual reviewer identity. Before revealing candidates, write an initial
+interpretation and select its state, or explicitly select no interpretation or
+insufficient context. Revealing candidates permanently captures the text, state,
+reviewer and time. Afterward the initial snapshot is read-only; a separate revised
+interpretation remains editable. Reference, answers, automatic scores and system
+names have separate recorded reveal stages. Pseudonyms reduce name cues but do not
+establish full experimental blinding. Highlighted acronym matches are mechanical,
+not certified target occurrences. Prior human exposure defaults to unknown.
 
-Enter the actual annotator's name. Begin with the frozen 20-item calibration queue.
-First interpret the sentence without gold or model answers; optionally reveal
-candidates, then the reference, then the responses. Each reveal is recorded.
-Stable system aliases reduce name cues but do not establish experimental blinding;
-prior exposure defaults to unknown and must be recorded by the reviewer. Any
-highlighting is a mechanical string match, not an authenticated target occurrence.
+Autosave and the draft button preserve progress without claiming completion. Use
+partial review to stop midway. Each item displays responses marked out of its total.
+Full completion requires an item/reference decision and a label for every response;
+explicit inability to decide is allowed for both. Revisit is only a reminder and
+never supplies missing judgments. Editing a completed item returns it to partial
+until explicitly completed again; the earlier completed snapshot remains in history.
+A name-only save is a draft, not a completed review. These rules are enforced by the
+server as well as the interface.
 
-The annotation schema is a calibration draft. Item/reference issues and response
-semantics are separate, as are response-format adherence and disagreement with the
-original automatic score. No human semantic labels are prefilled. Autosave retains
-drafts; explicit review completion is separate. Saved-work summaries distinguish
-items from responses and evaluation sampling from diagnosis. Inspect the disk-save
-indicator and export a JSON or CSV backup before closing. Import is restricted to
-the same source identity and supported annotation schema; retain older exports if
-the schema changes, and re-examine affected labels rather than silently migrating.
+Judge meaning against the sentence, even when the original reference is suspect:
 
-The diagnostic queue targets automatic errors, disagreement and mechanical anomalies.
-Its rates cannot estimate benchmark-wide error. The calibration sample is spread
-across available source and stored acronym-type metadata; it is not a proportional
-sample. Neither source composition nor differences between systems establish
-causality. The author must calibrate the schema before expanding human review.
+- Correct: the meaning fits the context.
+- Wrong: the meaning does not fit the context.
+- Partial: only part of the meaning fits.
+- Undecidable: insufficient evidence to judge the meaning.
+- No answer: no response was given.
 
-The review code and QA fixtures were prepared with AI assistance. Production
-annotations must come from the named human reviewer; QA annotations are stored in a
-separate test directory and must never be included in the research summary.
+Use the main radio buttons for these judgments. Confidence, format, notes and
+attribution explanations are optional and compact. Human proposed expansions and
+alternatives are stored separately from the original reference. After saving a
+clear judgment, the server derives its disagreement with the original automatic
+score; partial and undecidable labels do not determine that comparison. A discrepancy
+can be explained as a reference problem, a protocol/scoring problem, or another
+reason. No semantic label is generated automatically.
+
+The sidebar summarizes **saved records matching the current filters**. Full and
+partial item counts are separate; item completion always concerns all its answers.
+The answer denominator respects the selected system. Explicit undecidable responses
+are shown separately within marked responses. Answer findings (wrong, partial,
+undecidable and disagreement) refer only to the selected system; item/reference
+issues remain general. Unsaved changes are not included in these counts.
+
+Export JSON or CSV through the backup panel. Both retain the immutable initial
+snapshot, revised interpretation, reviewer identity, schema, source manifest and
+sampling plan. CSV is a lossless roundtrip format with validated readable columns;
+edit labels in the interface rather than changing CSV summary columns alone.
+
+Annotation schema `human-review-v2` splits the old combined partial/undecidable
+label. Old `partial` labels become `legacy_partial`, retaining their original value
+and entering an explicit recheck list; they are never guessed into a new category
+and cannot satisfy completion. Existing v1 records and exposure history are preserved
+with a backup before migration. Initial interpretations are recovered only from a
+complete, unambiguous first-candidate-reveal history; otherwise marked unavailable.
+An import cannot replace an existing immutable initial snapshot.
+
+`source_identity` (also `dataset_id`) hashes the original repository and sorted
+source file paths, hashes and sizes. `sampling_plan_id` independently identifies the
+queue plan. A changed queue or sample size can reuse the same annotation path after
+source-manifest validation; all items and prior exposures remain saved. For example,
+build `--sample-size 30` to a **fresh** bundle path only after an approved review-plan
+change, stop the server and restart with that bundle and the same annotation path.
+The previous data bundle remains intact. JSON/CSV imports also require the same
+source manifest; changed research sources are rejected even if an ID is copied.
+
+Offline checks for the review tool:
+
+```bash
+python -m unittest tests.test_human_review_data tests.test_human_review_server tests.test_human_review_v2_server tests.test_human_review_independent tests.test_human_review_sampling_resume
+node tests/test_human_review_ui.js
+```
+
+The code and QA were AI-assisted. QA sessions use `--qa`, a separate port and separate
+annotation path. They must not be included in human research summaries. The original
+source files, predictions and manuscript are outside this tool's write scope.
