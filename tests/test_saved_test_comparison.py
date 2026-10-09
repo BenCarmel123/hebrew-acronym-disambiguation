@@ -73,6 +73,31 @@ class SavedTestComparisonTests(unittest.TestCase):
             event["identity_sha256"] = manifest["identity_sha256"]
         journal.write_text("".join(json.dumps(e) + "\n" for e in events))
 
+
+    def test_explicit_legacy_and_extended_collectors_can_be_compared(self):
+        root = self.sources[1][0]
+        path = root / "session.json"
+        session = json.loads(path.read_text())
+        session["identity"]["code_sha256"]["test_evaluation.py"] = (
+            "1434bedc4dac4a79e681d3178d8c2eb2f408ba12d3931255c09f90ca3f8abbff")
+        session["identity"]["code_revision"] = "b" * 40
+        session["identity_sha256"] = evaluation._hash(session["identity"])
+        path.write_text(json.dumps(session))
+        self.sources[1] = (root, session["identity_sha256"])
+        def legacy(identity):
+            identity["code_sha256"] = session["identity"]["code_sha256"]
+            identity["code_revision"] = "b" * 40
+            identity["metadata"]["session_identity"] = session["identity_sha256"]
+        self.mutate_manifest(legacy)
+        result = self.compare()
+        self.assertEqual({m["collection_revision"] for m in result["models"]}, {"a" * 40, "b" * 40})
+        self.assertAlmostEqual(result["cost"]["total_accounted_ils"], 4.040048)
+
+    def test_unknown_collector_is_rejected(self):
+        with patch("hebrew_acronyms.saved_test_comparison.COMPATIBLE_COLLECTOR_SHA256", set()):
+            with self.assertRaisesRegex(ValueError, "Unreviewed collection"):
+                self.compare()
+
     def test_complete_denominators_and_cost_carry_without_writes(self):
         before = {p: p.read_bytes() for p in self.root.rglob("*") if p.is_file()}
         result = self.compare()

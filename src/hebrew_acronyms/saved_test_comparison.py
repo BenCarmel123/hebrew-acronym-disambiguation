@@ -9,6 +9,14 @@ from pathlib import Path
 from hebrew_acronyms import test_evaluation as evaluation
 
 
+# Audited collector implementations: a319f9d and the xAI/Qwen14 extension.
+# The extension adds provider dispatch/usage only; existing scoring is unchanged.
+COMPATIBLE_COLLECTOR_SHA256 = {
+    "1434bedc4dac4a79e681d3178d8c2eb2f408ba12d3931255c09f90ca3f8abbff",
+    "480eaf990037d51f3fedb153a6558367f5ec94ddbdb1d7a207e116424e6cb3de",
+}
+
+
 def _finish_reason(record):
     metadata = record["response_metadata"]
     return metadata.get("finish_reason") or (metadata.get("response_metadata") or {}).get("done_reason", "not reported")
@@ -67,10 +75,18 @@ def compare_saved_tests(session_sources, expected_test_runs):
         if reference_identity is None:
             reference_identity = identity
         elif any(identity[k] != reference_identity[k] for k in
-                 ("code_revision", "code_sha256", "rates", "reserves", "ils_per_usd", "seed", "max_attempts")):
+                 ("ils_per_usd", "seed", "max_attempts")):
             raise ValueError("Collection protocol or accounting settings differ")
-        # Reuse the collection scorer only when its implementation is unchanged.
-        for name in ("test_evaluation.py", "models/common/eval.py", "models/common/pairs.py"):
+        for name in set(identity["systems"]) & set(reference_identity["systems"]):
+            if any(identity[field][name] != reference_identity[field][name]
+                   for field in ("rates", "reserves")):
+                raise ValueError("Shared system accounting settings differ")
+        current_collector = hashlib.sha256(Path(evaluation.__file__).read_bytes()).hexdigest()
+        if (current_collector not in COMPATIBLE_COLLECTOR_SHA256
+                or identity["code_sha256"]["test_evaluation.py"] not in COMPATIBLE_COLLECTOR_SHA256):
+            raise ValueError("Unreviewed collection implementation")
+        # Prompts, parsing, pair construction and scoring must remain byte-identical.
+        for name in ("models/common/eval.py", "models/common/pairs.py"):
             current = Path(evaluation.__file__).parent / name
             if hashlib.sha256(current.read_bytes()).hexdigest() != identity["code_sha256"][name]:
                 raise ValueError("The collection scoring implementation has changed")
