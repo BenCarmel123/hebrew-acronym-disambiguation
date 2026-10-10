@@ -94,6 +94,8 @@ def add_lora(model, config: LoraTrainingConfig, *, quantized: bool = False,
              gradient_checkpointing: bool = True):
     """Freeze the base model and add LoRA adapters; the seed is set before their initialization."""
     from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
+    if hasattr(model, "peft_config"):
+        raise ValueError("The model already has LoRA adapters; reload the base model first")
     if quantized:
         model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=gradient_checkpointing)
     elif gradient_checkpointing:
