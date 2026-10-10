@@ -28,7 +28,9 @@ incomplete reconstruction of later additions.
 LLMs perform both tasks on the same items. Candidate order is fixed per item and
 recorded for reuse and recovery; labels beyond Z preserve all candidates, including
 the two test items with 30 candidates. The evaluation package includes Qwen2.5 7B and 14B
-through Ollama, Gemini, GPT-4.1 mini, Claude Haiku 5.5 and Grok 4.7 adapters. Exact model IDs,
+and DictaLM through Ollama, Gemini, GPT-4.1 mini, Claude Haiku 5.5 and Grok 4.7 adapters.
+DictaLM, a Hebrew-specialised LLM, runs locally without fine-tuning; see the
+[local DictaLM run](docs/reproducible_evaluation.md#local-dictalm-run). Exact model IDs,
 settings, returned versions and response usage are recorded in each run.
 
 Encoder comparisons distinguish trained DictaBERT candidate scoring from an

@@ -19,6 +19,7 @@ never send them in chat or put them in a notebook cell.
 | xAI | In [xAI Console](https://console.x.ai), select the key’s team and add prepaid credit. Keep automatic top-up disabled. | `XAI_API_KEY` | `grok-4.7`, low reasoning, no tools |
 | Qwen14 | No API account/key. Download only inside the Colab runtime. | None | `qwen2.5:14b`, Q4_K_M, plus resolved digest |
 | Qwen | No API account/key. The notebook installs Ollama and explicitly pulls `qwen2.5:7b` into the Colab runtime. | None | `qwen2.5:7b`, plus the resolved digest |
+| DictaLM | No API account/key. Runs in a local Ollama server; see [Local DictaLM run](#local-dictalm-run). | None | Researcher-chosen tag, plus the resolved digest |
 
 These steps follow the official [Gemini key instructions](https://ai.google.dev/gemini-api/docs/api-key),
 [OpenAI quickstart](https://developers.openai.com/api/docs/quickstart), and
