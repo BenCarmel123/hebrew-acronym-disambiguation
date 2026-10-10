@@ -89,6 +89,11 @@ class TrainingTests(unittest.TestCase):
             if "lora_" in name:
                 self.assertTrue(torch.equal(a, b), name)
 
+    def test_adapters_cannot_be_added_twice(self):
+        model = training.add_lora(tiny_causal_lm(), TINY_CONFIG, gradient_checkpointing=False)
+        with self.assertRaisesRegex(ValueError, "already has LoRA"):
+            training.add_lora(model, TINY_CONFIG, gradient_checkpointing=False)
+
     def test_strict_development_loss_selection(self):
         tok = ByteTokenizer()
         model = training.add_lora(tiny_causal_lm(), training.LoraTrainingConfig(
