@@ -28,7 +28,7 @@ def guard(event, args):
     if event in {"socket.connect", "socket.getaddrinfo", "socket.sendto"}:
         raise RuntimeError("Network forbidden during saved analysis")
     if event == "subprocess.Popen":
-        raise RuntimeError("Child processes forbidden during saved analysis")
+        raise PermissionError("Child processes forbidden during saved analysis")
     if event == "open" and isinstance(args[0], (str, bytes, os.PathLike)):
         path = Path(os.fsdecode(args[0])).resolve()
         if any(path.is_relative_to(p) for p in blocked):
