@@ -4,6 +4,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
+from hebrew_acronyms.test_cohort import DOCUMENT_OVERLAP_IDS, SCORED_ITEMS
 from hebrew_acronyms.test_encoder_inputs import qualify_test, write_qualified
 from hebrew_acronyms.test_encoder_inference import validate_test_inputs
 
@@ -13,7 +14,7 @@ class TestEncoderInputs(unittest.TestCase):
         self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
         self.root=Path(self.temp.name);self.source=self.root/'source.csv'
         self.rows=[{'item_id':str(i),'acronym':'אב״ג','sentence':'באב"ג ואחר כך אב״ג',
-                   'gold_expansion':'אחד','candidates':'אחד|שניים'} for i in range(395)]
+                   'gold_expansion':'אחד','candidates':'אחד|שניים'} for i in range(SCORED_ITEMS)]
         self.write(self.source,self.rows)
 
     def write(self,path,rows):
@@ -22,7 +23,7 @@ class TestEncoderInputs(unittest.TestCase):
 
     def test_default_does_not_guess_but_explicit_legacy_policy_is_deterministic(self):
         _,pending=qualify_test(self.source)
-        self.assertEqual(len(pending),395)
+        self.assertEqual(len(pending),SCORED_ITEMS)
         rows,pending=qualify_test(self.source,policy='legacy_first_occurrence')
         self.assertEqual(pending,[])
         self.assertEqual((rows[0]['span_start'],rows[0]['span_end'],rows[0]['target_raw']),(1,5,'אב"ג'))
@@ -40,10 +41,14 @@ class TestEncoderInputs(unittest.TestCase):
     def test_validation_requires_original_fields_and_no_overwrite(self):
         out=self.root/'derived.csv'
         rows=write_qualified(self.source,out,policy='legacy_first_occurrence')
-        self.assertEqual(len(validate_test_inputs(self.source,out)),395)
+        self.assertEqual(len(validate_test_inputs(self.source,out)),SCORED_ITEMS)
         with self.assertRaises(FileExistsError):write_qualified(self.source,out,policy='legacy_first_occurrence')
         rows[0]['sentence']='changed';self.write(out,rows)
         with self.assertRaisesRegex(ValueError,'changed original'):validate_test_inputs(self.source,out)
+
+    def test_excluded_items_are_rejected(self):
+        self.rows[0]['item_id']=sorted(DOCUMENT_OVERLAP_IDS)[0];self.write(self.source,self.rows)
+        with self.assertRaisesRegex(ValueError,'without document overlap'):qualify_test(self.source)
 
     def test_policy_cannot_be_implicit_or_combined_with_human_decisions(self):
         with self.assertRaises(ValueError):qualify_test(self.source,policy='arbitrary')

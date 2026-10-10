@@ -5,7 +5,11 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
+from hebrew_acronyms.test_cohort import DOCUMENT_OVERLAP_IDS, SCORED_ITEMS
 from hebrew_acronyms.test_review_export import export_review, export_encoder_review, review_coverage
+
+# A saved 395-item run: the scored items followed by the 14 excluded ones.
+ITEM_IDS = [str(i) for i in range(SCORED_ITEMS)] + sorted(DOCUMENT_OVERLAP_IDS)
 
 
 class ReviewExportTests(unittest.TestCase):
@@ -15,14 +19,14 @@ class ReviewExportTests(unittest.TestCase):
         self.root = Path(self.temp.name)
         (self.root / 'manifest.json').write_text('{}')
         self.rows = [dict(item_id=str(i), acronym='AB', sentence='AB in context',
-                          candidates='alpha|beta', gold_expansion='alpha') for i in range(395)]
+                          candidates='alpha|beta', gold_expansion='alpha') for i in ITEM_IDS]
         self.manifest = {'run_id': 'fixture-run', 'identity': {
             'cohort': 'full_test', 'rows': self.rows,
             'systems': [{'name': 'fixture', 'model': 'invented'}]}}
         self.records = [dict(item_id=str(i), task=task, response='alpha',
-                             status='response_received', correct=i % 2 == 0, valid=True,
+                             status='response_received', correct=ITEM_IDS.index(i) % 2 == 0, valid=True,
                              selected_candidate='alpha', shown_order=['alpha', 'beta'] if task == 'select' else [],
-                             prompt_sha256='fixture') for i in range(395) for task in ('generate', 'select')]
+                             prompt_sha256='fixture') for i in ITEM_IDS for task in ('generate', 'select')]
 
     def export(self, filename):
         with patch('hebrew_acronyms.test_review_export.evaluation._load_manifest', return_value=self.manifest), \
@@ -32,10 +36,11 @@ class ReviewExportTests(unittest.TestCase):
     def test_complete_queues_and_technical_failure_separation(self):
         self.records[0].update(status='incomplete_response', correct=False)
         data = self.export('review.json')
-        self.assertEqual(len(data['items']), 790)
+        self.assertEqual(len(data['items']), 2 * SCORED_ITEMS)
+        self.assertFalse(DOCUMENT_OVERLAP_IDS & {item['original_item_id'] for item in data['items']})
         negative, positive = set(data['queues']['diagnosis']), set(data['queues']['evaluation'])
         self.assertFalse(negative & positive)
-        self.assertEqual(len(negative | positive), 790)
+        self.assertEqual(len(negative | positive), 2 * SCORED_ITEMS)
         self.assertEqual(len(data['queues']['calibration']), 20)
         self.assertEqual(data['coverage']['technical_failure'], 1)
         self.assertNotIn('annotations', data)
@@ -46,7 +51,7 @@ class ReviewExportTests(unittest.TestCase):
         second = self.export('second.json')
         first_ids = {item['id'] for item in first['items']}
         second_ids = {item['id'] for item in second['items']}
-        self.assertEqual(len(first_ids & second_ids), 789)
+        self.assertEqual(len(first_ids & second_ids), 2 * SCORED_ITEMS - 1)
         self.manifest['run_id'] = 'unexpected-run'
         with self.assertRaisesRegex(ValueError, 'identified full-test'):
             self.export('wrong-run.json')
@@ -63,8 +68,8 @@ class ReviewExportTests(unittest.TestCase):
         result = review_coverage(self.root / 'review.json', self.root / 'absent.json')
         self.assertFalse(result['annotations_present'])
         self.assertIsNone(result['pace'])
-        self.assertEqual(sum(r['total'] for r in result['rows']), 790)
-        self.assertEqual(sum(r['unresolved'] for r in result['rows']), 790)
+        self.assertEqual(sum(r['total'] for r in result['rows']), 2 * SCORED_ITEMS)
+        self.assertEqual(sum(r['unresolved'] for r in result['rows']), 2 * SCORED_ITEMS)
         self.assertEqual(sum(r['reviewed'] for r in result['rows']), 0)
 
     def test_only_explicit_completed_labels_are_counted_and_bound_to_source(self):
@@ -102,22 +107,29 @@ class ReviewExportTests(unittest.TestCase):
         self.export('positive-only.json')
         rows = review_coverage(self.root/'positive-only.json', self.root/'absent.json')['rows']
         self.assertTrue(all(row['automatic_nonpositive_total'] == 0 for row in rows))
-        self.assertEqual(sum(row['automatic_positive_total'] for row in rows), 790)
+        self.assertEqual(sum(row['automatic_positive_total'] for row in rows), 2 * SCORED_ITEMS)
+
+    def test_coverage_of_an_earlier_full_bundle_ignores_excluded_items(self):
+        # Bundles exported before the exclusion queued all 395 items.
+        with patch('hebrew_acronyms.test_review_export.is_scored', return_value=True):
+            data = self.export('earlier.json')
+        self.assertEqual(len(data['items']), 2 * len(ITEM_IDS))
+        rows = review_coverage(self.root/'earlier.json', self.root/'absent.json')['rows']
+        self.assertEqual(sum(row['total'] for row in rows), 2 * SCORED_ITEMS)
 
     def test_encoder_queue_is_selection_only_and_binds_actual_candidate(self):
         predictions = [dict(selected_candidate='alpha', status='ok', correct=i % 2 == 0)
-                       for i in range(395)]
+                       for i in range(len(ITEM_IDS))]
         (self.root/'predictions.jsonl').write_text('fixture')
         test_path = self.root/'test.csv'
         test_path.write_text('fixture')
         with patch('hebrew_acronyms.encoder_test_results.load_encoder_test',
-                   return_value={'records': predictions}) as loader, \
-             patch('hebrew_acronyms.models.common.pairs.load_rows', return_value=self.rows):
+                   return_value={'records': predictions, 'rows': self.rows}) as loader:
             bundle = export_encoder_review(self.root, test_path, self.root/'encoder.json',
                                            expected_run_id='encoder-fixture', expected_identity='identified',
                                            expected_predictions_sha256='predictions-hash')
         self.assertEqual(loader.call_args.kwargs['expected_identity'], 'identified')
-        self.assertEqual(len(bundle['items']), 395)
+        self.assertEqual(len(bundle['items']), SCORED_ITEMS)
         self.assertEqual(len(bundle['queues']['calibration']), 20)
         self.assertEqual(set(bundle['queues']['diagnosis']) | set(bundle['queues']['evaluation']),
                          {item['id'] for item in bundle['items']})
@@ -128,4 +140,4 @@ class ReviewExportTests(unittest.TestCase):
             self.assertEqual(answer['auto_score_rule'], 'exact_candidate_match')
             self.assertEqual(answer['binding']['run_id'], 'encoder-fixture')
         result = review_coverage(self.root/'encoder.json', self.root/'absent.json')
-        self.assertEqual(result['rows'][0]['not_reviewed'], 395)
+        self.assertEqual(result['rows'][0]['not_reviewed'], SCORED_ITEMS)

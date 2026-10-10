@@ -12,6 +12,7 @@ from hebrew_acronyms import staged_evaluation as staged
 from hebrew_acronyms import test_evaluation as evaluation
 from hebrew_acronyms.saved_test_comparison import compare_saved_tests, result_table
 from hebrew_acronyms.test_baselines import run_test_baselines
+from hebrew_acronyms.test_cohort import DOCUMENT_OVERLAP_IDS, SCORED_ITEMS
 
 
 class SavedTestComparisonTests(unittest.TestCase):
@@ -20,30 +21,49 @@ class SavedTestComparisonTests(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
         self.test = self.root / "test_items.csv"
+        # Saved runs recorded their 395-item input under the original file name.
+        (self.root / "collected").mkdir()
+        self.legacy_test = self.root / "collected" / "test_items.csv"
         self.dev = self.root / "dev.csv"
-        for path, count in ((self.test, 395), (self.dev, 10)):
+        scored = [f"item-{i}" for i in range(SCORED_ITEMS)]
+        # The saved cohort interleaves the 14 excluded items with the scored ones.
+        excluded = sorted(DOCUMENT_OVERLAP_IDS)
+        legacy = [item for i, item in enumerate(scored) for item in
+                  ([excluded[i // 20]] if i % 20 == 0 and i // 20 < len(excluded) else []) + [item]]
+        for path, ids in ((self.test, scored), (self.legacy_test, legacy),
+                          (self.dev, [f"item-{i}" for i in range(10)])):
             with path.open("w", newline="") as stream:
                 writer = csv.DictWriter(stream, fieldnames=["item_id", "acronym", "sentence", "gold_expansion", "candidates"])
                 writer.writeheader()
-                writer.writerows({"item_id": f"item-{i}", "acronym": "אבג", "sentence": "הקשר אבג לדוגמה",
-                                  "gold_expansion": "אחד", "candidates": "אחד|שניים"} for i in range(count))
-        candidates = self.root / "candidate_table.csv"
-        candidates.write_text("acronym,expansion,rank,mined_items\nאבג,אחד,1,1\nאבג,שניים,2,0\n")
-        self.sources, self.expected, self.directories = [], {}, []
-        rates = {name: {"input": 1, "output": 1} for name in staged.SYSTEM_NAMES}
-        reserves = dict.fromkeys(staged.SYSTEM_NAMES, .01)
+                writer.writerows({"item_id": item_id, "acronym": "אבג", "sentence": "הקשר אבג לדוגמה",
+                                  "gold_expansion": "אחד", "candidates": "אחד|שניים"} for item_id in ids)
+        self.candidates = self.root / "candidate_table.csv"
+        self.candidates.write_text("acronym,expansion,rank,mined_items\nאבג,אחד,1,1\nאבג,שניים,2,0\n")
         network = patch("socket.socket.connect", side_effect=AssertionError("Network forbidden"))
         network.start()
         self.addCleanup(network.stop)
+        self.sources, self.expected, self.directories = self.build(self.root, [self.test, self.test])
+
+    def build(self, base, test_paths):
+        """Two chained sessions; a 395-item path stands for a run saved before the exclusion."""
+        sources, expected, directories = [], {}, []
+        rates = {name: {"input": 1, "output": 1} for name in staged.SYSTEM_NAMES}
+        reserves = dict.fromkeys(staged.SYSTEM_NAMES, .01)
         prior = 4.0
-        for index, (name, model, settings) in enumerate((
+        for index, ((name, model, settings), test_path) in enumerate(zip((
                 ("openai", "gpt-4.1-mini-2025-04-14", {"timeout": 120, "max_output_tokens": 512, "temperature": 0}),
-                ("anthropic", "claude-haiku-5-5", {"timeout": 120, "max_output_tokens": 1024, "effort": "low"}))):
-            root = self.root / f"session-{index}"
-            session = staged.prepare_session(root, self.dev, self.test, code_revision="a" * 40,
+                ("anthropic", "claude-haiku-5-5", {"timeout": 120, "max_output_tokens": 1024, "effort": "low"})),
+                test_paths)):
+            root = base / f"session-{index}"
+            session = staged.prepare_session(root, self.dev, test_path, code_revision="a" * 40,
                                              prior_spend_ils=prior, rates=rates, reserves=reserves)
             system = {"name": name, "provider": name, "model": model, "settings": settings}
-            manifest = staged._prepare(root, session, system, "full_test", None)
+            if test_path == self.legacy_test:
+                # The earlier collector accepted all 395 items.
+                with patch.object(evaluation, "check_scored_cohort"):
+                    manifest = staged._prepare(root, session, system, "full_test", None)
+            else:
+                manifest = staged._prepare(root, session, system, "full_test", None)
             directory = root / name / "full-test"
             response = {"status": "incomplete_response", "response": "אחד", "finish_reason": "length",
                         "identity_status": "verified", "usage_metadata": {"prompt_tokens": 10, "completion_tokens": 2}}
@@ -51,11 +71,12 @@ class SavedTestComparisonTests(unittest.TestCase):
                 response = {"status": "response_received", "response": "אחד", "finish_reason": "end_turn"}
             with patch.object(evaluation, "_call", return_value=response):
                 evaluation.run_evaluation(directory, code_revision="a" * 40, max_new_calls=1)
-            self.sources.append((root, session["identity_sha256"]))
-            self.expected[name] = manifest["run_id"]
-            self.directories.append(directory)
+            sources.append((root, session["identity_sha256"]))
+            expected[name] = manifest["run_id"]
+            directories.append(directory)
             prior = staged.session_summary(root)["total_accounted_ils"]
-        run_test_baselines(self.test, candidates, self.sources[0][0] / "baselines", code_revision="a" * 40)
+        run_test_baselines(test_paths[0], self.candidates, sources[0][0] / "baselines", code_revision="a" * 40)
+        return sources, expected, directories
 
     def compare(self):
         return compare_saved_tests(self.sources, self.expected)
@@ -102,8 +123,8 @@ class SavedTestComparisonTests(unittest.TestCase):
         before = {p: p.read_bytes() for p in self.root.rglob("*") if p.is_file()}
         result = self.compare()
         self.assertEqual(result["unique_attempts"], 2)
-        self.assertTrue(all(m["n_items"] == 395 for m in result["metrics"]))
-        self.assertEqual(len(result["failures"]), 1579)
+        self.assertTrue(all(m["n_items"] == SCORED_ITEMS for m in result["metrics"]))
+        self.assertEqual(len(result["failures"]), 4 * SCORED_ITEMS - 1)
         self.assertAlmostEqual(result["cost"]["token_cost_ils"], .000048)
         self.assertAlmostEqual(result["cost"]["uncertain_attempt_allowances_ils"], .04)
         self.assertAlmostEqual(result["cost"]["total_accounted_ils"], 4.040048)
@@ -221,6 +242,30 @@ class SavedTestComparisonTests(unittest.TestCase):
         paths[0].write_text(json.dumps(start | {'reserved_ils': 0}))
         with self.assertRaisesRegex(ValueError, 'hash mismatch'):
             compare_saved_tests(self.sources, self.expected, diagnostic_sources=[source])
+
+    def test_saved_395_item_run_is_scored_on_the_381_items_and_matches_new_runs(self):
+        sources, expected, _ = self.build(self.root / "legacy", [self.legacy_test, self.test])
+        result = compare_saved_tests(sources, expected)
+        self.assertEqual({m["n_items"] for m in result["metrics"]}, {SCORED_ITEMS})
+        self.assertEqual(len(result["failures"]), 4 * SCORED_ITEMS - 1)
+        self.assertFalse(DOCUMENT_OVERLAP_IDS & {f["item_id"] for f in result["failures"]})
+        self.assertEqual(len(result["test_source_sha256"]), 2)
+        self.assertEqual((result["baselines"]["n_items"], result["baselines"]["collected_n_items"]),
+                         (SCORED_ITEMS, SCORED_ITEMS + len(DOCUMENT_OVERLAP_IDS)))
+        self.assertEqual(len(result["baselines"]["details"]), SCORED_ITEMS)
+        self.assertEqual(result["baselines"]["summary"]["oracle"], 1.0)
+        # Costs still count every collected call, including those for excluded items.
+        self.assertAlmostEqual(result["cost"]["total_accounted_ils"], 4.040048)
+
+    def test_new_full_test_cannot_include_excluded_items(self):
+        root = self.root / "rejected"
+        rates = {name: {"input": 1, "output": 1} for name in staged.SYSTEM_NAMES}
+        session = staged.prepare_session(root, self.dev, self.legacy_test, code_revision="a" * 40, prior_spend_ils=0,
+                                         rates=rates, reserves=dict.fromkeys(staged.SYSTEM_NAMES, .01))
+        system = {"name": "openai", "provider": "openai", "model": "gpt-4.1-mini-2025-04-14",
+                  "settings": {"timeout": 120, "max_output_tokens": 512, "temperature": 0}}
+        with self.assertRaisesRegex(ValueError, "without document overlap"):
+            staged._prepare(root, session, system, "full_test", None)
 
     def test_table_escapes_model_text(self):
         self.assertIn("&lt;script&gt;", result_table([{"answer": "<script>"}], {"answer": "Answer"}))

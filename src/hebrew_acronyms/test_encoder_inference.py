@@ -11,6 +11,7 @@ from pathlib import Path
 import time
 
 from hebrew_acronyms.models.common.pairs import explicit_span, load_rows, validate_ids
+from hebrew_acronyms.test_cohort import check_scored_cohort
 from hebrew_acronyms.test_evaluation import _atomic_json, _code_hashes, _hash, _now
 
 
@@ -18,8 +19,9 @@ def validate_test_inputs(source_path, derived_path):
     source, rows = load_rows(source_path), load_rows(derived_path)
     validate_ids(source)
     validate_ids(rows)
-    if len(source) != 395 or len(rows) != 395:
-        raise ValueError('Exactly 395 test items are required')
+    check_scored_cohort([r['item_id'] for r in source])
+    if len(rows) != len(source):
+        raise ValueError('Derived inputs must cover every test item')
     for original, row in zip(source, rows):
         if any(row.get(key) != value for key, value in original.items()):
             raise ValueError('Derived inputs changed original test fields or item order')
@@ -29,7 +31,7 @@ def validate_test_inputs(source_path, derived_path):
 
 def run_encoder_test(source_path, derived_path, output_dir, *, checkpoint, snapshot_path,
                      expected_sha256, code_revision, device='cpu', threads=4):
-    """Validate three predictions, then persist all 395 using the same loaded model."""
+    """Validate three predictions, then persist all test items using the same loaded model."""
     import torch
     from hebrew_acronyms.models.dictabert_cross_encoder.colab import load_colab_finetuned
     from hebrew_acronyms.models.dictabert_cross_encoder.eval import evaluate
@@ -48,7 +50,7 @@ def run_encoder_test(source_path, derived_path, output_dir, *, checkpoint, snaps
                 'weights_sha256': expected_sha256, 'device': device, 'threads': threads,
                 'item_ids': [r['item_id'] for r in rows],
                 'target_policies': dict(Counter(r.get('span_basis') for r in rows)),
-                'task': 'select', 'n_items': 395}
+                'task': 'select', 'n_items': len(rows)}
     manifest = {'run_id': root.name, 'created_utc': _now(), 'identity': identity,
                 'identity_sha256': _hash(identity)}
     _atomic_json(root / 'manifest.json', manifest)
@@ -80,12 +82,12 @@ def run_encoder_test(source_path, derived_path, output_dir, *, checkpoint, snaps
                     raise RuntimeError('Initial technical prediction check failed; saved records retained')
                 print('3/3 technically valid; continuing without retraining', flush=True)
             if (index + 1) % 25 == 0:
-                print(f'{index + 1}/395 predictions persisted; elapsed {time.monotonic() - started:.1f}s', flush=True)
+                print(f'{index + 1}/{len(rows)} predictions persisted; elapsed {time.monotonic() - started:.1f}s', flush=True)
     summary = {'run_id': root.name, 'identity_sha256': manifest['identity_sha256'],
-               'n_items': 395, 'n_records': len(records), 'task': 'select',
+               'n_items': len(rows), 'n_records': len(records), 'task': 'select',
                'statuses': dict(Counter(r['status'] for r in records)),
                'n_correct': sum(r['correct'] for r in records),
-               'accuracy': sum(r['correct'] for r in records) / 395,
+               'accuracy': sum(r['correct'] for r in records) / len(rows),
                'metric': 'exact_candidate_match', 'human_judgments': 0,
                'elapsed_seconds_including_load': time.monotonic() - started,
                'api_cost_ils': 0, 'training_performed': False,
