@@ -1,0 +1,518 @@
+{
+  "description": "Derived minimal context evidence; original judgments, exposure and approval retained in the previous export. Original source hashes were verified before projection. No live annotation state is included.",
+  "source_sha256": {
+    "artifacts/human-review-20261009/review-data-continuation-v1.json": "0a3b5e37ece7d163a8ea12e91e6dce59c8f7264cf3261fa2b2543e2ef4b874d7",
+    "artifacts/human-review-20261009/annotations.continuation-v1.json": "412c0f47fe05401f6744e543e2d17dd7539a808ecc59f9fba3bfec5a9058b0b0",
+    "artifacts/human-review-381-20261010/review-data-381.json": "e0c21f7793886893bbf5619ae28c94abac8b99d67852a275baf6ddf7c4b89ae0"
+  },
+  "groups": {
+    "75d52d2b1093598717b15b61267d0ee983ecf533400d1c305c961928280badac": {
+      "original_item_id": "kn4-0266",
+      "historical_context": {
+        "sentence": "אדוני היושב-ראש, חברי הכנסת, קודם כול אני מבקש לומר את מה שראוי לומר בשבחו של מד\"א, מגן-דוד-אדום.",
+        "acronym": "מד״א",
+        "gold": "מגן דוד אדום",
+        "target_spans": [
+          {
+            "start": 78,
+            "end": 82
+          }
+        ]
+      },
+      "current_context": {
+        "sentence": "אדוני היושב-ראש, חברי הכנסת, קודם כול אני מבקש לומר את מה שראוי לומר בשבחו של מד\"א, מגן-דוד-אדום.",
+        "acronym": "מד״א",
+        "gold": "מגן דוד אדום",
+        "target_spans": [
+          {
+            "start": 78,
+            "end": 82
+          }
+        ]
+      }
+    },
+    "00eda72e586114deefdaf494035558ea2bb942a1be360ead4d35fe4ae7ccec5d": {
+      "original_item_id": "manual-0080",
+      "historical_context": {
+        "sentence": "לאחר פציעת המפקד, מונה הס״מ למלא את מקומו עד תום המבצע.",
+        "acronym": "ס״מ",
+        "gold": "סגן מפקד",
+        "target_spans": [
+          {
+            "start": 24,
+            "end": 27
+          }
+        ]
+      },
+      "current_context": {
+        "sentence": "לאחר פציעת המפקד, מונה הס״מ למלא את מקומו עד תום המבצע.",
+        "acronym": "ס״מ",
+        "gold": "סגן מפקד",
+        "target_spans": [
+          {
+            "start": 24,
+            "end": 27
+          }
+        ]
+      }
+    },
+    "05856dfa9faa16524a902ced966f0f260b9b60e0c47b1ebbf30f1c1eac4a8057": {
+      "original_item_id": "nat-0105",
+      "historical_context": {
+        "sentence": "בן גביר הכחיש את התחקיר, וכשבועיים לאחר שידור התכנית הגיש נגד התוכנית ונגד רוני חן שהתראיינה בה תביעה בסך שני מיליון ש״ח.",
+        "acronym": "ש״ח",
+        "gold": "שקל חדש",
+        "target_spans": [
+          {
+            "start": 117,
+            "end": 120
+          }
+        ]
+      },
+      "current_context": {
+        "sentence": "בן גביר הכחיש את התחקיר, וכשבועיים לאחר שידור התכנית הגיש נגד התוכנית ונגד רוני חן שהתראיינה בה תביעה בסך שני מיליון ש״ח.",
+        "acronym": "ש״ח",
+        "gold": "שקל חדש",
+        "target_spans": [
+          {
+            "start": 117,
+            "end": 120
+          }
+        ]
+      }
+    },
+    "69a445611217bbcd5584bac21567e502d42443fe2feb49fac0ee0cf51b0836a8": {
+      "original_item_id": "kn-0161",
+      "historical_context": {
+        "sentence": "על-פי הכללים החדשים, משפחה בת 12 נפשות זכאית לסיוע במסגרת \"שלוש פלוס\" אם היא מתגוררת בדירת 103 מ\"ר.",
+        "acronym": "מ״ר",
+        "gold": "מטר רבוע",
+        "target_spans": [
+          {
+            "start": 95,
+            "end": 98
+          }
+        ]
+      },
+      "current_context": {
+        "sentence": "על-פי הכללים החדשים, משפחה בת 12 נפשות זכאית לסיוע במסגרת \"שלוש פלוס\" אם היא מתגוררת בדירת 103 מ\"ר.",
+        "acronym": "מ״ר",
+        "gold": "מטר רבוע",
+        "target_spans": [
+          {
+            "start": 95,
+            "end": 98
+          }
+        ]
+      }
+    },
+    "f8f859e6e50cea51054e790a8933e43ebe26ba0ff9c792f1bd301b70ef75549c": {
+      "original_item_id": "manual-0073",
+      "historical_context": {
+        "sentence": "השאלה נראית תיאורטית, אך יש לה נ״מ מעשית בעניין דומה שנדון בבית הדין.",
+        "acronym": "נ״מ",
+        "gold": "נפקא מינא",
+        "target_spans": [
+          {
+            "start": 31,
+            "end": 34
+          }
+        ]
+      },
+      "current_context": {
+        "sentence": "השאלה נראית תיאורטית, אך יש לה נ״מ מעשית בעניין דומה שנדון בבית הדין.",
+        "acronym": "נ״מ",
+        "gold": "נפקא מינא",
+        "target_spans": [
+          {
+            "start": 31,
+            "end": 34
+          }
+        ]
+      }
+    },
+    "b078c2f370b6f6a02dfdad407e1212f42a44e629a22c70900428bf8d6d3ff807": {
+      "original_item_id": "kn-0006",
+      "historical_context": {
+        "sentence": "ההוצאה התקציבית כיום למימון זכויות נכי רדיפות הנאצים מסתכמת בכ-150 מיליון ש\"ח בשנה.",
+        "acronym": "ש״ח",
+        "gold": "שקל חדש",
+        "target_spans": [
+          {
+            "start": 74,
+            "end": 77
+          }
+        ]
+      },
+      "current_context": {
+        "sentence": "ההוצאה התקציבית כיום למימון זכויות נכי רדיפות הנאצים מסתכמת בכ-150 מיליון ש\"ח בשנה.",
+        "acronym": "ש״ח",
+        "gold": "שקל חדש",
+        "target_spans": [
+          {
+            "start": 74,
+            "end": 77
+          }
+        ]
+      }
+    },
+    "051514e9970c6f3d4dffb72aea96f46fd570ee22f87f602900ec3ffbc1f222d2": {
+      "original_item_id": "kn-0132",
+      "historical_context": {
+        "sentence": "\"המבנה הקטן (כ-10 מ\"ר) שמעל לבאר היה מסוכן, וכיוון שלא חוזק במשך שנים, לא היה מנוס מלהורסו לפני בוא החורף.",
+        "acronym": "מ״ר",
+        "gold": "מטר רבוע",
+        "target_spans": [
+          {
+            "start": 18,
+            "end": 21
+          }
+        ]
+      },
+      "current_context": {
+        "sentence": "\"המבנה הקטן (כ-10 מ\"ר) שמעל לבאר היה מסוכן, וכיוון שלא חוזק במשך שנים, לא היה מנוס מלהורסו לפני בוא החורף.",
+        "acronym": "מ״ר",
+        "gold": "מטר רבוע",
+        "target_spans": [
+          {
+            "start": 18,
+            "end": 21
+          }
+        ]
+      }
+    },
+    "1d83bb0e06ee1024fee5b3ff64d0ccf5c1c4929d2295d2a42f3d1fcdab7c7f48": {
+      "original_item_id": "kn-0293",
+      "historical_context": {
+        "sentence": "מדובר בגן-ילדים הפועל ברח' ש\"י עגנון בירושלים.",
+        "acronym": "ש״י",
+        "gold": "שמואל יוסף (עגנון)",
+        "target_spans": [
+          {
+            "start": 27,
+            "end": 30
+          }
+        ]
+      },
+      "current_context": {
+        "sentence": "מדובר בגן-ילדים הפועל ברח' ש\"י עגנון בירושלים.",
+        "acronym": "ש״י",
+        "gold": "שמואל יוסף (עגנון)",
+        "target_spans": [
+          {
+            "start": 27,
+            "end": 30
+          }
+        ]
+      }
+    },
+    "2508e8e2508e7c1d53cf0ef0503e434c94575806400c98ad3615b3bb9e481114": {
+      "original_item_id": "nat-0076",
+      "historical_context": {
+        "sentence": "בתלמוד נזכר שרבי יהודה הנשיא תמה באוזני תלמידיו מדוע לאסור פת עכו\"ם במצבים שבהם אין חשש קרבה לגוי.",
+        "acronym": "עכו״ם",
+        "gold": "עבודת כוכבים ומזלות",
+        "target_spans": [
+          {
+            "start": 62,
+            "end": 67
+          }
+        ]
+      },
+      "current_context": {
+        "sentence": "בתלמוד נזכר שרבי יהודה הנשיא תמה באוזני תלמידיו מדוע לאסור פת עכו\"ם במצבים שבהם אין חשש קרבה לגוי.",
+        "acronym": "עכו״ם",
+        "gold": "עבודת כוכבים ומזלות",
+        "target_spans": [
+          {
+            "start": 62,
+            "end": 67
+          }
+        ]
+      }
+    },
+    "834896d9314e76055fd2c2e1df0bb123b4a0e98a19a3cf80b3a9994b32dbfc7d": {
+      "original_item_id": "kn-0070",
+      "historical_context": {
+        "sentence": "ביחס לליקויים שנתגלו בשנת 1992, עד היום חברת \"עמידר\" השקיעה כ-5 מיליוני ש\"ח בתיקון הליקויים.",
+        "acronym": "ש״ח",
+        "gold": "שקל חדש",
+        "target_spans": [
+          {
+            "start": 72,
+            "end": 75
+          }
+        ]
+      },
+      "current_context": {
+        "sentence": "ביחס לליקויים שנתגלו בשנת 1992, עד היום חברת \"עמידר\" השקיעה כ-5 מיליוני ש\"ח בתיקון הליקויים.",
+        "acronym": "ש״ח",
+        "gold": "שקל חדש",
+        "target_spans": [
+          {
+            "start": 72,
+            "end": 75
+          }
+        ]
+      }
+    },
+    "80378d60f96b76f4ff10b0072de56393fafe34393be8afb522c5885562aedfa1": {
+      "original_item_id": "kn-0133",
+      "historical_context": {
+        "sentence": "אחד השוטרים ירה בצעיר הזה ממרחק של 40 ס\"מ, כאשר הוא שכב על הארץ ולא נשקפה ממנו שום סכנה, וכאשר שוטר שני ניסה לשבש הליכי חקירה.",
+        "acronym": "ס״מ",
+        "gold": "סנטימטר",
+        "target_spans": [
+          {
+            "start": 38,
+            "end": 41
+          }
+        ]
+      },
+      "current_context": {
+        "sentence": "אחד השוטרים ירה בצעיר הזה ממרחק של 40 ס\"מ, כאשר הוא שכב על הארץ ולא נשקפה ממנו שום סכנה, וכאשר שוטר שני ניסה לשבש הליכי חקירה.",
+        "acronym": "ס״מ",
+        "gold": "סנטימטר",
+        "target_spans": [
+          {
+            "start": 38,
+            "end": 41
+          }
+        ]
+      }
+    },
+    "e0992c8e08fa26ea2ebf4cb12f5b9edba0ee8daff7cdf1485ed56fcb1486799c": {
+      "original_item_id": "kn4-0197",
+      "historical_context": {
+        "sentence": "כבר לפני שנתיים סיווגתי מחדש את רשיונות הנהיגה באופנוע לפי הסדר הבא, כי – חבר הכנסת שגיא, אתה תיארת נכון – אפשר היה לקבל רשיון לאופנוע מ-50 סמ\"ק, 250 סמ\"ק, אין נפקא מינה.",
+        "acronym": "סמ״ק",
+        "gold": "סנטימטר מעוקב",
+        "target_spans": [
+          {
+            "start": 140,
+            "end": 144
+          },
+          {
+            "start": 150,
+            "end": 154
+          }
+        ]
+      },
+      "current_context": {
+        "sentence": "כבר לפני שנתיים סיווגתי מחדש את רשיונות הנהיגה באופנוע לפי הסדר הבא, כי – חבר הכנסת שגיא, אתה תיארת נכון – אפשר היה לקבל רשיון לאופנוע מ-50 סמ\"ק, 250 סמ\"ק, אין נפקא מינה.",
+        "acronym": "סמ״ק",
+        "gold": "סנטימטר מעוקב",
+        "target_spans": [
+          {
+            "start": 140,
+            "end": 144
+          },
+          {
+            "start": 150,
+            "end": 154
+          }
+        ]
+      }
+    },
+    "ea5d07582f626cadc1b081d76feb4309cba5a025a9d3177d098c6ee879237f98": {
+      "original_item_id": "nat-0097",
+      "historical_context": {
+        "sentence": "לטענת אוהדי ר״ג-גבעתיים, מכבי רמת-גן מתוקצבת על ידי עיריית רמת-גן פי כמה וכמה על פני הפועל, וישנן בעיות חוזרות ונשנות מדי עונה על חלוקת התקציב למועדונים.",
+        "acronym": "ר״ג",
+        "gold": "רמת גן",
+        "target_spans": [
+          {
+            "start": 12,
+            "end": 15
+          }
+        ]
+      },
+      "current_context": {
+        "sentence": "לטענת אוהדי ר״ג-גבעתיים, מכבי רמת-גן מתוקצבת על ידי עיריית רמת-גן פי כמה וכמה על פני הפועל, וישנן בעיות חוזרות ונשנות מדי עונה על חלוקת התקציב למועדונים.",
+        "acronym": "ר״ג",
+        "gold": "רמת גן",
+        "target_spans": [
+          {
+            "start": 12,
+            "end": 15
+          }
+        ]
+      }
+    },
+    "5fb1d9d8dbff3e9d40c0ab4f85616d21998ef33d0118cd314009efce806a174b": {
+      "original_item_id": "kn-0107",
+      "historical_context": {
+        "sentence": "ממצאים של מהנדסי רכבת ישראל מגלים, כי קטע של 300 מטר במסילת הרכבת בקו חיפה–נהרייה זז ממקומו ב-90 ס\"מ.",
+        "acronym": "ס״מ",
+        "gold": "סנטימטר",
+        "target_spans": [
+          {
+            "start": 97,
+            "end": 100
+          }
+        ]
+      },
+      "current_context": {
+        "sentence": "ממצאים של מהנדסי רכבת ישראל מגלים, כי קטע של 300 מטר במסילת הרכבת בקו חיפה–נהרייה זז ממקומו ב-90 ס\"מ.",
+        "acronym": "ס״מ",
+        "gold": "סנטימטר",
+        "target_spans": [
+          {
+            "start": 97,
+            "end": 100
+          }
+        ]
+      }
+    },
+    "26b1bc3ccf3cccc253497bf02a4fc3ba3000cfc9a89bdbf187ca4b83f406dedf": {
+      "original_item_id": "nat-0082",
+      "historical_context": {
+        "sentence": "זה לא מפתיע - ע״פ נתוני Mail.ru, לא פחות מ-25 מיליון מאזרחי אוקראינה עושים שימוש בשירותי הפורטל, יותר ממחצית מאוכלוסיית המדינה.",
+        "acronym": "ע״פ",
+        "gold": "על פי",
+        "target_spans": [
+          {
+            "start": 14,
+            "end": 17
+          }
+        ]
+      },
+      "current_context": {
+        "sentence": "זה לא מפתיע - ע״פ נתוני Mail.ru, לא פחות מ-25 מיליון מאזרחי אוקראינה עושים שימוש בשירותי הפורטל, יותר ממחצית מאוכלוסיית המדינה.",
+        "acronym": "ע״פ",
+        "gold": "על פי",
+        "target_spans": [
+          {
+            "start": 14,
+            "end": 17
+          }
+        ]
+      }
+    },
+    "ef9a30858ea467353be15bbcb37a04efdaf914de037f4427401773616c298715": {
+      "original_item_id": "manual-0002",
+      "historical_context": {
+        "sentence": "התוכנית האסטרטגית שגיבש אג״מ הוצגה לפני שר הביטחון בישיבה סגורה.",
+        "acronym": "אג״מ",
+        "gold": "אגף מטה",
+        "target_spans": [
+          {
+            "start": 24,
+            "end": 28
+          }
+        ]
+      },
+      "current_context": {
+        "sentence": "התוכנית האסטרטגית שגיבש אג״מ הוצגה לפני שר הביטחון בישיבה סגורה.",
+        "acronym": "אג״מ",
+        "gold": "אגף מטה",
+        "target_spans": [
+          {
+            "start": 24,
+            "end": 28
+          }
+        ]
+      }
+    },
+    "e0c7f454e0d89fa9623465442eb5cbc5f115c0a33cec26752bd6a2ed739b1661": {
+      "original_item_id": "nat-0108",
+      "historical_context": {
+        "sentence": "בעז ערפלי, רב-רומאן: חמישה מאמרים על \"תמול שלשום\" מאת ש\"י עגנון, המכון לפואטיקה וסמיוטיקה על שם פורטר, אוניברסיטת תל אביב, הוצאת הקיבוץ המאוחד, 1998.",
+        "acronym": "ש״י",
+        "gold": "שמואל יוסף (עגנון)",
+        "target_spans": [
+          {
+            "start": 54,
+            "end": 57
+          }
+        ]
+      },
+      "current_context": {
+        "sentence": "בעז ערפלי, רב-רומאן: חמישה מאמרים על \"תמול שלשום\" מאת ש\"י עגנון, המכון לפואטיקה וסמיוטיקה על שם פורטר, אוניברסיטת תל אביב, הוצאת הקיבוץ המאוחד, 1998.",
+        "acronym": "ש״י",
+        "gold": "שמואל יוסף (עגנון)",
+        "target_spans": [
+          {
+            "start": 54,
+            "end": 57
+          }
+        ]
+      }
+    },
+    "d592c51f13160a2b06f80e1cea702277b60b9d3e6ce461f662f5526dc5066794": {
+      "original_item_id": "kn-0173",
+      "historical_context": {
+        "sentence": "ואל תתנו דמי לו עד יכונן ועד ישים את ירושלים תהילה בארץ\"; ישעיהו פרק ס\"ב.",
+        "acronym": "ס״ב",
+        "gold": "שישים ושתיים (גימטריה)",
+        "target_spans": [
+          {
+            "start": 69,
+            "end": 72
+          }
+        ]
+      },
+      "current_context": {
+        "sentence": "ואל תתנו דמי לו עד יכונן ועד ישים את ירושלים תהילה בארץ\"; ישעיהו פרק ס\"ב.",
+        "acronym": "ס״ב",
+        "gold": "שישים ושתיים (גימטריה)",
+        "target_spans": [
+          {
+            "start": 69,
+            "end": 72
+          }
+        ]
+      }
+    },
+    "536053eaf516e3c34030afd60f03eb18cbefd5cf9ad399d2aa84167fbabd9219": {
+      "original_item_id": "manual-0042",
+      "historical_context": {
+        "sentence": "מדובר בתשלום ח״פ בלבד, ולא בהתחייבות חוזרת שתחול על התקציב בשנים הבאות.",
+        "acronym": "ח״פ",
+        "gold": "חד פעמי",
+        "target_spans": [
+          {
+            "start": 13,
+            "end": 16
+          }
+        ]
+      },
+      "current_context": {
+        "sentence": "מדובר בתשלום ח״פ בלבד, ולא בהתחייבות חוזרת שתחול על התקציב בשנים הבאות.",
+        "acronym": "ח״פ",
+        "gold": "חד פעמי",
+        "target_spans": [
+          {
+            "start": 13,
+            "end": 16
+          }
+        ]
+      }
+    },
+    "2e5a86a3cdf92e7243f8b9a5b70e61ebf0508a5b940375d9bd81fbce5422c3db": {
+      "original_item_id": "manual-0038",
+      "historical_context": {
+        "sentence": "השוטרים לא מצאו כל ד״ע בעת החיפוש ברכב.",
+        "acronym": "ד״ע",
+        "gold": "דבר עבירה",
+        "target_spans": [
+          {
+            "start": 19,
+            "end": 22
+          }
+        ]
+      },
+      "current_context": {
+        "sentence": "השוטרים לא מצאו כל ד״ע בעת החיפוש ברכב.",
+        "acronym": "ד״ע",
+        "gold": "דבר עבירה",
+        "target_spans": [
+          {
+            "start": 19,
+            "end": 22
+          }
+        ]
+      }
+    }
+  }
+}

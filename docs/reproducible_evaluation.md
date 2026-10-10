@@ -491,3 +491,46 @@ failures, baselines and human-review coverage use only the 381 scored items, whi
 cost accounting still counts every collected call. Candidate order is seeded per
 item ID, so saved and new runs show identical prompts for the scored items and are
 compared item by item.
+
+
+The exclusion was applied after the published 395-item responses were collected.
+The analysis notebook checks every retained field against the original Qwen
+manifest, the exact 14-item exclusion list and the four document titles against
+qualified encoder train/dev inputs. This check does not establish the historical
+checkpoint's actual training rows or the cleanliness of every historical split.
+
+The new Gemini session `evaluation-gemini-381-20261010-79b767a` collected this
+381-item cohort with revision `79b767a3f04bfadc9536d505b11f73ac70a99b5c`.
+Its test run `6658d323657f4df3aced950bfe6abb07` contains all 762 final outcomes,
+including two truncated generation responses. The original `incomplete` status
+is retained; collection is finished. The 20-answer pilot is separate. Portable
+analysis validates these sources alongside the earlier 395-item collections and
+uses the existing verified baselines, without repeating model calls.
+
+Accounting includes the local diagnostic in the carried prior exactly once:
+21.6620734 ILS plus 1.465605 ILS for the new session. The comparison checks the
+diagnostic journal and receipt, its reported usage against collection rates, and
+the chronological prior chain. It rejects duplicate diagnostics and inconsistent
+prior amounts. The separate [Gemini review add-on](../saved-results/human-review-gemini381-20261010/README.md)
+is inactive until the existing labeling window and verified export/backup are complete.
+
+The compact human-review route is a partial diagnostic review of these 381 items.
+It binds decisions to exact collected answers, groups only identical responses in
+the same item/context/task, and preserves all answer occurrences and failures.
+A portable `human-review-381-20261010/review-export.json`, when present in saved
+results, is validated against the original review bundles and cohort before its
+coverage is displayed. It does not replace automatic scores or justify a
+benchmark-wide human accuracy estimate. No historical labels are transferred.
+The optional table interface proposes `not_fits` and requires explicit human
+confirmation for each displayed batch of up to 20 contexts. Exceptions and
+`unsure` can be selected; unread rows are skipped. Merely opening a table creates
+no judgments. The interaction mode and batch membership are retained in the
+annotation history. This default may anchor judgments toward rejection and must
+be reported with the diagnostic sampling limitation. The shortened generation
+queue defers responses containing non-Hebrew letters; these remain unreviewed,
+not automatically incorrect or gibberish. Punctuation and digits are not foreign
+letters, and no scoring denominator changes.
+
+Additional DictaLM Ollama outputs are preserved in
+`saved-results/local-runs/dictalm-20261010/`. They await protocol validation and
+human review and are excluded from the current analysis and review denominators.
