@@ -12,9 +12,13 @@ from hebrew_acronyms.models.dictabert_cross_encoder.training import TrainingConf
 from tests.fixtures.tiny import tiny_base_model
 
 ROOT = Path(__file__).resolve().parents[1]
+# Audit hooks cannot be removed, so the guard only acts while this class runs.
+GUARD_ACTIVE = False
 
 
 def guard(event, args):
+    if not GUARD_ACTIVE:
+        return
     if event in {"socket.connect", "socket.getaddrinfo", "socket.sendto", "socket.__new__"}:
         raise RuntimeError("Network forbidden in checkpoint fixture checks")
     if event == "open" and isinstance(args[0], (str, bytes, os.PathLike)):
@@ -27,7 +31,14 @@ def guard(event, args):
 class CheckpointRelocationTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        global GUARD_ACTIVE
         sys.addaudithook(guard)
+        GUARD_ACTIVE = True
+
+    @classmethod
+    def tearDownClass(cls):
+        global GUARD_ACTIVE
+        GUARD_ACTIVE = False
 
     def setUp(self):
         temporary = tempfile.TemporaryDirectory(prefix="checkpoint-relocation-fixture-")
