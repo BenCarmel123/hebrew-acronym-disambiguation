@@ -1,6 +1,6 @@
-# Reproducible evaluation in Colab
+# Reproduce the analysis or collect new results
 
-Use [run_test_eval_colab.ipynb](../notebooks/run_test_eval_colab.ipynb) as the
+For separately authorized **new collection**, use [run_test_eval_colab.ipynb](../notebooks/run_test_eval_colab.ipynb) as the
 execution entry point. It installs one reviewed commit, saves requests and outcomes
 to Drive, runs the fixed development pilot separately for each selected system,
 and gates each 381-item test on successful operation and a combined 100 ILS budget.
@@ -20,14 +20,14 @@ From the repository root:
 ANALYSIS_REVISION=$(git rev-parse HEAD)
 ORIGINAL_CHECKOUT=$(pwd)
 ANALYSIS_DIR=$(mktemp -d /tmp/hebrew-acronym-analysis-XXXXXXXX)
-git archive "$ANALYSIS_REVISION" data docs notebooks results saved-results src tests pyproject.toml requirements.txt README.md | tar -x -C "$ANALYSIS_DIR"
+git archive "$ANALYSIS_REVISION" data docs notebooks paper results saved-results src tests pyproject.toml requirements.txt README.md | tar -x -C "$ANALYSIS_DIR"
 python3.13 -m venv "$ANALYSIS_DIR/.venv"
 "$ANALYSIS_DIR/.venv/bin/python" -m pip install -e "$ANALYSIS_DIR" nbformat nbclient nbconvert ipykernel
 "$ANALYSIS_DIR/.venv/bin/python" -m pip check
 "$ANALYSIS_DIR/.venv/bin/python" "$ANALYSIS_DIR/tests/run_saved_analysis.py" \
   --root "$ANALYSIS_DIR" --blocked-root "$ORIGINAL_CHECKOUT" \
   --revision "$ANALYSIS_REVISION" --receipt "$ANALYSIS_DIR/new-execution.json"
-"$ANALYSIS_DIR/.venv/bin/python" -m jupyter nbconvert --to html \
+"$ANALYSIS_DIR/.venv/bin/python" -m jupyter nbconvert --to html --no-input \
   "$ANALYSIS_DIR/notebooks/experimental_study.ipynb"
 ```
 
@@ -36,8 +36,8 @@ I/O guards blocking network calls, model-weight reads, child processes and reads
 the original checkout. Add `--blocked-root /path/to/another/research-checkout` for any
 other research copy. The runner probes the guards and records package versions,
 source hashes and execution counts. These are Python audit hooks, not an OS sandbox.
-It uses an empty model cache, leaves the development appendix disabled, and preserves
-real outputs in the portable notebook. The archive excludes `paper/`; no paper build
+It uses an empty model cache and preserves
+real outputs in the portable notebook. The archive includes paper sources so notebook links remain usable; no paper build
 is needed. The [export index](../results/submission-20261010/README.md) identifies the
 numerical CSV/JSON outputs to compare with the selected commit.
 
@@ -238,7 +238,7 @@ this workflow cannot guarantee exactly-once billing or durability during a stora
 failure. Keep the mounted storage connected and inspect the journal after an error.
 
 The four deterministic baselines remain runnable through the installed package.
-The untrained DictaBERT similarity and trained DictaBERT selection remain distinct
+The pretrained DictaBERT similarity baseline without task adaptation and trained DictaBERT selection remain distinct
 systems. The [checkpoint guide](checkpoints.md) and package
 [Colab loader](../src/hebrew_acronyms/models/dictabert_cross_encoder/colab.py)
 preserve inference from the existing complete weights; retraining is not required.
@@ -284,14 +284,22 @@ This development workflow uses its own settings and saved-run format. Its
 `enable_*` switches and resume command below do not replace the Colab test
 runner's per-system pilot checks or shared session budget.
 
-For separately authorized development work, use Appendix A of the main notebook.
+The development workflow below describes the historical Appendix A at
+`5c6980efee34b18e3fa63e53f7fd5713938571c0:notebooks/experimental_study.ipynb`.
+It is retained in Git, removed from the current reading notebook, and contributes
+no test results. Its library code remains available; the fixture tests preserve
+its preview, mocked collection and reload behavior. Any real development run is a
+separate experiment. The following settings describe that historical workflow.
+
+For optional package-backed training, open
+[train_dictabert.ipynb](../notebooks/train_dictabert.ipynb).
 Reuse the [basic setup](../README.md#install-and-check), or create an isolated environment:
 
 ```bash
 python3.13 -m venv .venv
 .venv/bin/python -m pip install -e . jupyterlab ipykernel
 .venv/bin/python -m pip check
-.venv/bin/python -m jupyter lab notebooks/experimental_study.ipynb
+.venv/bin/python -m jupyter lab notebooks/train_dictabert.ipynb
 ```
 
 Select the `.venv` kernel. Project dependencies are pinned in `requirements.txt`
@@ -320,9 +328,9 @@ live services still need the manual validation below.
 
 ### Configure and run the development study
 
-The [main notebook](../notebooks/experimental_study.ipynb) defaults to saved test
-analysis. Only **Appendix A**, enabled with `RUN_DEVELOPMENT_APPENDIX=True`, follows
-inputs → encoder → LLMs → development results. Its settings include:
+The historical dev appendix follows inputs → encoder → LLMs → development
+results. The current main notebook only analyzes saved test results. Historical
+settings include:
 
 | Setting | Value or required input |
 |---|---|
@@ -421,7 +429,7 @@ and provenance manifests under `paper/generated/`; preview and fixtures cannot d
 
 ### Separate development runs and Colab checkpoints
 
-The main notebook accepts `checkpoint_format="colab_state_dict"`, an explicit
+The historical development workflow accepts `checkpoint_format="colab_state_dict"`, an explicit
 `checkpoint_sha256`, local `snapshot_path`, and the supplied `checkpoint_attestation`.
 The [Colab adapter](../src/hebrew_acronyms/models/dictabert_cross_encoder/colab.py)
 reconstructs CLS pooling, length 256, `[ACR]`/`[/ACR]`, and the original pair encoding
@@ -450,7 +458,7 @@ billing or access block stops immediately and persists across resume; after acco
 repair, use a new identified run. Other transient failures can resume after service
 recovery; existing terminal failure records are preserved.
 
-The disabled development appendix's final comparison cell accepts `(study.json path, original run ID)`
+The historical development appendix's final comparison cell accepts `(study.json path, original run ID)`
 entries for independently saved runs. It checks complete input identity and prompt
 agreement, retains original arm run IDs, and displays all 62 items without model or
 network calls. Selection includes service/format failures in its denominator; generation

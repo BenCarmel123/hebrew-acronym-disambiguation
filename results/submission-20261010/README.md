@@ -14,7 +14,7 @@ are manuscript inputs, not edits to the manuscript or its existing figures.
 | [similarity_metric.csv](similarity_metric.csv), [similarity_source.json](similarity_source.json) | Existing similarity result 245/381, bound to historical predictions by commit and hash; missing run metadata is explicit. |
 | [metric_coverage.csv](metric_coverage.csv) | Technical failures, stored format validity and automatic matches on distinct fields; human judgments remain separate. |
 | [technical_failures.csv](technical_failures.csv) | 17 failed/truncated occurrences, including both Gemini truncations. |
-| [models_and_settings.csv](models_and_settings.csv) | LLM identities, run IDs and collection settings; trained encoder identity is in the notebook and automatic-metric run ID. |
+| [models_and_settings.csv](models_and_settings.csv) | LLM identities, run IDs and collection settings; trained encoder identity is in the linked checkpoint evidence and automatic-metric run ID. |
 | [human_review_coverage.csv](human_review_coverage.csv) | New judgments, approved reuse, reviewed strata, unreviewed answers and disagreements per system/task. |
 | [human_review_coverage.pdf](human_review_coverage.pdf) | Coverage counts, not human accuracy; also PNG and SVG. |
 | [review_summary.csv](review_summary.csv) | 638 groups / 741 of 4,953 occurrences: 707 new and 34 reused. |
@@ -83,6 +83,7 @@ measurements and no common ranking. Ben's annotations are included; the template
 limitation remains.
 
 The historical [execution receipt](analysis_environment.json) remains unchanged.
-The [new execution receipt](analysis_execution_readability_20261010.json) identifies
-the reordered notebook's guarded portable replay and its exact source hashes.
+The [earlier readability receipt](analysis_execution_readability_20261010.json)
+identifies the previous notebook replay. New executions save separate receipts
+outside Git; neither historical receipt describes later notebook sources.
 See the [reproduction instructions](../../docs/reproducible_evaluation.md#reproduce-the-saved-test-analysis).

@@ -7,6 +7,28 @@ receives neither candidates nor the reference answer (gold). The comparison asks
 how the task formulation and model family affect disambiguation; it does not
 isolate the causal effect of model size.
 
+## Start here
+
+Open **[experimental_study.ipynb](notebooks/experimental_study.ipynb)** to read the
+saved study. Its opening summary and Section 3 show the main comparison; Section 4
+keeps DictaLM and measurement checks separate. Outputs are saved in the notebook.
+To rerun only this analysis, follow the
+[portable offline instructions](docs/reproducible_evaluation.md#reproduce-the-saved-test-analysis).
+The [export index](results/submission-20261010/README.md) links full-precision tables.
+
+| Goal | Entry point |
+|---|---|
+| Read or reproduce saved test analysis | [Main notebook](notebooks/experimental_study.ipynb) — no weights, credentials or model calls |
+| Collect new results, when separately authorized | [Test collection](notebooks/run_test_eval_colab.ipynb) — separate from saved analysis |
+| Inspect optional training code | [Training example](notebooks/train_dictabert.ipynb) — not evidence of the historical training run |
+| Inspect historical checkpoint settings | [Historical reference](notebooks/historical/README.md) — preserved source and documented limits |
+| Edit or build the paper | [paper/main.tex](paper/main.tex) and its sections; [build guide](paper/README.md) |
+
+The former dev appendix is retained at
+`5c6980efee34b18e3fa63e53f7fd5713938571c0:notebooks/experimental_study.ipynb`.
+The 32B/72B Qwen route is outside the paper experiments and removed from the active
+tree; its source remains in Git at that commit. Neither is a current analysis entry point.
+
 ## Data
 
 The corpus combines observed Wikipedia and Knesset text, Wikipedia sentences with
@@ -49,8 +71,7 @@ Open [experimental_study.ipynb](notebooks/experimental_study.ipynb) for the curr
 methods, tables, figures, coverage and limitations. Its committed outputs are
 readable without executing cells. Default execution loads the bundled
 [saved evidence](saved-results/README.md); it makes no model requests and requires
-neither API accounts nor weights. The optional development demonstration is disabled
-and contributes no test observations.
+neither API accounts nor weights. Development and test observations remain separate.
 
 The test analysis preserves separate collection runs and full 381-item denominators,
 including technical failures. Gemini now includes all 381 items in both tasks:
@@ -95,9 +116,9 @@ or rerunning inference. Its missing run manifest and sentence snapshot limit pro
 | [src/hebrew_acronyms/](src/hebrew_acronyms/) | Data processing, model adapters, prompts, scoring and resumable evaluation. |
 | [data/](data/README.md) | Source exports, candidate inventories, review evidence, splits and qualified encoder inputs. |
 | [run_test_eval_colab.ipynb](notebooks/run_test_eval_colab.ipynb) | Pilot/test collection; separate from reading or reproducing saved analysis. |
-| [experimental_study.ipynb](notebooks/experimental_study.ipynb) | Primary saved-test analysis; optional dev appendix disabled by default. |
-| [train_dictabert.ipynb](notebooks/train_dictabert.ipynb) | Explicit package-backed encoder training and inference. |
-| [train_dictabert_colab.ipynb](notebooks/historical/train_dictabert_colab.ipynb) | Historical Colab training route and checkpoint configuration source. |
+| [experimental_study.ipynb](notebooks/experimental_study.ipynb) | Primary notebook for reading and reproducing saved test analysis. |
+| [train_dictabert.ipynb](notebooks/train_dictabert.ipynb) | Optional package-backed training example; not historical run evidence. |
+| [train_dictabert_colab.ipynb](notebooks/historical/train_dictabert_colab.ipynb) | Byte-preserved checkpoint configuration reference; see its historical status. |
 | [tests/](tests/) | Engineering checks with invented inputs and mocked services. |
 | [results/](results/) | Historical predictions and summaries, preserved with their provenance. |
 | [paper/](paper/README.md) | Working LaTeX manuscript, bibliography and build/export instructions. |

@@ -112,7 +112,7 @@ def main():
         'code_base_commit': args.revision,
         'python': platform.python_version(), 'platform': platform.platform(),
         'packages': dict(sorted((d.metadata['Name'], d.version) for d in importlib.metadata.distributions())),
-        'execution': 'all cells top to bottom; saved analysis enabled; development appendix disabled',
+        'execution': 'all cells top to bottom; saved analysis only; no development collection cells',
         'guard_scope': 'kernel Python audit hooks; network, child processes, model weights and specified original checkouts blocked',
         'blocked_checkout_names': [p.name for p in args.blocked_root],
         'guard_verification': probes,

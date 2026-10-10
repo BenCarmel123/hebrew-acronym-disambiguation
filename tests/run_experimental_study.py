@@ -1,4 +1,4 @@
-"""Execute unchanged study cells on invented inputs with guarded, mocked interfaces."""
+"""Execute the preserved development workflow on invented inputs with guarded, mocked interfaces."""
 import ast
 import csv
 from copy import deepcopy
@@ -80,7 +80,8 @@ def execute(controls=None, *, qwen_failure=False, gemini_failure=False):
     from hebrew_acronyms.models.gemini import eval as gemini_eval
     # Research result loading is covered separately; this harness uses only invented inputs.
     namespace = {"__name__": "__main__", "RUN_SAVED_TEST_ANALYSIS": False, "RUN_DEVELOPMENT_APPENDIX": True}
-    notebook = json.loads((ROOT / "notebooks/experimental_study.ipynb").read_text())
+    fixture = ROOT / "tests/fixtures/development_workflow.py"
+    cells = fixture.read_text().split("# %%\n")[1:]
     display_module = SimpleNamespace(HTML=lambda value: value, display=lambda value: None)
     def fake_load(checkpoint, **kwargs):
         metadata = json.loads(Path(str(checkpoint) + ".json").read_text())
@@ -109,17 +110,14 @@ def execute(controls=None, *, qwen_failure=False, gemini_failure=False):
         os.environ.pop("GEMINI_API_KEY", None)
         if controls and controls.get("enable_gemini") and controls.get("mode") == "run":
             os.environ["GEMINI_API_KEY"] = "invented-key-for-fixture-only"
-        for index, cell in enumerate(notebook["cells"]):
-            if cell["cell_type"] != "code":
-                continue
-            source = "".join(cell["source"])
+        for index, source in enumerate(cells, start=1):
             if index == 1:
                 for statement in ast.parse(source).body:
                     exec(compile(ast.Module(body=[statement], type_ignores=[]), "study-settings-cell", "exec"), namespace)
                     if isinstance(statement, ast.Assign) and any(isinstance(target, ast.Name) and target.id == "settings" for target in statement.targets):
                         namespace["settings"].update(controls or {})
             else:
-                exec(compile(source, f"experimental_study.ipynb:{index}", "exec"), namespace)
+                exec(compile(source, f"development_workflow.py:{index}", "exec"), namespace)
         settings = namespace["settings"]
         mode = settings["mode"]
         count = 2 if settings["run_kind"] == "validation" else 2 * len(namespace["rows"])
@@ -205,7 +203,7 @@ def main():
                               saved_encoder=full["artifact_path"], saved_encoder_run_id="full-one"))
         assert reused["results"]["metrics"][0]["n_valid_predictions"] == 4
         assert reused["results"]["metrics"][1]["n_attempted"] == 0
-    print("Study notebook: PASS (11 routes including five arms, isolated providers, failures and legacy reload; no real models/services/data)")
+    print("Development workflow: PASS (11 routes including five arms, isolated providers, failures and legacy reload; no real models/services/data)")
 
 
 if __name__ == "__main__":
