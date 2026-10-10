@@ -13,7 +13,7 @@ import secrets
 import threading
 from datetime import datetime, timezone, timedelta
 
-from .human_review_masked import MaskedStore, LABELS, contains_foreign_letters
+from .human_review_masked import MaskedStore, LABELS, contains_foreign_letters, now
 from .human_review_server import atomic_json
 from .human_review_short import digest
 
@@ -101,7 +101,7 @@ class IdentifiedStore(MaskedStore):
     """Reuse masking, persistence, keyboard UI and signed backups; one exact group per card."""
     protocol = PROTOCOL
     limitations = ('בדיקה אבחונית חלקית של 381 פריטים, עם ייחוס מוצג וחשיפה קודמת שאינה ידועה. '
-                   'תעדוף מכני אינו שיפוט אנושי. אין להסיק דיוק כולל או שלילת כל false negatives. '
+                   'בטבלה ברירת מחדל שלילית מאושרת במפורש ועלולה להטות את השיפוט. תעדוף מכני אינו שיפוט אנושי. אין להסיק דיוק כולל או שלילת כל false negatives. '
                    'שיפוט משותף חל רק על תשובות זהות באותו פריט, הקשר ומשימה; כל מקורותיהן נשמרים.')
 
     def __init__(self, dataset, path):
@@ -138,7 +138,7 @@ class IdentifiedStore(MaskedStore):
         return {'status':'complete' if n else 'unreviewed','judged_answers':n,'total_answers':1}
 
     def queues(self):
-        result={k:[] for k in ('all','calibration','prioritized','positives','selection','foreign','unsure','suspicions','filtered')}
+        result={k:[] for k in ('all','calibration','prioritized','hebrew','positives','selection','foreign','unsure','suspicions','filtered')}
         for i in self.plan['queue']:
             item=self.items[i]; a=item['answers'][0]
             r=self.state['records'].get(i,{}); j=r.get('judgments',{}).get(a['id'],{})
@@ -148,6 +148,7 @@ class IdentifiedStore(MaskedStore):
                 for view in ('calibration','prioritized','positives','selection'):
                     if i in self.plan[view]: result[view].append(i)
                 if contains_foreign_letters(a['raw']): result['foreign'].append(i)
+                elif i in self.plan['prioritized']: result['hebrew'].append(i)
             if j.get('label')=='unsure': result['unsure'].append(i)
             if r.get('suspect'): result['suspicions'].append(i)
         return result
@@ -182,7 +183,7 @@ class IdentifiedStore(MaskedStore):
         return item
 
     def commit(self, candidate, action, item_id=None):
-        if action == 'save' and not candidate.get('manual_session'):
+        if action in {'save', 'batch-save'} and not candidate.get('manual_session'):
             if any(j.get('label') in LABELS for r in candidate['records'].values() for j in r['judgments'].values()):
                 start = datetime.now(timezone.utc)
                 candidate['manual_session'] = {'started_at':start.isoformat(),
@@ -225,7 +226,7 @@ class IdentifiedStore(MaskedStore):
         return result
 
     def transact(self,action,payload):
-        if action in {'save','open'} and self.stop_if_due():
+        if action in {'save','open','batch-open','batch-save'} and self.stop_if_due():
             raise ValueError('הסתיימו 60 דקות התיוג. העבודה וגיבוי מאומת נשמרו; אפשר לפתוח סיכום.')
         if action.startswith('group-') or action=='restore':
             raise ValueError('Cross-context transfer and technical-failure relabeling are disabled')
@@ -233,8 +234,65 @@ class IdentifiedStore(MaskedStore):
         if self._view not in self.queues(): raise ValueError('Unknown queue')
         if action=='save' and self.items[payload['item_id']]['answers'][0]['technical_failure']:
             raise ValueError('Technical failures stay separate')
+        if action in {'batch-open','batch-save'}:
+            return self.transact_batch(action,payload)
         result=super().transact(action,payload)
         return result
+
+    def transact_batch(self, action, payload):
+        """One explicit confirmation, independent labels bound to displayed rows.
+
+        Opening a table never creates judgments. Blank labels skip unread rows;
+        the proposed negative default is a UI aid, recorded only on confirmation.
+        """
+        with self.lock:
+            if payload.get('revision') != self.state['revision']:
+                raise ValueError('העבודה השתנתה. יש לטעון מחדש לפני אישור הטבלה.')
+            if self.stop_if_due():
+                raise ValueError('הסתיימו 60 דקות התיוג; העבודה וגיבוי מאומת נשמרו.')
+            candidate = copy.deepcopy(self.state)
+            if action == 'batch-open':
+                ids = payload.get('item_ids', [])
+                allowed = self.queues()[self._view]
+                if not isinstance(ids, list) or not 1 <= len(ids) <= 20 or len(set(ids)) != len(ids):
+                    raise ValueError('A table must contain 1–20 distinct rows')
+                if any(i not in allowed or self.items[i]['answers'][0]['technical_failure'] for i in ids):
+                    raise ValueError('Invalid table membership')
+                opened = secrets.token_hex(16)
+                candidate['active_batch'] = dict(id=opened, item_ids=ids, view=self._view, opened_at=now(),
+                    proposed_default='not_fits', interaction_mode='explicit_table_confirmation')
+                for i in ids:
+                    r = candidate['records'].setdefault(i, self.blank())
+                    r['exposure'].setdefault('reference_and_generation', dict(at=now(), protocol=self.protocol,
+                        independent_attempt=False, phase=self.phase(i)))
+            else:
+                session = candidate.get('active_batch', {})
+                if payload.get('batch_id') != session.get('id') or session.get('confirmed_at') or payload.get('confirmed') is not True:
+                    raise ValueError('Explicit confirmation of the opened table is required')
+                if session.get('view') != self._view:
+                    raise ValueError('Table queue changed')
+                ids = session['item_ids']
+                labels = payload.get('labels', {})
+                if not isinstance(labels, dict) or set(labels) != set(ids) or any(v not in LABELS | {''} for v in labels.values()):
+                    raise ValueError('Labels must match the displayed rows; blank skips a row')
+                if not any(labels.values()):
+                    raise ValueError('אין הכרעות לאישור; אפשר לדלג בלי לשמור תיוגים.')
+                session['confirmed_at'] = now()
+                session['judged_item_ids'] = [i for i in ids if labels[i]]
+                for i in session['judged_item_ids']:
+                    r = candidate['records'][i]
+                    aid = self.items[i]['answers'][0]['id']
+                    j = copy.deepcopy(r['judgments'].get(aid, {}))
+                    j.update(label=labels[i], label_phase=self.phase(i), label_updated_at=now(),
+                        annotator=self.state['reviewer'], origin=self.protocol, exposure_evidence=self.current_evidence(i),
+                        interaction_mode='explicit_table_confirmation', batch_id=session['id'])
+                    j.setdefault('tags', []); j.setdefault('tags_phase', None); j.setdefault('tags_updated_at', None)
+                    j['tag_status'] = 'marked' if j['tags'] else 'not_marked'
+                    r['judgments'][aid] = j
+                    r.update(updated_at=now(), edit_phase=self.phase(i))
+            state = self.commit(candidate, action)
+            return dict(state=state, batch_id=candidate['active_batch']['id'],
+                        items=[self.public_item(i) for i in ids] if action == 'batch-open' else [])
 
 
 def coverage_rows(dataset, state):

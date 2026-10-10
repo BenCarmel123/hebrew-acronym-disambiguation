@@ -66,6 +66,58 @@ class IdentifiedReviewTests(unittest.TestCase):
         with self.assertRaises(ValueError): self.store.transact('save',dict(revision=0,item_id=failure,judgments={}))
         with self.assertRaises(ValueError): self.store.transact('group-save',dict(revision=0))
 
+    def test_batch_confirmation_skip_resume_and_history(self):
+        ids = self.store.queues()['all']
+        opened = self.store.transact('batch-open', dict(revision=0, item_ids=ids))
+        self.assertEqual(self.store.counts()['human_decisions'], 0)
+        self.assertNotIn('manual_session', self.store.state)
+        labels = {i: 'not_fits' if n == 0 else '' for n, i in enumerate(ids)}
+        payload = dict(revision=1, batch_id=opened['batch_id'], labels=labels, confirmed=True)
+        for invalid in [dict(payload, confirmed=False), dict(payload, revision=0),
+                        dict(payload, labels={**labels, 'unseen': 'fits'})]:
+            with self.assertRaises(ValueError): self.store.transact('batch-save', invalid)
+        self.store.transact('batch-save', payload)
+        resumed = IdentifiedStore(self.bundle, self.store.path)
+        self.assertEqual(resumed.counts()['human_decisions'], 1)
+        self.assertIn('manual_session', resumed.state)
+        self.assertEqual(resumed.counts()['pending_decisions'], 1)
+        event = json.loads(self.store.path.with_suffix('.history.jsonl').read_text().splitlines()[-1])
+        self.assertEqual(set(event['records']), set(ids))
+        self.assertEqual(event['batch']['judged_item_ids'], [ids[0]])
+        with self.assertRaises(ValueError): resumed.transact('batch-save', dict(payload, revision=2))
+        resumed.restore_masked(resumed.export(True), resumed.state['revision'])
+        self.assertEqual(resumed.counts()['human_decisions'], 1)
+
+    def test_batch_rejects_failure_and_deadline(self):
+        with self.assertRaises(ValueError):
+            self.store.transact('batch-open', dict(revision=0, view='filtered', item_ids=self.store.queues()['filtered']))
+        ids = self.store.queues()['all']
+        opened = self.store.transact('batch-open', dict(revision=0, item_ids=ids))
+        self.store.state['manual_session'] = {'deadline': '2000-01-01T00:00:00+00:00'}
+        with self.assertRaises(ValueError):
+            self.store.transact('batch-save', dict(revision=1, batch_id=opened['batch_id'], labels={i:'fits' for i in ids}, confirmed=True))
+        self.assertEqual(self.store.counts()['human_decisions'], 0)
+
+    def test_table_http_save(self):
+        import threading
+        import urllib.request
+        from hebrew_acronyms.human_review_server import make_server
+        server = make_server(self.bundle, self.root/'http-annotations.json', port=0, qa=True)
+        thread = threading.Thread(target=server.serve_forever, daemon=True); thread.start()
+        def call(action, payload):
+            request = urllib.request.Request(f'http://127.0.0.1:{server.server_port}/api/short/{action}',
+                data=json.dumps(payload).encode(), headers={'Content-Type':'application/json'})
+            with urllib.request.urlopen(request) as response: return json.load(response)
+        try:
+            ids = server.short_store.queues()['all']
+            opened = call('batch-open', dict(revision=0, item_ids=ids))
+            result = call('batch-save', dict(revision=1, batch_id=opened['batch_id'],
+                          confirmed=True, labels={i:'unsure' for i in ids}))
+            self.assertEqual(result['state']['counts']['human_answers'], 3)
+            self.assertEqual(result['state']['counts']['human_decisions'], 2)
+        finally:
+            server.shutdown(); thread.join(); server.server_close()
+
     def test_signed_backup_restore_and_reveal(self):
         i=self.store.queues()['all'][0]
         opened=self.store.transact('open',dict(revision=0,item_id=i));token=opened['item']['answers'][0]['id']
