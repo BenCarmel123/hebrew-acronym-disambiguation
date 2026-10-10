@@ -14,6 +14,7 @@ causal effect of model size or context. No final research results are reported.
 | [Training appendix](notebooks/train_dictabert.ipynb) | Explicit inputs, candidate pairs, DictaBERT initialization or loading, optional training and item predictions. Start here to inspect executable model code. |
 | [Main dev study](notebooks/experimental_study.ipynb) | Runnable local preview, saved-result inspection, manual validation and full-dev prediction across five arms; no training. |
 | [Cross-encoder source](src/hebrew_acronyms/models/dictabert_cross_encoder/) | `encoding.py`: length-bounded inputs; `model.py`: scoring and checkpoints; `training.py`: optimization; `eval.py`: item records; `workflow.py`: small local setup helpers. |
+| [DictaLM LoRA source](src/hebrew_acronyms/models/dictalm_lora/) | `examples.py`: selection prompts and answer letters; `training.py`: LoRA training with development-loss checkpointing; `eval.py`: selection scoring with or without the adapter. [Colab notebook](notebooks/train_dictalm_lora_colab.ipynb). |
 | [Input contract](src/hebrew_acronyms/models/common/pairs.py) | Exact target spans, IDs, candidate pairs and input identities. |
 | [Shared study evaluation](src/hebrew_acronyms/models/common/eval.py) | Strict letter parsing, preliminary selection micro/macro accuracy and item inspection. Historical scoring functions remain separate from the current study. |
 | [LLM backends](src/hebrew_acronyms/models/) | Qwen via local Ollama and Gemini via its API, with bounded requests and response provenance; other retained model code is historical context. |
@@ -147,6 +148,36 @@ requires `gold_expansion` to match exactly one candidate after surrounding white
 is trimmed, with at least two distinct candidates. Prediction preserves singleton
 items and identified failure records. Context may be cropped; targets, markers and
 candidates are retained or the input fails explicitly. No aliases or metrics are inferred.
+
+## DictaLM LoRA selection training
+
+[LoRA](https://arxiv.org/abs/2106.09685) (low-rank adaptation) freezes a pretrained
+model and trains small added matrices in its attention layers. The
+[DictaLM LoRA code](src/hebrew_acronyms/models/dictalm_lora/) trains a DictaLM causal
+language model on candidate selection only. Each training item becomes the exact
+selection prompt of the LLM arms, with candidates in a seeded shuffled order, and
+the answer is the reference candidate's letter. Only the answer letter and the end
+token contribute to the loss. The seed is set before adapter initialization, and the
+adapter is saved only when the development loss strictly improves. Evaluation reuses
+the shared selection evaluator, so candidate order, letter parsing and scoring match
+the other selection arms; without `--adapter` it scores the untrained model through
+the same inference code.
+
+```bash
+python -m hebrew_acronyms.models.dictalm_lora.training --model-id MODEL \
+  --train data/study_v1/encoder_inputs/train.csv \
+  --dev data/study_v1/encoder_inputs/dev.csv --output-dir RUN_DIR
+python -m hebrew_acronyms.models.dictalm_lora.eval --model-id MODEL \
+  --adapter RUN_DIR/adapter --test data/splits/test_items.csv --output details.csv
+```
+
+The model ID, revision and the defaults in
+[LoraTrainingConfig](src/hebrew_acronyms/models/dictalm_lora/training.py) are
+engineering choices for a first run, not an approved protocol. A 7B model needs a
+CUDA GPU; `--load-in-4bit` additionally needs `bitsandbytes`, which the
+[Colab notebook](notebooks/train_dictalm_lora_colab.ipynb) installs. Real-data training
+and test evaluation require explicit authorization. The tiny CPU tests in
+`tests/test_dictalm_lora.py` check the code, not model performance.
 
 ## Technical and scientific limits
 
