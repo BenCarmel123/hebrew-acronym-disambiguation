@@ -1,6 +1,6 @@
 \section{Systems and Experimental Design}
 \label{sec:systems}
-Table~\ref{tab:systems} defines the five arms. Both LLMs get the same prompt for each task, and selection shows the candidates in the same seeded, shuffled order for every item. These controls align inputs but do not make the systems equivalent. The models also differ greatly in size: DictaBERT has about 0.2B parameters, 35 times fewer than the 7B Qwen model. Gemini's size is not public.
+Table~\ref{tab:systems} defines the arms. All LLMs get the same prompt for each task, and selection shows the candidates in the same seeded, shuffled order for every item. These controls align inputs but do not make the systems equivalent. The models also differ greatly in size: DictaBERT has about 0.2B parameters, 35 times fewer than the 7B Qwen model. The sizes of the four proprietary models are not public.
 
 \begin{table}[t]
 \centering\small
@@ -9,13 +9,11 @@ Table~\ref{tab:systems} defines the five arms. Both LLMs get the same prompt for
 System & Candidates & Output \\
 \midrule
 DictaBERT ranker & Yes & Top candidate \\
-Qwen generation & No & Expansion text \\
-Qwen selection & Yes & Candidate letter \\
-Gemini generation & No & Expansion text \\
-Gemini selection & Yes & Candidate letter \\
+LLM generation & No & Expansion text \\
+LLM selection & Yes & Candidate letter \\
 \bottomrule
 \end{tabular}
-\caption{All arms receive a sentence and marked target. Only DictaBERT receives task-specific supervised training.}
+\caption{All arms receive a sentence and marked target. Each of the six LLMs runs both tasks. Only DictaBERT receives task-specific supervised training.}
 \label{tab:systems}
 \end{table}
 
@@ -47,4 +45,4 @@ $z_j$ & Label of pair $j$: 1 for the reference candidate, 0 otherwise \\
 Training used dropout 0.1, learning rate $2\times10^{-5}$, pair batch size 16 and one epoch, and kept the checkpoint with the lowest development pair loss. The checkpoint comes from the authors' Colab run based on \texttt{dicta-il/dictabert}. The seed (42) was set after model initialization, so it does not control initialization, and we could not verify the executed settings from a complete training log. Each pair is the marked sentence followed by the candidate, joined by BERT special tokens, with a limit of 256 tokens. Long contexts are cropped while keeping the target and candidate. The LLMs receive the full sentence.
 
 \subsection{Prompted language models}
-The generation prompt, written in Hebrew, asks for the expansion of the marked acronym in a few words, without explanation. The selection prompt lists lettered candidates and asks for exactly one letter. Neither includes examples or the answer. We use \texttt{qwen2.5:7b} \citep{qwen2025technical} through Ollama with Q4\_K\_M quantization, and \texttt{gemini-3.8-flash} with low thinking. Each item gets one request per task. We set no decoding options for Qwen, and low thinking is not disabled thinking, so neither run is deterministic. Full prompts and raw answers are in the repository.
+The generation prompt, written in Hebrew, asks for the expansion of the marked acronym in a few words, without explanation. The selection prompt lists lettered candidates and asks for exactly one letter. Neither includes examples or the answer. We use \texttt{qwen2.5:7b} and \texttt{qwen2.5:14b} \citep{qwen2025technical} through Ollama with Q4\_K\_M quantization, \texttt{gemini-3.8-flash} with low thinking, \texttt{gpt-4.1-mini-2025-04-14}, \texttt{claude-haiku-5-5}, and \texttt{grok-4.7} with low reasoning and no tools. Each item gets one request per task. We set no decoding options for Qwen 7B, and low thinking is not disabled thinking, so the runs are not deterministic. Full prompts and raw answers are in the repository.
