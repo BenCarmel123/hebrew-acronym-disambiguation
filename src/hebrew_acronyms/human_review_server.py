@@ -469,12 +469,18 @@ class ReviewStore:
 
 
 def make_server(dataset, annotations, port=8765, qa=False):
+    identified_protocol = dataset.get("short_protocol") == "identified-test-review-v1"
     continuation_protocol = dataset.get("short_protocol") == "qualitative-generation-v3"
-    masked_protocol = continuation_protocol or dataset.get("short_protocol") == "qualitative-generation-v2"
+    masked_protocol = identified_protocol or continuation_protocol or dataset.get("short_protocol") == "qualitative-generation-v2"
     store = None if masked_protocol else ReviewStore(dataset, annotations)
     web = Path(__file__).with_name("human_review_web")
     short = None
-    if continuation_protocol:
+    if identified_protocol:
+        from .human_review_identified import IdentifiedStore
+        short = IdentifiedStore(dataset, annotations)
+        if qa:
+            short.state["reviewer"] = "QA_IDENTIFIED_NOT_HUMAN"
+    elif continuation_protocol:
         from .human_review_masked import ContinuationStore
         previous_path = Path(annotations).with_name(Path(annotations).stem + ".short-v2.json")
         previous = json.loads(previous_path.read_text(encoding="utf-8"))
@@ -533,10 +539,10 @@ def make_server(dataset, annotations, port=8765, qa=False):
                     from .human_review_scoring_audit import enrich_summary, scoring_markdown
                     if path.endswith(".json"):
                         result = short.export(masked=False)
-                        result["summary"] = enrich_summary(short.summary(masked=False), dataset)
+                        result["summary"] = short.summary(masked=False) if identified_protocol else enrich_summary(short.summary(masked=False), dataset)
                         return self.reply(result)
-                    summary = enrich_summary(short.summary(masked=False), dataset)
-                    return self.reply(short.markdown(masked=False) + scoring_markdown(summary), "text/markdown; charset=utf-8")
+                    summary = short.summary(masked=False) if identified_protocol else enrich_summary(short.summary(masked=False), dataset)
+                    return self.reply(short.markdown(masked=False) + ("" if identified_protocol else scoring_markdown(summary)), "text/markdown; charset=utf-8")
                 except ValueError as error:
                     return self.reply({"error": str(error)}, status=403)
             if path == "/api/short/state" and short:
@@ -573,7 +579,7 @@ def make_server(dataset, annotations, port=8765, qa=False):
                     if self.path.rsplit("/", 1)[-1] in {"group-open", "group-save", "group-details"}:
                         raise ValueError("הבדיקה חזרה למשפטים נפרדים. יש לרענן את העמוד; העבודה השמורה נשמרה.")
                     result = short.transact(self.path.rsplit("/", 1)[-1], payload)
-                    if masked_protocol and "summary" in result:
+                    if masked_protocol and not identified_protocol and "summary" in result:
                         from .human_review_scoring_audit import enrich_summary
                         result["summary"] = enrich_summary(result["summary"], dataset)
                 elif masked_protocol:
@@ -592,6 +598,12 @@ def make_server(dataset, annotations, port=8765, qa=False):
     server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
     server.store = store
     server.short_store = short
+    if identified_protocol:
+        def deadline_backup():
+            import time
+            while not short.stop_if_due():
+                time.sleep(1)
+        threading.Thread(target=deadline_backup, daemon=True).start()
     return server
 
 

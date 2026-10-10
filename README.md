@@ -202,7 +202,38 @@ remains semantically unscored. Review gold labels and candidate inventories with
 including institutional uses, before interpreting these diagnostic development scores.
 
 
-## Continuation review of all generation answers (current protocol)
+## Identified 381-item test review
+
+The existing compact reviewer also accepts `identified-test-review-v1` inputs from
+`human_review_identified`. This route binds the four collected test bundles to the
+approved 381-item CSV and preserves all 4,191 answer occurrences, including 15
+technical failures. It imports no historical judgments. Grouping requires the same
+item, context, task, exact raw/decoded answer and candidate mapping. One decision
+covers its explicitly linked occurrences; repeated text in another context is not
+merged. Similarity and repeated variants affect priority only.
+
+Calibration interleaves systems and automatic score strata. Separate queues retain
+prioritized generation negatives, positive controls (including added text), selection
+and technical failures. Positive substring matches are not mechanically accepted.
+The first saved human judgment starts a 60-minute wall-clock cap. At its deadline,
+new judgments stop and the private state, source bundle and history are backed up
+with verified SHA-256 hashes. Preparation and QA are excluded. Notes are optional;
+`unsure` remains unresolved. Partial diagnostic coverage is not overall accuracy.
+
+```bash
+python -m hebrew_acronyms.human_review_identified build --source SAVED_BUNDLE --source ANOTHER_BUNDLE --cohort TEST_CSV --reviewer NAME --output FRESH_DATA_JSON
+python -m hebrew_acronyms.human_review_server --data FRESH_DATA_JSON --annotations FRESH_ANNOTATIONS_JSON --port 8766
+python -m hebrew_acronyms.human_review_identified export --data FRESH_DATA_JSON --annotations FRESH_ANNOTATIONS_JSON --output REVIEW_EXPORT_JSON
+```
+
+Exports report reviewed/total, positive/negative coverage, technical failures,
+unsure, unresolved and decisions by system/task. Sum answer coverage across systems;
+do not sum per-system decision counts because one exact group can span systems.
+Keep the private annotations and history for restoration; portable exports are
+analysis evidence, not replacements for the private store.
+
+## Historical continuation review of generation answers
+
 
 The compact work screen keeps the sentence and reference above one or two remaining
 answer rows, with inline judgments and optional tags. Use **1** = fits context,

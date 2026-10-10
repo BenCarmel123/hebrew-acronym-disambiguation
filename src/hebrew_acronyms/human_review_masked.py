@@ -166,7 +166,7 @@ class MaskedStore:
             raise ValueError('Presentation items mismatch')
         tokens = []
         for item_id, slots in presentation.items():
-            if len(slots) != 2 or {s['answer_id'] for s in slots} != set(self.answers[item_id]):
+            if len(slots) != len(self.answers[item_id]) or {s['answer_id'] for s in slots} != set(self.answers[item_id]):
                 raise ValueError('Presentation answer mapping mismatch')
             for slot in slots:
                 token = slot.get('token')

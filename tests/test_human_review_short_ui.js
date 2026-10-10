@@ -247,7 +247,7 @@ test('Enter queues SaveNext during autosave and persists edits made while the ea
     }
     throw new Error('Unexpected request '+url);
   };
-  vm.runInNewContext(source,{document,fetch,setTimeout:fn=>{debounce=fn;return 1;},clearTimeout:()=>{},window:{addEventListener(type,listener){windowEvents[type]=listener;},scrollTo(){}},console});
+  vm.runInNewContext(source,{document,fetch,setInterval:()=>0,setTimeout:fn=>{debounce=fn;return 1;},clearTimeout:()=>{},window:{addEventListener(type,listener){windowEvents[type]=listener;},scrollTo(){}},console});
   async function until(predicate){for(let n=0;n<30&&!predicate();n++)await new Promise(resolve=>setImmediate(resolve));assert.ok(predicate(),'Expected asynchronous milestone: '+element('saveStatus').textContent);}
   await until(()=>opened.length===1&&Boolean(qualityInput.listeners.input)&&!main.inert);
   label='fits';qualityInput.listeners.input();debounce();
