@@ -50,3 +50,38 @@ To repeat collection, use the identified collector revision in each manifest and
 checkpoint for a separate inference run, see
 [checkpoint retrieval](../docs/checkpoints.md#retrieving-the-identified-test-checkpoint).
 Neither operation is necessary to reproduce this analysis.
+
+<a id="ben-dictalm-annotations"></a>
+
+## Ben's DictaLM generation annotations
+
+The byte-preserved [CSV](local-runs/dictalm-20261010/dictalm_generate_human_tags.csv)
+was added by Ben in commit `b5cabe8ed749b5eff14de6cda48aa5ac838dc684`.
+Its SHA-256 is `c6cfec23d97d9b2f29eac135454c4d609f19e6aba9280060a4c8ab406c51cbf0`.
+It contains 381 unique scored test IDs with 193 `yes` and 188 `no` labels, only for
+DictaLM generation run `c6cc64b4017547d884540a16af02a066`.
+
+The [loader](../src/hebrew_acronyms/dictalm_saved_audit.py) verifies all golds and
+responses against the saved generation CSV and the identified original journal.
+There are 234 exact raw matches and 147 matches only after boundary whitespace
+trimming. Raw response hashes always use the journal text, never the trimmed CSV.
+Stable judgment identities make reloading idempotent. No labels transfer to other
+models or to selection; the historical review exports are unchanged.
+
+The documented rule is Ben's yes/no acceptance of the saved generation. The CSV has
+no per-item rationale, detailed rubric, annotation timestamp or documented blinding;
+these are not inferred. The automatic rule stays 125/381 and Ben's distinct result
+is 193/381. Their cross-tab is 121 accepted by both, 72 by Ben only, 4 automatically
+only and 184 by neither. Diagnostic leading-label selection stays 243/381 and strict
+selection stays 0/381. The missing template newline remains a protocol limitation.
+
+The original closed review remains 638 groups / 741 responses. The separate agent
+assessments cover five groups / ten already-reviewed responses and add no human
+decisions. Historical “resolved” wording in their immutable source records an agent
+operational status only; human disagreements and pending flags remain unchanged.
+
+The source inventory also references the existing
+[similarity predictions](../results/dictabert/test_details.csv) by relative path,
+commit and hash, without copying them. The 245/381 result is verified from saved
+predictions, golds and candidate inventories. The source lacks a full sentence
+snapshot and collection manifest; the verification does not reconstruct them.

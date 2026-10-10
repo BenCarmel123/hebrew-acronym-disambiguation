@@ -537,15 +537,18 @@ Additional DictaLM Ollama outputs are preserved in
 prompts, candidate order and scoring match; all test responses ended with `stop`.
 The saved template lacks the newline after `[/INST]` specified in the
 [publisher's format](https://huggingface.co/dicta-il/dictalm2.0-instruct-GGUF#instruction-format).
-The actual tokenized prompt is not saved, and the causal effect is unknown. The
-existing comparison rejects appending the session's zero prior spend to the paid
-chronology. Neither gate nor manifest was altered; pooling awaits a protocol and
-accounting decision.
+The actual tokenized prompt is not saved, and the causal effect is unknown.
+The independent local session adds zero API cost; its zero historical prior remains
+unchanged, while cumulative expenditure stays 23.1276784 ILS. Zero incremental API
+cost is not a scientific reporting barrier. The chronological accounting and identity
+gates for paid collection are unchanged.
 
-The derivative retains the original scores: selection 0/381, generation 125/381.
-Leading-label matches (243/381) reproduce the supplied diagnostic only, not semantic
-accuracy. The selection CSV trims boundary whitespace; journal raw text controls
-response bindings. The new 762-answer add-on has zero human judgments. The closed
-review denominator stays 4,953; the separate enlarged source inventory is 5,715.
-DictaLM adds zero API cost, leaving documented expenditure at 23.1276784 ILS.
-No model-assisted triage was run during this audit.
+The derivative retains automatic generation 125/381 and strict selection 0/381.
+Leading-label matches (243/381) reproduce the supplied diagnostic, not semantic
+accuracy or a replacement strict score. Ben's separate generation labels accept
+193/381; [source provenance and limits](../saved-results/README.md#ben-dictalm-annotations)
+identify the CSV, commit, run and raw response bindings. Boundary whitespace is
+compared only for source validation; journal text and hashes are never replaced.
+The closed human-review layer remains 741 of 4,953 responses; Ben adds 381 separately
+bound DictaLM generation judgments. Agent assessments add no human coverage.
+No new review queue, model-assisted triage or model calls are required.

@@ -61,20 +61,31 @@ approved historical reuses. Human coverage remains partial and diagnostically
 prioritized; automatic scores do not replace it. Four conflicting contexts now have
 separate [delegated agent assessments](saved-results/agent-clarifications-20261010/assessments.json)
 at the user's request: five groups / ten already-reviewed responses. These are
-unblinded assistant decisions, not personal user review or new human coverage.
+unblinded agent assessments, with no new human decision or additional human coverage.
 Historical labels and pending flags remain unchanged.
 [Reusable tables and figures](results/submission-20261010/README.md) include full
 response bindings, technical coverage and human-review gaps.
 Earlier measurements under [results/](results/test_results.md) remain historical
 sources and are not silently pooled with the identified collection.
 
-The notebook also audits DictaLM separately on 381 items: 125/381 automatic
-generation matches and 0/381 valid strict selection labels. The 243/381 leading-label
-matches are diagnostic, not human judgments or a replacement score. Pooling awaits
-a protocol decision: the recorded chat template omits the publisher-required newline,
-and the independent zero-cost session does not satisfy the carried-prior accounting
-gate. The historical empty review add-on is preserved on `dictalm-audit-review-20261010`
-and is not required for this analysis.
+The notebook reports four distinct DictaLM measurements on 381 items: automatic
+generation **125/381 (32.8%)**, generation accepted by **Ben 193/381 (50.7%)**, strict
+selection **0/381 (0%)**, and diagnostic leading-label selection **243/381 (63.8%)**.
+The last is not a replacement score. Ben's labels are bound to the original generation
+responses and loaded once per identity; they do not propagate to selection or other
+models. [Annotation provenance and limits](saved-results/README.md#ben-dictalm-annotations)
+include the source commit, hash, raw-response binding and partially documented rule.
+The saved chat template omits the publisher-specified newline; its causal effect is
+unknown. The zero local API increment does not prevent reporting results: cumulative
+accounted expenditure remains 23.1276784 ILS and historical manifests remain intact.
+Paper presentation awaits Shaked's decision.
+
+[Metric coverage](results/submission-20261010/metric_coverage.csv) separates technical
+failures, stored format validity and automatic matches; human judgments are separate.
+Qwen14B generation has **10/381 (2.6%) technical failures**. The notebook also verifies
+the saved similarity baseline (**245/381, 64.3%**) against its
+[historical predictions](results/dictabert/test_details.csv), without loading weights
+or rerunning inference. Its missing run manifest and sentence snapshot limit provenance.
 
 ## Project structure
 
