@@ -78,9 +78,11 @@ is required for these exports. Qwen14B generation has 10/381 (2.6%) technical fa
 (9 incomplete responses and 1 service error), distinct from 47 format-valid answers
 and 44 automatic matches. All 381 remain in each score denominator.
 
-Shaked has selected a separate supplementary paper table for the four DictaLM
-measurements, without a common ranking. Ben's annotations are already ingested as
-a separate layer; neither annotation intake nor local accounting blocks this
-presentation. The template limitation remains. This documentation correction does
-not constitute a new notebook run or revise the historical execution receipt,
-saved outputs, score denominators or automatic scoring.
+DictaLM is presented in a separate supplementary table with four distinct
+measurements and no common ranking. Ben's annotations are included; the template
+limitation remains.
+
+The historical [execution receipt](analysis_environment.json) remains unchanged.
+The [new execution receipt](analysis_execution_readability_20261010.json) identifies
+the reordered notebook's guarded portable replay and its exact source hashes.
+See the [reproduction instructions](../../docs/reproducible_evaluation.md#reproduce-the-saved-test-analysis).

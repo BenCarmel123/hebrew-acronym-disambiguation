@@ -94,9 +94,11 @@ or rerunning inference. Its missing run manifest and sentence snapshot limit pro
 |---|---|
 | [src/hebrew_acronyms/](src/hebrew_acronyms/) | Data processing, model adapters, prompts, scoring and resumable evaluation. |
 | [data/](data/README.md) | Source exports, candidate inventories, review evidence, splits and qualified encoder inputs. |
-| [run_test_eval_colab.ipynb](notebooks/run_test_eval_colab.ipynb) | Reproducible pilot and test execution from an identified package. |
-| [experimental_study.ipynb](notebooks/experimental_study.ipynb) | Methods, development experiments and saved-result analysis. |
+| [run_test_eval_colab.ipynb](notebooks/run_test_eval_colab.ipynb) | Pilot/test collection; separate from reading or reproducing saved analysis. |
+| [experimental_study.ipynb](notebooks/experimental_study.ipynb) | Primary saved-test analysis; optional dev appendix disabled by default. |
 | [train_dictabert.ipynb](notebooks/train_dictabert.ipynb) | Explicit package-backed encoder training and inference. |
+| [train_dictabert_colab.ipynb](notebooks/train_dictabert_colab.ipynb) | Historical Colab training route and checkpoint configuration source. |
+| [run_qwen_scale_colab.ipynb](notebooks/run_qwen_scale_colab.ipynb) | Optional scale-collection route; existence does not establish completed runs. |
 | [tests/](tests/) | Engineering checks with invented inputs and mocked services. |
 | [results/](results/) | Historical predictions and summaries, preserved with their provenance. |
 | [paper/](paper/README.md) | Working LaTeX manuscript, bibliography and build/export instructions. |
@@ -114,11 +116,16 @@ python3.13 -m venv .venv
 .venv/bin/python -m jupyter lab notebooks/experimental_study.ipynb
 ```
 
-Select the `.venv` kernel. The main notebook validates and analyzes the bundled saved results.
+Register it with `.venv/bin/python -m ipykernel install --user --name hebrew-acronym-analysis`,
+then select `hebrew-acronym-analysis` in Jupyter. The main notebook validates and analyzes the bundled saved results.
 Missing or altered evidence raises an error; there is no private-directory fallback. Dependencies are pinned in `requirements.txt` through
 `pyproject.toml`; the full transitive environment is not locked. Model execution
 requires explicit settings and the corresponding local model or API credentials.
 Keep secrets in local environment configuration or Colab Secrets, outside Git.
+
+For a guarded portable replay and a new execution receipt, follow
+[reproduce the saved analysis](docs/reproducible_evaluation.md#reproduce-the-saved-test-analysis).
+The historical receipt remains unchanged.
 
 For Colab evaluation, follow the [reproducible execution guide](docs/reproducible_evaluation.md).
 It covers a commit-identified archive, persistent Drive output, provider setup,
