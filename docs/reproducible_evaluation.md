@@ -491,3 +491,20 @@ failures, baselines and human-review coverage use only the 381 scored items, whi
 cost accounting still counts every collected call. Candidate order is seeded per
 item ID, so saved and new runs show identical prompts for the scored items and are
 compared item by item.
+
+
+The exclusion was applied after the published 395-item responses were collected.
+The analysis notebook checks every retained field against the original Qwen
+manifest, the exact 14-item exclusion list and the four document titles against
+qualified encoder train/dev inputs. This check does not establish the historical
+checkpoint's actual training rows or the cleanliness of every historical split.
+
+The compact human-review route is a partial diagnostic review of these 381 items.
+It binds decisions to exact collected answers, groups only identical responses in
+the same item/context/task, and preserves all answer occurrences and failures.
+A portable `human-review-381-20261010/review-export.json`, when present in saved
+results, is validated against the original review bundles and cohort before its
+coverage is displayed. It does not replace automatic scores or justify a
+benchmark-wide human accuracy estimate. No historical labels are transferred.
+DictaLM remains unmeasured in this bundle until identified output and matching
+protocol evidence are supplied; adapter or training code alone is not a result.

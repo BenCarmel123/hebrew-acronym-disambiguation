@@ -243,3 +243,89 @@ def export_encoder_review(directory, test_path, output_path, *, expected_run_id,
     systems = [{'id': 'dictabert_select', 'blind_id': 'מערכת 1', 'name': 'DictaBERT — בחירה',
                 'task': 'selection', 'response_type': 'text'}]
     return _write_review_bundle(items, systems, sources, {expected_run_id}, output_path)
+
+
+def identified_review_coverage(export_path, saved_root, cohort_path):
+    """Verify portable compact-review decisions against original answer bundles.
+
+    Returns occurrence coverage and distinct decision count, never an estimate of
+    benchmark-wide semantic accuracy. No legacy annotation migration is performed.
+    """
+    export = json.loads(Path(export_path).read_text())
+    if export.get('protocol_version') != 'identified-test-review-v1':
+        raise ValueError('Unknown identified review protocol')
+    if str(export.get('reviewer', '')).startswith('QA'):
+        raise ValueError('QA records are not human research judgments')
+    if hashlib.sha256(Path(cohort_path).read_bytes()).hexdigest() != export['cohort_sha256']:
+        raise ValueError('Review cohort differs')
+    answers = {}
+    for source in export['source_files']:
+        relative = Path(source['path'])
+        if relative.is_absolute() or '..' in relative.parts:
+            raise ValueError('Source must be inside saved evidence')
+        path = Path(saved_root) / relative
+        content = path.read_bytes()
+        if len(content) != source['bytes'] or hashlib.sha256(content).hexdigest() != source['sha256']:
+            raise ValueError('Review source differs')
+        for item in json.loads(content)['items']:
+            if not is_scored(item['original_item_id']):
+                continue
+            for answer in item['answers']:
+                if answer['id'] in answers:
+                    raise ValueError('Duplicate source answer')
+                answers[answer['id']] = (item, answer)
+    judged = {}
+    decisions = set()
+    for decision in export['decisions']:
+        identifier = decision['decision_id']
+        if identifier in decisions or not decision['answer_ids']:
+            raise ValueError('Duplicate or empty decision')
+        decisions.add(identifier)
+        judgment = decision['judgment']
+        if judgment.get('label') not in {'fits', 'not_fits', 'unsure'} or not judgment.get('label_updated_at'):
+            raise ValueError('Missing explicit timed judgment')
+        if judgment.get('origin') != export['protocol_version']:
+            raise ValueError('Judgment source is not the identified review')
+        if len(decision['answer_ids']) != len(decision['bindings']):
+            raise ValueError('Answer binding count differs')
+        same = set()
+        for answer_id, binding in zip(decision['answer_ids'], decision['bindings']):
+            if answer_id in judged or answer_id not in answers:
+                raise ValueError('Repeated or unknown judged answer')
+            item, answer = answers[answer_id]
+            if (answer['binding'] != binding or item['original_item_id'] != decision['original_item_id']
+                    or answer['technical_failure']):
+                raise ValueError('Judgment does not match its response or is a technical failure')
+            same.add(digest([item['original_item_id'], item['sentence'], item['acronym'], item['gold'],
+                             answer['task'], answer['raw'], answer.get('decoded'), answer.get('option_mapping')]))
+            judged[answer_id] = (identifier, judgment['label'])
+        if len(same) != 1:
+            raise ValueError('A decision crosses distinct answers or contexts')
+    groups = {}
+    for aid, (_, answer) in answers.items():
+        key = (answer['system_id'], answer['task'], answer['binding']['run_id'])
+        row = groups.setdefault(key, dict(system=key[0], task=key[1], run_id=key[2], total=0,
+            reviewed=0, positive_total=0, positive_reviewed=0, negative_total=0, negative_reviewed=0,
+            technical_failures=0, unsure=0, fits=0, not_fits=0, decisions=set(),
+            automatic_negative_human_fits=0, automatic_positive_human_not_fits=0))
+        row['total'] += 1
+        if answer['technical_failure']:
+            row['technical_failures'] += 1
+        else:
+            polarity = 'positive' if answer['auto_score'] else 'negative'
+            row[polarity + '_total'] += 1
+            if aid in judged:
+                identifier, label = judged[aid]
+                row['reviewed'] += 1; row[polarity + '_reviewed'] += 1; row[label] += 1
+                row['decisions'].add(identifier)
+                row['automatic_negative_human_fits'] += polarity == 'negative' and label == 'fits'
+                row['automatic_positive_human_not_fits'] += polarity == 'positive' and label == 'not_fits'
+    for row in groups.values():
+        row['decisions'] = len(row['decisions'])
+        row['unreviewed'] = row['total'] - row['reviewed']
+        row['unresolved'] = row['unreviewed'] + row['unsure']
+    rows = sorted(groups.values(), key=lambda r: (r['system'], r['task']))
+    if rows != export['coverage']:
+        raise ValueError('Exported coverage differs from source-bound judgments')
+    return {'rows': rows, 'decisions': len(decisions), 'covered_answers': len(judged),
+            'manual_session': export.get('manual_session'), 'limitations': export['limitations']}
