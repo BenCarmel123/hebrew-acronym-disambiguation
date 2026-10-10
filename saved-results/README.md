@@ -18,6 +18,13 @@ identify collection provenance and are not required analysis paths.
 - `human-review-*/` contains immutable answer queues. Each answer binds the original
   item, task, run and response hash. Missing annotation files mean no recorded new
   judgments; automatically correct answers are not human-approved answers.
+- `local-runs/dictalm-20261010/` holds the untrained DictaLM 2.0 instruct (Q4_K_M)
+  run through Ollama with seed 42, collected on all 395 items before the 14
+  document-overlap items were removed, with its journals and manifests. The two
+  `*_details.csv` files are review sheets with an empty `human_judgment` column;
+  `scored_in_381` marks the scored items. The selection answers have the form
+  "A. text", so the strict letter rule marks all invalid; `lenient_*` columns take the
+  leading letter and are a diagnostic, not the reported score.
 - `collection-notebooks/` contains execution snapshots as provenance appendices.
   They document separate collection sessions and are not the analysis entry point.
   Their saved credentials are names only; actual secrets are not included.
