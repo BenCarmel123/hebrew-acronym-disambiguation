@@ -2,7 +2,6 @@
 \label{sec:results}
 % Skeleton following Vered Shwartz's advice: state the findings first, give results in full
 % and in an easy format, add examples, stay concise, do not oversell, report unflattering results.
-% TODO: every XX below is a manually judged generation score; fill them in and recheck each claim.
 Table~\ref{tab:test-results} and Figure~\ref{fig:arm-comparison} give accuracy for all systems on the 381 test items, and Figure~\ref{fig:generate-vs-select} compares the two formats for each LLM. Three results stand out. Selection beats generation for every LLM. Fine-tuning improves the encoder. The fine-tuned encoder beats the open LLMs, but not the proprietary LLMs when they select from candidates. Sections~\ref{sec:res-formats} to~\ref{sec:res-errors} give the details.
 
 \begin{table}[t]
@@ -11,32 +10,32 @@ Table~\ref{tab:test-results} and Figure~\ref{fig:arm-comparison} give accuracy f
 \toprule
 System & Accuracy & Invalid \\
 \midrule
-Random & XX\% & -- \\
-Most frequent & XX\% & -- \\
-Most mined & XX\% & -- \\
+Random & 23.5\% & -- \\
+Most frequent & 37.0\% & -- \\
+Most mined & 48.0\% & -- \\
 Oracle & 100.0\% & -- \\
 \midrule
-DictaBERT (untrained) & XX\% & -- \\
-DictaBERT (fine-tuned) & XX\% & -- \\
+DictaBERT (untrained) & 64.3\% & -- \\
+DictaBERT (fine-tuned) & 71.7\% & -- \\
 \midrule
-Qwen 2.5 7B, generation & XX\% & XX\% \\
-Qwen 2.5 7B, selection & XX\% & XX\% \\
-Qwen 2.5 14B, generation & XX\% & XX\% \\
-Qwen 2.5 14B, selection & XX\% & XX\% \\
-DictaLM, generation & XX\% & XX\% \\
-DictaLM, selection & XX\% & XX\% \\
+Qwen 2.5 7B, generation & 8.1\% & 0.3\% \\
+Qwen 2.5 7B, selection & 58.5\% & 0.0\% \\
+Qwen 2.5 14B, generation & 11.5\% & 2.6\% \\
+Qwen 2.5 14B, selection & 69.8\% & 1.8\% \\
+DictaLM 2.0, generation$^{\dagger}$ & 50.7\% & 0.0\% \\
+DictaLM 2.0, selection$^{*}$ & 63.8\% & 0.0\% \\
 \midrule
-Gemini, generation & XX\% & XX\% \\
-Gemini, selection & XX\% & XX\% \\
-GPT-4.1 mini, generation & XX\% & XX\% \\
-GPT-4.1 mini, selection & XX\% & XX\% \\
-Claude Haiku 5.5, generation & XX\% & XX\% \\
-Claude Haiku 5.5, selection & XX\% & XX\% \\
-Grok 4.7, generation & XX\% & XX\% \\
-Grok 4.7, selection & XX\% & XX\% \\
+Gemini, generation & 54.3\% & 0.5\% \\
+Gemini, selection & 93.7\% & 0.0\% \\
+GPT-4.1 mini, generation & 33.9\% & 0.3\% \\
+GPT-4.1 mini, selection & 83.2\% & 0.0\% \\
+Claude Haiku 5.5, generation & 43.3\% & 0.3\% \\
+Claude Haiku 5.5, selection & 89.0\% & 0.5\% \\
+Grok 4.7, generation & 48.3\% & 0.0\% \\
+Grok 4.7, selection & 92.1\% & 0.3\% \\
 \bottomrule
 \end{tabular}
-\caption{Test accuracy (381 items). For selection, an invalid answer is not a single valid letter. % TODO: define invalid for judged generation
+\caption{Test accuracy (381 items). Scores are automatic, except DictaLM generation (Section~\ref{sec:eval}). For selection, an invalid answer is not a single valid letter; for generation, it is a failed or truncated response. $^{*}$Leading letter read from a letter-plus-candidate answer; 0.0\% under the strict rule. $^{\dagger}$Judged by hand (32.8\% under the automatic rule); all other generation scores are automatic.
 }
 \label{tab:test-results}
 \end{table}
@@ -44,7 +43,7 @@ Grok 4.7, selection & XX\% & XX\% \\
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{figures/arm_comparison.pdf}
-\caption{Accuracy of all systems on the test set, sorted, with the baselines and the oracle as reference lines. % TODO: update this figure: add Qwen 14B, DictaLM, GPT-4.1 mini, Claude Haiku and Grok, and use the final test scores
+\caption{Accuracy of all systems on the test set, sorted, with the baselines and the oracle as reference lines. Dark blue: proprietary LLM selection; light blue: open LLM selection; grey: generation. DictaLM selection uses the leading-letter reading and DictaLM generation is judged by hand (Section~\ref{sec:eval}); all other generation scores are automatic.
 }
 \label{fig:arm-comparison}
 \end{figure}
@@ -52,24 +51,25 @@ Grok 4.7, selection & XX\% & XX\% \\
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{figures/generate_vs_select.pdf}
-\caption{Accuracy under free generation and under candidate selection, for each LLM. % TODO: update this figure: add Qwen 14B, DictaLM, GPT-4.1 mini, Claude Haiku and Grok, and use the final test scores
+\caption{Accuracy under free generation and under candidate selection, for each LLM, open models first. DictaLM selection uses the leading-letter reading and DictaLM generation is judged by hand (Section~\ref{sec:eval}); all other generation scores are automatic.
 }
 \label{fig:generate-vs-select}
 \end{figure}
 
 \subsection{Generation versus selection}
 \label{sec:res-formats}
-Candidate selection beats free generation for every LLM. Accuracy rises from XX\% to XX\% for Qwen 7B, XX\% to XX\% for Qwen 14B, XX\% to XX\% for DictaLM, XX\% to XX\% for Gemini, XX\% to XX\% for GPT-4.1 mini, XX\% to XX\% for Claude Haiku and XX\% to XX\% for Grok. % TODO: one sentence on why, from the error analysis, e.g. where generated answers go wrong
+Candidate selection beats free generation for every LLM. Accuracy rises from 8.1\% to 58.5\% for Qwen 7B, 11.5\% to 69.8\% for Qwen 14B, 50.7\% to 63.8\% for DictaLM (hand-judged generation), 54.3\% to 93.7\% for Gemini, 33.9\% to 83.2\% for GPT-4.1 mini, 43.3\% to 89.0\% for Claude Haiku and 48.3\% to 92.1\% for Grok. % TODO: one sentence on why, from the error analysis, e.g. where generated answers go wrong
 Because selection is constrained to the inventory, this gain also depends on the inventory containing the right answer, which holds for every test item (the oracle is 100\%).
 
 \subsection{Fine-tuning and the encoder}
 \label{sec:res-encoder}
-Fine-tuning raises the encoder from XX\% to XX\%, a gain of XX points from fewer than 3,000 training items. The fine-tuned encoder beats the open LLMs' selection (XX\%) and the proprietary LLMs' generation (XX\%). It trails the best proprietary selection (XX\%) by XX points. So a model about 35 times smaller than Qwen 7B can beat Qwen at selection, but it does not match the best system. We ran each system once, so we cannot say how stable the gain is.
+Fine-tuning raises the encoder from 64.3\% to 71.7\%, a gain of 7.3 points from fewer than 3,000 training items. The fine-tuned encoder beats every open LLM selection (at most 69.8\%) and every proprietary generation (at most 54.3\%). It trails the best proprietary selection (93.7\%) by 22.0 points. So a model about 35 times smaller than Qwen 7B can beat Qwen at selection, but it does not match the best system.
+
+Scale alone does not explain these results. Doubling Qwen from 7B to 14B parameters raises selection from 58.5\% to 69.8\% and generation from 8.1\% to 11.5\%, so the extra 7B parameters help, mainly when candidates are given. DictaLM 2.0, a Hebrew-specialised model of 7.25B parameters, roughly 35 times larger than DictaBERT, reaches 63.8\% in selection. That is 7.9 points below the fine-tuned encoder and about the same as the untrained one (64.3\%). Hebrew pretraining therefore gives DictaLM the strongest open-model generation (50.7\%, judged by hand and so not strictly comparable with the automatic scores of the other models; 32.8\% under the automatic rule), but task-specific fine-tuning on fewer than 3,000 items matters more for selection than an LLM's size or Hebrew specialisation. We ran each system once, so we cannot say how stable these gains are, and the half-point gap between DictaLM and the untrained encoder is not meaningful.
 
 \subsection{Results by kind of sentence}
 \label{sec:res-source}
-% TODO: add a table of accuracy for each system on the 253 Knesset, 41 Wikipedia and 87 Claude-authored items, and one sentence on whether authored items are easier or harder.
-Because 23\% of the test items were written by an LLM, we report accuracy separately for each kind of sentence in Table~\ref{tab:res-source}.
+Because 23\% of the test items were written by an LLM, we report accuracy separately for each kind of sentence in Table~\ref{tab:res-source}. Natural Wikipedia items are the easiest for most systems. Authored items are not consistently easier or harder than Knesset items: they score lower for nine of the 14 LLM arms, and higher for the other five and for both encoders.
 
 \begin{table}[t]
 \centering\small
@@ -77,10 +77,27 @@ Because 23\% of the test items were written by an LLM, we report accuracy separa
 \toprule
 System & Knesset & Wikipedia & Authored \\
 \midrule
-% TODO: fill in from the per-item results
+DictaBERT (untrained) & 57.7 & 75.6 & 78.2 \\
+DictaBERT (fine-tuned) & 70.0 & 73.2 & 75.9 \\
+\midrule
+Qwen 7B, gen. & 8.7 & 12.2 & 4.6 \\
+Qwen 7B, sel. & 54.5 & 70.7 & 64.4 \\
+Qwen 14B, gen. & 13.0 & 17.1 & 4.6 \\
+Qwen 14B, sel. & 65.6 & 78.0 & 78.2 \\
+DictaLM 2.0, gen.$^{\dagger}$ & 53.4 & 73.2 & 32.2 \\
+DictaLM 2.0, sel. & 64.4 & 75.6 & 56.3 \\
+\midrule
+Gemini, gen. & 47.8 & 78.0 & 62.1 \\
+Gemini, sel. & 94.9 & 95.1 & 89.7 \\
+GPT-4.1 mini, gen. & 32.8 & 51.2 & 28.7 \\
+GPT-4.1 mini, sel. & 83.0 & 90.2 & 80.5 \\
+Claude Haiku, gen. & 39.5 & 73.2 & 40.2 \\
+Claude Haiku, sel. & 89.7 & 92.7 & 85.1 \\
+Grok, gen. & 44.3 & 68.3 & 50.6 \\
+Grok, sel. & 94.1 & 95.1 & 85.1 \\
 \bottomrule
 \end{tabular}
-\caption{Test accuracy by kind of sentence (253, 41 and 87 items).}
+\caption{Test accuracy (\%) by kind of sentence (253, 41 and 87 items). Automatic, except $^{\dagger}$ hand-judged.}
 \label{tab:res-source}
 \end{table}
 

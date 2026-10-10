@@ -3,7 +3,7 @@
 \subsection{The unit of prediction}
 Each item $i$ has the six elements listed in Table~\ref{tab:notation}. The span identifies one occurrence even when the sentence contains several abbreviations. We keep $r_i=x_i[s_i]$, including any attached prefix, and mark the span with \texttt{[ACR]} and \texttt{[/ACR]}.
 
-\begin{table}[t]
+\begin{table}[!htbp]
 \centering\small
 \begin{tabular}{@{}cp{0.78\columnwidth}@{}}
 \toprule
@@ -25,7 +25,7 @@ Generation predicts an expansion from $(x_i,s_i,r_i)$, without candidates. Selec
 
 Formally, the two formats differ in their output space:
 \begin{equation}
-\hat{y}^{\mathrm{gen}}=f(x,s)\in\Sigma^{*},\qquad \hat{y}^{\mathrm{sel}}=\operatorname*{arg\,max}_{c\in C}\mathrm{score}(x,s,c),
+\hat{y}^{\mathrm{gen}}=f(x,s)\in\Sigma^{*},\; \hat{y}^{\mathrm{sel}}=\operatorname*{arg\,max}_{c\in C}\mathrm{score}(x,s,c),
 \end{equation}
 where $\Sigma^{*}$ is the set of all Hebrew strings, so generation may return any string, while selection returns one candidate in $C$.
 

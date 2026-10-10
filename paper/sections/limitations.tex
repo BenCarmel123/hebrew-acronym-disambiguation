@@ -5,4 +5,6 @@
 
 \paragraph{Labels and inventories.} Named uses need an annotation decision. In development, we accept \heb{רבי משה בן מימון} as the expansion of \heb{רמב״ם} even in hospital and street contexts, which is a local convention, not a general rule. An inventory may also omit a valid expansion, so matching the stored label can reward or penalize a system unfairly.
 
+\paragraph{Scoring.} Generation is scored by an automatic substring rule, which rejects valid variants and can accept longer answers that contain the reference. The human review covers only 15\% of the answers, chosen mainly among automatic negatives, so it cannot estimate human-judged accuracy or rank systems. The one exception is DictaLM's generation, which we judged by hand in full, so it is not strictly comparable with the other generation scores.
+
 \paragraph{Comparison.} Candidate access is tied to the response format, and the systems also differ in supervision, architecture and size, so the results do not isolate the effect of candidate information. We tested only seven LLMs, each run once, so we cannot say how far the findings hold for other models or settings.

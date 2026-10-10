@@ -34,10 +34,9 @@ Tel Aviv University \\
 \maketitle
 
 \begin{abstract}
-Hebrew acronyms are often ambiguous, and language models can resolve them either by generating an expansion or by selecting from candidate expansions. However, prior work has not directly compared these formats on the same occurrences. We evaluate both on a human-reviewed held-out test set of Hebrew sentences, most of them natural, whose acronym forms never appear in training, comparing seven LLMs with a pre-trained Hebrew BERT-based encoder, both before and after fine-tuning. Candidate selection substantially outperforms free generation across models, and fine-tuning further improves encoder performance. The fine-tuned encoder outperforms the open LLMs in both formats and the proprietary LLMs in free generation, but not in candidate selection. We judge generated answers by hand, so valid variants of the same expansion count as correct.
+Hebrew acronyms are often ambiguous, and language models can resolve them either by generating an expansion or by selecting from candidate expansions. However, prior work has not directly compared these formats on the same occurrences. We evaluate both on a human-reviewed held-out test set of Hebrew sentences, most of them natural, whose acronym forms never appear in training, comparing seven LLMs with a pre-trained Hebrew BERT-based encoder, both before and after fine-tuning. Candidate selection substantially outperforms free generation for every LLM, and fine-tuning further improves encoder performance. The fine-tuned encoder outperforms the open LLMs in both formats and the proprietary LLMs in free generation, but not in candidate selection. Generated answers are scored automatically against the reference, except DictaLM's, which we judged by hand; a partial human review suggests that automatic scoring underestimates generation accuracy.
 \end{abstract}
 
-% TODO: replace XX with the test results, including the Qwen 14B, DictaLM, GPT-4.1 mini, Claude Haiku and Grok arms; recheck the claims that depend on them.
 % ============================================================
 \section{Introduction}
 % ============================================================
@@ -49,7 +48,7 @@ A language model can expand an acronym in two ways. In \emph{free generation}, i
 
 We run this comparison on a human-reviewed held-out test set of 381 Hebrew sentences. Most (77\%) occur naturally, in parliamentary proceedings and on Wikipedia, and the rest were written by an LLM to add a second sense to types that had only one. We test three open LLMs, one of them the Hebrew-specialised DictaLM, four proprietary LLMs, and a pre-trained Hebrew encoder, which we evaluate both before and after fine-tuning. All systems see the same sentence and the same marked acronym. No acronym form in the test set appears in training, so the encoder is tested on acronyms it has never seen.
 
-Our findings are as follows. First, candidate selection outperforms free generation for every LLM: accuracy rises from XX\% to XX\% for the open LLMs, and from XX\% to XX\% for the proprietary ones. Second, fine-tuning helps. Training the encoder on fewer than 3,000 examples raises its candidate-selection accuracy from XX\% to XX\%, so candidate selection can be learned. Third, the fine-tuned encoder's selection accuracy (XX\%) is higher than the open LLMs' selection (XX\%) and the proprietary LLMs' generation (XX\%), but lower than their selection (XX\%). A small fine-tuned model can therefore outperform larger language models in some settings, though not the strongest LLMs when they are given candidates. Generated answers are judged by hand, so variants of the same expansion, such as \heb{שקל חדש} and \heb{שקלים חדשים}, count as correct.
+Our findings are as follows. First, candidate selection outperforms free generation for every LLM: accuracy rises from 8.1--50.7\% to 58.5--69.8\% for the open LLMs, and from 33.9--54.3\% to 83.2--93.7\% for the proprietary ones. Second, fine-tuning helps. Training the encoder on fewer than 3,000 examples raises its candidate-selection accuracy from 64.3\% to 71.7\%, so candidate selection can be learned. Third, the fine-tuned encoder's selection accuracy (71.7\%) is higher than every open LLM selection (58.5--69.8\%) and the best proprietary generation (54.3\%), but lower than every proprietary selection (83.2--93.7\%). A small fine-tuned model can therefore outperform larger language models in some settings, though not the strongest LLMs when they are given candidates. Generated answers are scored automatically (except DictaLM's, judged by hand), so valid variants of an expansion, such as \heb{שקלים חדשים} for \heb{שקל חדש}, can be counted as wrong; a partial human review indicates that generation scores are underestimates.
 
 % ============================================================
 \section{Related Work}
@@ -59,13 +58,13 @@ Our findings are as follows. First, candidate selection outperforms free generat
 HAADS disambiguates abbreviations in Hebrew and Aramaic Jewish Law documents \citep{hacohenkerner2010haads}. \citet{jacobs2020acronyms} build an acronym dictionary for Modern Hebrew from unannotated text and use context to choose among its entries. These are the closest works to ours, and they show that finding expansions and choosing between them are separate problems. Both predate modern language models, so neither tells us how an LLM or a fine-tuned encoder performs. Both also treat the task as choosing from a dictionary, and neither asks what happens when a model must write the expansion itself. We study only the choosing step, from a marked acronym and a given list of expansions, in both formats.
 
 \paragraph{LLMs and Hebrew word ambiguity.}
-\citet{liang2026cognates} test 16 LLMs, including Qwen2.5-7B and a Hebrew-capable model, on Arabic--Hebrew word pairs whose similar forms hide different meanings. They find that models lean on surface-form similarity, and that context and model size help only for some models. Two annotators checked the word labels, with agreement measured on a 10\% sample. All of their tasks are multiple choice, and they note that this may not reflect open-ended settings such as generation. Their task is cognates, not acronyms, and they do not compare formats. We make that comparison for Hebrew acronyms.
+\citet{liang2026cognates} test 16 LLMs, including Qwen2.5-7B and DictaLM 2.0 Instruct, on Arabic--Hebrew word pairs whose similar forms hide different meanings. They find that models lean on surface-form similarity, and that context and model size help only for some models. DictaLM 2.0 Instruct scores near chance on both of their three-way tasks (31.6\% and 32.7\%). Two annotators checked the word labels, with agreement measured on a 10\% sample. All of their tasks are multiple choice, and they note that this may not reflect open-ended settings such as generation. Their task is cognates, not acronyms, and they do not compare formats. We make that comparison for Hebrew acronyms.
 
 \paragraph{Selecting from candidates.}
 \citet{chen2023gladis} introduce GLADIS, an English acronym benchmark whose test acronyms do not appear in training. Their model, AcroBERT, reads the context and one candidate together and learns to tell matching pairs from non-matching ones. Our encoder follows the same idea but is trained differently, with a binary match label for each pair. GLADIS has two weaknesses for our purpose. It covers only English and only selection, so it cannot show how selection compares with free generation. It also builds many evaluation sentences by replacing a full expression with its acronym, so those sentences were not written with an acronym. We use mostly naturally occurring test sentences and keep substituted sentences for training.
 
 \paragraph{Judging generated answers.}
-A generated answer can be right without matching the reference string, so the way answers are judged changes the score. \citet{agrawal2022large} ask GPT-3 to expand clinical abbreviations without choices, then map each answer to the candidate with the highest character overlap. In English clinical notes this works well (86\% accuracy on one benchmark), but the score is tied to the candidate list, and it is unknown whether character overlap suits Hebrew, where prefixes and inflection change a word's surface form. \citet{meconi2025large} test LLMs on word senses in two ways: selecting among supplied definitions, and generating definitions or explanations that an expert annotator rates by hand. They find that the best LLMs match supervised systems at selection, and that shuffling the candidates hurts smaller models. Their two settings use different items and different scoring, and they study word senses, not acronyms. We judge generated answers by hand and count valid variants of the same expansion, such as \heb{שקל חדש} and \heb{שקלים חדשים}, as correct. We also shuffle the candidate order.
+A generated answer can be right without matching the reference string, so the way answers are judged changes the score. \citet{agrawal2022large} ask GPT-3 to expand clinical abbreviations without choices, then map each answer to the candidate with the highest character overlap. In English clinical notes this works well (86\% accuracy on one benchmark), but the score is tied to the candidate list, and it is unknown whether character overlap suits Hebrew, where prefixes and inflection change a word's surface form. \citet{meconi2025large} test LLMs on word senses in two ways: selecting among supplied definitions, and generating definitions or explanations that an expert annotator rates by hand. They find that the best LLMs match supervised systems at selection, and that shuffling the candidates hurts smaller models. Their two settings use different items and different scoring, and they study word senses, not acronyms. We score generated answers automatically against the reference and check a selected subset by hand. We also shuffle the candidate order.
 
 \paragraph{The gap.}
 To our knowledge, no earlier work compares free generation with candidate selection for Hebrew acronyms on the same occurrences, across a small LLM, a proprietary LLM and a fine-tuned encoder. We make this comparison on a human-reviewed test set whose acronym forms are absent from training.
@@ -77,7 +76,7 @@ To our knowledge, no earlier work compares free generation with candidate select
 \subsection{The unit of prediction}
 Each item $i$ has the six elements listed in Table~\ref{tab:notation}. The span identifies one occurrence even when the sentence contains several abbreviations. We keep $r_i=x_i[s_i]$, including any attached prefix, and mark the span with \texttt{[ACR]} and \texttt{[/ACR]}.
 
-\begin{table}[t]
+\begin{table}[!htbp]
 \centering\small
 \begin{tabular}{@{}cp{0.78\columnwidth}@{}}
 \toprule
@@ -99,7 +98,7 @@ Generation predicts an expansion from $(x_i,s_i,r_i)$, without candidates. Selec
 
 Formally, the two formats differ in their output space:
 \begin{equation}
-\hat{y}^{\mathrm{gen}}=f(x,s)\in\Sigma^{*},\qquad \hat{y}^{\mathrm{sel}}=\operatorname*{arg\,max}_{c\in C}\mathrm{score}(x,s,c),
+\hat{y}^{\mathrm{gen}}=f(x,s)\in\Sigma^{*},\; \hat{y}^{\mathrm{sel}}=\operatorname*{arg\,max}_{c\in C}\mathrm{score}(x,s,c),
 \end{equation}
 where $\Sigma^{*}$ is the set of all Hebrew strings, so generation may return any string, while selection returns one candidate in $C$.
 
@@ -205,7 +204,7 @@ $z_j$ & Label of pair $j$: 1 for the reference candidate, 0 otherwise \\
 Training used dropout 0.1, learning rate $2\times10^{-5}$, pair batch size 16 and one epoch, and kept the checkpoint with the lowest development pair loss. The checkpoint comes from the authors' Colab run based on \texttt{dicta-il/dictabert}. The seed (42) was set after model initialization, so it does not control initialization, and we could not verify the executed settings from a complete training log. Each pair is the marked sentence followed by the candidate, joined by BERT special tokens, with a limit of 256 tokens. Long contexts are cropped while keeping the target and candidate. The LLMs receive the full sentence.
 
 \subsection{Prompted language models}
-The generation prompt, written in Hebrew, asks for the expansion of the marked acronym in a few words, without explanation. The selection prompt lists lettered candidates and asks for exactly one letter. Neither includes examples or the answer. We use \texttt{qwen2.5:7b} and \texttt{qwen2.5:14b} \citep{qwen2025technical} through Ollama with Q4\_K\_M quantization, DictaLM, a Hebrew-specialised LLM, through Ollama with temperature 0 and seed 42, % TODO: exact DictaLM tag, quantization and citation
+The generation prompt, written in Hebrew, asks for the expansion of the marked acronym in a few words, without explanation. The selection prompt lists lettered candidates and asks for exactly one letter. Neither includes examples or the answer. We use \texttt{qwen2.5:7b} and \texttt{qwen2.5:14b} \citep{qwen2025technical} through Ollama with Q4\_K\_M quantization, the Hebrew-specialised DictaLM 2.0 Instruct \citep{shmidman2024dictalm} (7.25B parameters, \texttt{dictalm2.0-instruct-GGUF}, Q4\_K\_M) through Ollama with temperature 0 and seed 42,
 \texttt{gemini-3.8-flash} with low thinking, \texttt{gpt-4.1-mini-2025-04-14}, \texttt{claude-haiku-5-5}, and \texttt{grok-4.7} with low reasoning and no tools. Each item gets one request per task. We set no decoding options for Qwen 7B, and low thinking is not disabled thinking, so the runs are not deterministic. Full prompts and raw answers are in the repository.
 
 % ============================================================
@@ -213,11 +212,14 @@ The generation prompt, written in Hebrew, asks for the expansion of the marked a
 \label{sec:eval}
 % ============================================================
 \subsection{Scoring}
-All systems are scored on the same 381 items. A selection is correct when the chosen candidate equals the reference expansion. An LLM answer to a selection prompt must be one uppercase letter in the displayed range, and anything else, such as ``A.'', counts as wrong. Generated answers are judged by hand, and valid variants of the same expansion, such as \heb{שקל חדש} and \heb{שקלים חדשים}, count as correct. Accuracy is the share of correct items,
+All systems are scored on the same 381 items. A selection is correct when the chosen candidate equals the reference expansion. An LLM answer to a selection prompt must be one uppercase letter in the displayed range, and anything else, such as ``A.'', counts as wrong. DictaLM is the one exception: it answers every selection prompt with a letter followed by the candidate text, so we read the leading letter. Under the strict rule all its selections would be invalid. A generated answer is correct when the reference expansion appears in it as a substring after normalizing quotation marks. This rule counts a longer answer that contains the reference as correct, and a valid variant, such as \heb{שקלים חדשים} for \heb{שקל חדש}, as wrong. DictaLM's generated answers are the exception: one author judged each of the 381 against the reference, counting valid variants as the same, and 193 matched (50.7\%). Under the automatic rule DictaLM scores 32.8\%. Accuracy is the share of correct items,
 \begin{equation}
 \mathrm{Acc}=\frac{1}{N}\sum_{i=1}^{N}c_i,
 \end{equation}
 where $c_i=1$ if item $i$ is correct and $N=381$. Failed or invalid responses count as wrong and stay in the denominator.
+
+\subsection{Partial human review}
+A human reviewer judged 741 of the 4,953 answers from the six LLMs other than DictaLM and the fine-tuned encoder (15\%), prioritising answers the automatic rules scored as wrong: 674 of 2,050 automatic negatives and 67 of 2,886 automatic positives. Of the reviewed negatives, 338 were judged to fit the context, all of them generated answers. Nine reviewed positives across four items were judged not to fit and await clarification. Because the review was selective and incomplete, we do not change any score with it; it shows only that the automatic generation scores are likely underestimates. Reported accuracies are automatic, except DictaLM generation.
 
 \subsection{Reference points and variability}
 % TODO: after Shaked finishes the manual judging, rerun the selection arms a few times with fixed seeds and report the spread; add bootstrap confidence intervals from the per-item results.
@@ -229,7 +231,6 @@ We report four reference points: random choice among the candidates; the candida
 % ============================================================
 % Skeleton following Vered Shwartz's advice: state the findings first, give results in full
 % and in an easy format, add examples, stay concise, do not oversell, report unflattering results.
-% TODO: every XX below is a manually judged generation score; fill them in and recheck each claim.
 Table~\ref{tab:test-results} and Figure~\ref{fig:arm-comparison} give accuracy for all systems on the 381 test items, and Figure~\ref{fig:generate-vs-select} compares the two formats for each LLM. Three results stand out. Selection beats generation for every LLM. Fine-tuning improves the encoder. The fine-tuned encoder beats the open LLMs, but not the proprietary LLMs when they select from candidates. Sections~\ref{sec:res-formats} to~\ref{sec:res-errors} give the details.
 
 \begin{table}[t]
@@ -238,32 +239,32 @@ Table~\ref{tab:test-results} and Figure~\ref{fig:arm-comparison} give accuracy f
 \toprule
 System & Accuracy & Invalid \\
 \midrule
-Random & XX\% & -- \\
-Most frequent & XX\% & -- \\
-Most mined & XX\% & -- \\
+Random & 23.5\% & -- \\
+Most frequent & 37.0\% & -- \\
+Most mined & 48.0\% & -- \\
 Oracle & 100.0\% & -- \\
 \midrule
-DictaBERT (untrained) & XX\% & -- \\
-DictaBERT (fine-tuned) & XX\% & -- \\
+DictaBERT (untrained) & 64.3\% & -- \\
+DictaBERT (fine-tuned) & 71.7\% & -- \\
 \midrule
-Qwen 2.5 7B, generation & XX\% & XX\% \\
-Qwen 2.5 7B, selection & XX\% & XX\% \\
-Qwen 2.5 14B, generation & XX\% & XX\% \\
-Qwen 2.5 14B, selection & XX\% & XX\% \\
-DictaLM, generation & XX\% & XX\% \\
-DictaLM, selection & XX\% & XX\% \\
+Qwen 2.5 7B, generation & 8.1\% & 0.3\% \\
+Qwen 2.5 7B, selection & 58.5\% & 0.0\% \\
+Qwen 2.5 14B, generation & 11.5\% & 2.6\% \\
+Qwen 2.5 14B, selection & 69.8\% & 1.8\% \\
+DictaLM 2.0, generation$^{\dagger}$ & 50.7\% & 0.0\% \\
+DictaLM 2.0, selection$^{*}$ & 63.8\% & 0.0\% \\
 \midrule
-Gemini, generation & XX\% & XX\% \\
-Gemini, selection & XX\% & XX\% \\
-GPT-4.1 mini, generation & XX\% & XX\% \\
-GPT-4.1 mini, selection & XX\% & XX\% \\
-Claude Haiku 5.5, generation & XX\% & XX\% \\
-Claude Haiku 5.5, selection & XX\% & XX\% \\
-Grok 4.7, generation & XX\% & XX\% \\
-Grok 4.7, selection & XX\% & XX\% \\
+Gemini, generation & 54.3\% & 0.5\% \\
+Gemini, selection & 93.7\% & 0.0\% \\
+GPT-4.1 mini, generation & 33.9\% & 0.3\% \\
+GPT-4.1 mini, selection & 83.2\% & 0.0\% \\
+Claude Haiku 5.5, generation & 43.3\% & 0.3\% \\
+Claude Haiku 5.5, selection & 89.0\% & 0.5\% \\
+Grok 4.7, generation & 48.3\% & 0.0\% \\
+Grok 4.7, selection & 92.1\% & 0.3\% \\
 \bottomrule
 \end{tabular}
-\caption{Test accuracy (381 items). For selection, an invalid answer is not a single valid letter. % TODO: define invalid for judged generation
+\caption{Test accuracy (381 items). Scores are automatic, except DictaLM generation (Section~\ref{sec:eval}). For selection, an invalid answer is not a single valid letter; for generation, it is a failed or truncated response. $^{*}$Leading letter read from a letter-plus-candidate answer; 0.0\% under the strict rule. $^{\dagger}$Judged by hand (32.8\% under the automatic rule); all other generation scores are automatic.
 }
 \label{tab:test-results}
 \end{table}
@@ -271,7 +272,7 @@ Grok 4.7, selection & XX\% & XX\% \\
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{paper/figures/arm_comparison.pdf}
-\caption{Accuracy of all systems on the test set, sorted, with the baselines and the oracle as reference lines. % TODO: update this figure: add Qwen 14B, DictaLM, GPT-4.1 mini, Claude Haiku and Grok, and use the final test scores
+\caption{Accuracy of all systems on the test set, sorted, with the baselines and the oracle as reference lines. Dark blue: proprietary LLM selection; light blue: open LLM selection; grey: generation. DictaLM selection uses the leading-letter reading and DictaLM generation is judged by hand (Section~\ref{sec:eval}); all other generation scores are automatic.
 }
 \label{fig:arm-comparison}
 \end{figure}
@@ -279,24 +280,25 @@ Grok 4.7, selection & XX\% & XX\% \\
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{paper/figures/generate_vs_select.pdf}
-\caption{Accuracy under free generation and under candidate selection, for each LLM. % TODO: update this figure: add Qwen 14B, DictaLM, GPT-4.1 mini, Claude Haiku and Grok, and use the final test scores
+\caption{Accuracy under free generation and under candidate selection, for each LLM, open models first. DictaLM selection uses the leading-letter reading and DictaLM generation is judged by hand (Section~\ref{sec:eval}); all other generation scores are automatic.
 }
 \label{fig:generate-vs-select}
 \end{figure}
 
 \subsection{Generation versus selection}
 \label{sec:res-formats}
-Candidate selection beats free generation for every LLM. Accuracy rises from XX\% to XX\% for Qwen 7B, XX\% to XX\% for Qwen 14B, XX\% to XX\% for DictaLM, XX\% to XX\% for Gemini, XX\% to XX\% for GPT-4.1 mini, XX\% to XX\% for Claude Haiku and XX\% to XX\% for Grok. % TODO: one sentence on why, from the error analysis, e.g. where generated answers go wrong
+Candidate selection beats free generation for every LLM. Accuracy rises from 8.1\% to 58.5\% for Qwen 7B, 11.5\% to 69.8\% for Qwen 14B, 50.7\% to 63.8\% for DictaLM (hand-judged generation), 54.3\% to 93.7\% for Gemini, 33.9\% to 83.2\% for GPT-4.1 mini, 43.3\% to 89.0\% for Claude Haiku and 48.3\% to 92.1\% for Grok. % TODO: one sentence on why, from the error analysis, e.g. where generated answers go wrong
 Because selection is constrained to the inventory, this gain also depends on the inventory containing the right answer, which holds for every test item (the oracle is 100\%).
 
 \subsection{Fine-tuning and the encoder}
 \label{sec:res-encoder}
-Fine-tuning raises the encoder from XX\% to XX\%, a gain of XX points from fewer than 3,000 training items. The fine-tuned encoder beats the open LLMs' selection (XX\%) and the proprietary LLMs' generation (XX\%). It trails the best proprietary selection (XX\%) by XX points. So a model about 35 times smaller than Qwen 7B can beat Qwen at selection, but it does not match the best system. We ran each system once, so we cannot say how stable the gain is.
+Fine-tuning raises the encoder from 64.3\% to 71.7\%, a gain of 7.3 points from fewer than 3,000 training items. The fine-tuned encoder beats every open LLM selection (at most 69.8\%) and every proprietary generation (at most 54.3\%). It trails the best proprietary selection (93.7\%) by 22.0 points. So a model about 35 times smaller than Qwen 7B can beat Qwen at selection, but it does not match the best system.
+
+Scale alone does not explain these results. Doubling Qwen from 7B to 14B parameters raises selection from 58.5\% to 69.8\% and generation from 8.1\% to 11.5\%, so the extra 7B parameters help, mainly when candidates are given. DictaLM 2.0, a Hebrew-specialised model of 7.25B parameters, roughly 35 times larger than DictaBERT, reaches 63.8\% in selection. That is 7.9 points below the fine-tuned encoder and about the same as the untrained one (64.3\%). Hebrew pretraining therefore gives DictaLM the strongest open-model generation (50.7\%, judged by hand and so not strictly comparable with the automatic scores of the other models; 32.8\% under the automatic rule), but task-specific fine-tuning on fewer than 3,000 items matters more for selection than an LLM's size or Hebrew specialisation. We ran each system once, so we cannot say how stable these gains are, and the half-point gap between DictaLM and the untrained encoder is not meaningful.
 
 \subsection{Results by kind of sentence}
 \label{sec:res-source}
-% TODO: add a table of accuracy for each system on the 253 Knesset, 41 Wikipedia and 87 Claude-authored items, and one sentence on whether authored items are easier or harder.
-Because 23\% of the test items were written by an LLM, we report accuracy separately for each kind of sentence in Table~\ref{tab:res-source}.
+Because 23\% of the test items were written by an LLM, we report accuracy separately for each kind of sentence in Table~\ref{tab:res-source}. Natural Wikipedia items are the easiest for most systems. Authored items are not consistently easier or harder than Knesset items: they score lower for nine of the 14 LLM arms, and higher for the other five and for both encoders.
 
 \begin{table}[t]
 \centering\small
@@ -304,10 +306,27 @@ Because 23\% of the test items were written by an LLM, we report accuracy separa
 \toprule
 System & Knesset & Wikipedia & Authored \\
 \midrule
-% TODO: fill in from the per-item results
+DictaBERT (untrained) & 57.7 & 75.6 & 78.2 \\
+DictaBERT (fine-tuned) & 70.0 & 73.2 & 75.9 \\
+\midrule
+Qwen 7B, gen. & 8.7 & 12.2 & 4.6 \\
+Qwen 7B, sel. & 54.5 & 70.7 & 64.4 \\
+Qwen 14B, gen. & 13.0 & 17.1 & 4.6 \\
+Qwen 14B, sel. & 65.6 & 78.0 & 78.2 \\
+DictaLM 2.0, gen.$^{\dagger}$ & 53.4 & 73.2 & 32.2 \\
+DictaLM 2.0, sel. & 64.4 & 75.6 & 56.3 \\
+\midrule
+Gemini, gen. & 47.8 & 78.0 & 62.1 \\
+Gemini, sel. & 94.9 & 95.1 & 89.7 \\
+GPT-4.1 mini, gen. & 32.8 & 51.2 & 28.7 \\
+GPT-4.1 mini, sel. & 83.0 & 90.2 & 80.5 \\
+Claude Haiku, gen. & 39.5 & 73.2 & 40.2 \\
+Claude Haiku, sel. & 89.7 & 92.7 & 85.1 \\
+Grok, gen. & 44.3 & 68.3 & 50.6 \\
+Grok, sel. & 94.1 & 95.1 & 85.1 \\
 \bottomrule
 \end{tabular}
-\caption{Test accuracy by kind of sentence (253, 41 and 87 items).}
+\caption{Test accuracy (\%) by kind of sentence (253, 41 and 87 items). Automatic, except $^{\dagger}$ hand-judged.}
 \label{tab:res-source}
 \end{table}
 
@@ -337,6 +356,8 @@ Case & Example \\
 \paragraph{Training and development.} Training is mostly substituted Wikipedia sentences and includes LLM-written text, while the test set is mostly natural parliamentary text, so domain, construction and acronym mix differ together. Whether the models saw the test sentences in pretraining is unknown. The development set has only 62 items for 11 types, and it has label defects: one \heb{מט״ח} sentence about the educational technology center is labeled foreign currency. We use it only to choose a checkpoint, but these defects may have affected that choice.
 
 \paragraph{Labels and inventories.} Named uses need an annotation decision. In development, we accept \heb{רבי משה בן מימון} as the expansion of \heb{רמב״ם} even in hospital and street contexts, which is a local convention, not a general rule. An inventory may also omit a valid expansion, so matching the stored label can reward or penalize a system unfairly.
+
+\paragraph{Scoring.} Generation is scored by an automatic substring rule, which rejects valid variants and can accept longer answers that contain the reference. The human review covers only 15\% of the answers, chosen mainly among automatic negatives, so it cannot estimate human-judged accuracy or rank systems. The one exception is DictaLM's generation, which we judged by hand in full, so it is not strictly comparable with the other generation scores.
 
 \paragraph{Comparison.} Candidate access is tied to the response format, and the systems also differ in supervision, architecture and size, so the results do not isolate the effect of candidate information. We tested only seven LLMs, each run once, so we cannot say how far the findings hold for other models or settings.
 

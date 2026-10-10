@@ -1,11 +1,14 @@
 \section{Evaluation}
 \label{sec:eval}
 \subsection{Scoring}
-All systems are scored on the same 381 items. A selection is correct when the chosen candidate equals the reference expansion. An LLM answer to a selection prompt must be one uppercase letter in the displayed range, and anything else, such as ``A.'', counts as wrong. Generated answers are judged by hand, and valid variants of the same expansion, such as \heb{שקל חדש} and \heb{שקלים חדשים}, count as correct. Accuracy is the share of correct items,
+All systems are scored on the same 381 items. A selection is correct when the chosen candidate equals the reference expansion. An LLM answer to a selection prompt must be one uppercase letter in the displayed range, and anything else, such as ``A.'', counts as wrong. DictaLM is the one exception: it answers every selection prompt with a letter followed by the candidate text, so we read the leading letter. Under the strict rule all its selections would be invalid. A generated answer is correct when the reference expansion appears in it as a substring after normalizing quotation marks. This rule counts a longer answer that contains the reference as correct, and a valid variant, such as \heb{שקלים חדשים} for \heb{שקל חדש}, as wrong. DictaLM's generated answers are the exception: one author judged each of the 381 against the reference, counting valid variants as the same, and 193 matched (50.7\%). Under the automatic rule DictaLM scores 32.8\%. Accuracy is the share of correct items,
 \begin{equation}
 \mathrm{Acc}=\frac{1}{N}\sum_{i=1}^{N}c_i,
 \end{equation}
 where $c_i=1$ if item $i$ is correct and $N=381$. Failed or invalid responses count as wrong and stay in the denominator.
+
+\subsection{Partial human review}
+A human reviewer judged 741 of the 4,953 answers from the six LLMs other than DictaLM and the fine-tuned encoder (15\%), prioritising answers the automatic rules scored as wrong: 674 of 2,050 automatic negatives and 67 of 2,886 automatic positives. Of the reviewed negatives, 338 were judged to fit the context, all of them generated answers. Nine reviewed positives across four items were judged not to fit and await clarification. Because the review was selective and incomplete, we do not change any score with it; it shows only that the automatic generation scores are likely underestimates. Reported accuracies are automatic, except DictaLM generation.
 
 \subsection{Reference points and variability}
 % TODO: after Shaked finishes the manual judging, rerun the selection arms a few times with fixed seeds and report the spread; add bootstrap confidence intervals from the per-item results.

@@ -107,7 +107,8 @@ def generate_vs_select(scores, path):
     ax.axvline(2.5, color="#a0aec0", linewidth=0.8, linestyle=":")
     ax.text(1.0, 1.06, "Open", ha="center", fontsize=8, color="#4a5568")
     ax.text(4.5, 1.06, "Proprietary", ha="center", fontsize=8, color="#4a5568")
-    ax.set_xticks(range(len(LLMS)), [name for _, name in LLMS], fontsize=7.5, rotation=20, ha="right")
+    labels = [name + (" (gen. hand-judged)" if key == "dictalm" else "") for key, name in LLMS]
+    ax.set_xticks(range(len(LLMS)), labels, fontsize=7.5, rotation=20, ha="right")
     ax.set_ylim(0, 1.12)
     ax.set_yticks([0, 0.25, 0.5, 0.75, 1.0])
     ax.yaxis.set_major_formatter(PercentFormatter(1.0, decimals=0))
