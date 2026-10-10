@@ -318,7 +318,7 @@
     try{
       const [initial,session]=await Promise.all([request('/api/short/state'),request('/api/session')]);
       state=initial;$('qaBanner').hidden=!session.qa;if(state.protocol_version==='identified-test-review-v1'){
-        $('tableToggle').hidden=false;$('reviewTools').hidden=false;tableMode=true;view=continuedSession(state)?'all':'calibration';updateProgress();updateDraftChoices();
+        $('tableToggle').hidden=false;$('reviewTools').hidden=false;tableMode=true;view=continuedSession(state)?'hebrew':'calibration';updateProgress();updateDraftChoices();
         const cached=localStorage.getItem(draftKey());
         if(cached){try{await request('/api/short/batch-draft',JSON.parse(cached));state=await request('/api/short/state');updateDraftChoices();}catch(error){status('טיוטה מקומית נשמרה בדפדפן אך לא ניתן לקשרה לקבוצה הפעילה; אין למחוק אותה.',true);}}
         if(state.manual_session&&!continuedSession(state)&&Date.now()>=Date.parse(state.manual_session.deadline))await openSummary();
