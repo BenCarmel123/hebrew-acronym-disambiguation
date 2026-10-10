@@ -1,6 +1,8 @@
 """Draw the paper figures from the identified 381-item submission exports.
 
 Run from the repository root: python paper/make_result_figures.py
+The default regenerates the two-panel figure used by the manuscript.
+arm_comparison remains available as the historical selection-only helper.
 Reads only saved CSV files; it calls no model and changes no result. DictaLM's
 four measurements belong to the separate supplementary manuscript table.
 """
@@ -12,6 +14,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.ticker import PercentFormatter
+from matplotlib.lines import Line2D
 
 ROOT = Path(__file__).resolve().parents[1]
 SUBMISSION = ROOT / "results" / "submission-20261010"
@@ -114,35 +117,81 @@ def arm_comparison(scores, baselines, path):
     save_figure(fig, path)
 
 
-def generate_vs_select(scores, path):
-    fig, ax = plt.subplots(figsize=(3.35, 3.0))
-    width = 0.32
-    for index, (key, _) in enumerate(LLMS):
-        generate, select = scores[(key, "generate")], scores[(key, "select")]
-        ax.barh(index - width / 2, generate, width, color=GENERATE,
-                label="Generation: reference substring" if index == 0 else None)
-        ax.barh(index + width / 2, select, width, color=SELECT_API,
-                label="Selection: strict candidate label" if index == 0 else None)
-        ax.text(generate + 0.015, index - width / 2, f"{generate:.1%}", va="center", fontsize=7.5)
-        ax.text(select + 0.015, index + width / 2, f"{select:.1%}", va="center", fontsize=7.5)
-    ax.axhline(1.5, color="#dddddd", linewidth=0.6)
-    ax.set_yticks(range(len(LLMS)), [name for _, name in LLMS])
-    ax.invert_yaxis()
-    style_axis(ax)
-    ax.tick_params(axis="both", labelsize=8)
-    fig.text(0.5, 0.035, "Automatic score (task-specific rule)", ha="center", fontsize=7.5)
-    fig.suptitle(f"Generation and selection (n = {N_ITEMS})", fontsize=9, y=0.98)
-    handles, labels = ax.get_legend_handles_labels()
-    fig.legend(handles, labels, fontsize=7.5, frameon=False, loc="upper left",
-               bbox_to_anchor=(0.02, 0.935))
-    fig.subplots_adjust(left=0.40, right=0.98, bottom=0.17, top=0.78)
-    save_figure(fig, path)
+def generate_vs_select(scores, baselines, path):
+    """Two descriptive panels; task-specific scores are not a common metric."""
+    # Keep the LLM order identical in both panels and the main manuscript table.
+    names = dict(LLMS)
+    systems = ["qwen", "qwen14", "gemini", "openai", "anthropic", "xai"]
+    selection = [("dictabert_similarity", "DictaBERT similarity"),
+                 ("dictabert", "DictaBERT ranker")]
+    selection += [(key, names[key]) for key in systems]
+    blue, charcoal = "#28608b", "#333333"
+    with plt.rc_context({"font.family": "DejaVu Sans", "font.size": 8.5,
+                         "pdf.fonttype": 42}):
+        fig = plt.figure(figsize=(7.0, 2.85))
+        left = fig.add_axes((0.20, 0.14, 0.28, 0.61))
+        right = fig.add_axes((0.72, 0.14, 0.25, 0.61))
+        fig.text(0.01, 0.96, "(a) Candidate selection", weight="bold", fontsize=10)
+        fig.text(0.53, 0.96, "(b) Generation and selection", weight="bold", fontsize=10)
+        fig.text(0.01, 0.865,
+                 "Encoder: candidate ranking + reference match\n"
+                 "LLM: strict label + reference match", fontsize=8.5)
+        fig.legend([
+            Line2D([], [], marker="o", linestyle="none", markerfacecolor="white",
+                   markeredgecolor=charcoal, markersize=5),
+            Line2D([], [], marker="s", linestyle="none", color=blue, markersize=5)],
+            ["Generation: normalized reference substring",
+             "Selection: strict label + reference match"],
+            loc="upper left", bbox_to_anchor=(0.515, 0.925), frameon=False,
+            fontsize=8, handletextpad=0.4, labelspacing=0.6)
+
+        def point(ax, value, y, marker, color, filled=True):
+            ax.plot(value, y, marker=marker, linestyle="none", markersize=5,
+                    markeredgecolor=color, markerfacecolor=color if filled else "white",
+                    zorder=3)
+            # Keep direct labels within the 0--100% plotting region.
+            high = value >= 0.80
+            ax.text(value + (-0.035 if high else 0.035), y, f"{value:.1%}",
+                    ha="right" if high else "left", va="center", fontsize=8.5,
+                    bbox={"facecolor": "white", "edgecolor": "none", "pad": 0.1},
+                    zorder=4)
+
+        for index, (key, _) in enumerate(selection):
+            encoder = key.startswith("dictabert")
+            point(left, scores[(key, "select")], index,
+                  "D" if encoder else "s", charcoal if encoder else blue)
+        left.axvline(baselines["most_mined"], color=charcoal, linestyle="--",
+                     linewidth=0.8, zorder=1)
+        left.text(baselines["most_mined"], -0.78,
+                  f"Most-mined {baselines['most_mined']:.1%}",
+                  ha="center", va="bottom", fontsize=8)
+        left.set_yticks(range(len(selection)), [label for _, label in selection])
+        left.set_ylim(len(selection) - 0.5, -1.0)
+        left.axhline(1.5, color="#dddddd", linewidth=0.6)
+        left.axhline(3.5, color="#dddddd", linewidth=0.6)
+        for index, key in enumerate(systems):
+            point(right, scores[(key, "generate")], index - 0.20, "o", charcoal, False)
+            point(right, scores[(key, "select")], index + 0.20, "s", blue)
+        right.set_yticks(range(len(systems)), [names[key] for key in systems])
+        right.set_ylim(len(systems) - 0.5, -0.7)
+        right.axhline(1.5, color="#dddddd", linewidth=0.6)
+        for ax in (left, right):
+            ax.set_xlim(0, 1)
+            ax.set_xticks([0, 0.25, 0.5, 0.75, 1])
+            ax.xaxis.set_major_formatter(PercentFormatter(1, decimals=0))
+            ax.tick_params(axis="y", length=0, pad=5)
+            ax.tick_params(axis="x", labelsize=8)
+            ax.grid(axis="x", color="#eeeeee", linewidth=0.5)
+            ax.set_axisbelow(True)
+            for side in ("top", "right", "left"):
+                ax.spines[side].set_visible(False)
+            ax.set_xlabel("Automatic score (%)", fontsize=8.5)
+        save_figure(fig, path)
 
 
 def main():
     scores, baselines = load_scores()
-    arm_comparison(scores, baselines, FIGURES / "arm_comparison.pdf")
-    generate_vs_select(scores, FIGURES / "generate_vs_select.pdf")
+    generate_vs_select(scores, baselines, FIGURES / "generate_vs_select.pdf")
 
 
 if __name__ == "__main__":

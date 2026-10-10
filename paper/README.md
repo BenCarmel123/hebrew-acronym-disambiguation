@@ -31,9 +31,33 @@ without model requests, credentials or weights. The complete output map is in
 
 The source breakdown table retains Knesset/Wikipedia/authored groups and the same
 automatic rules. No labels, denominators or results change during manuscript editing.
-The paper uses the main table and `figures/generate_vs_select.pdf`; the redundant
-selection-only figure remains available but is not included. The existing
-`make_result_figures.py` regenerates both figures from saved exports, not models.
+The main table retains the numerical results. `figures/generate_vs_select.pdf`
+shows candidate selection (two encoder variants and six LLMs) alongside generation
+and selection for the same six LLMs. The panels preserve task-specific scoring;
+encoders rank candidates without the strict LLM text-label decoder. The most-mined
+line uses the saved 0.4803 value, displayed as 48.0%. Both axes span 0--100%; marker
+shape and fill distinguish the series without relying on color.
+
+Regenerate this vector PDF from the repository root with the installed project
+environment, then build the paper:
+
+```bash
+python paper/make_result_figures.py
+make -C paper check
+```
+
+The generator reads only the three saved CSV exports listed above. It checks the
+381-item denominators, metric identities and count/accuracy agreement; it neither
+rescores responses nor regenerates exports. Timestamp metadata is omitted for
+repeatable PDF bytes in the same environment (Matplotlib 3.10.8; DejaVu Sans).
+The historical selection-only figure/helper remains available but is not rebuilt
+by the default command and is not included in the manuscript.
+
+The constructed illustration remains a table: a trial two-path method diagram
+made scoring harder to read in one column and increased the body beyond eight
+pages. The results figure takes priority, with space still needed for the authors'
+contributions and personal reflections. The notebook's saved figures remain
+unchanged: they report the same values and measurement layers.
 
 The paper's external links pin the remotely verified Ben revision `4d2dc73`.
 The local review snapshot includes later DictaLM annotation supplements and
