@@ -6,8 +6,3 @@ The readable draft is `build/main.pdf` after building.
 
 The previous Markdown draft is preserved in Git at `9a14416:paper/manuscript.md`.
 It includes superseded no-sentence conditions and is not a parallel current draft.
-Ben's 3 October held-row review from `e160915` is incorporated in
-[Task and Data](sections/task_data.tex), distinguishing the earlier 2,665-row
-snapshot from the updated 2,829-row training CSV and its stale manifest.
-Saved development execution and diagnostic limitations are described; final-test
-results and conclusions remain pending.
