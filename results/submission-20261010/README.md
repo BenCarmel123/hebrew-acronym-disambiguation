@@ -7,9 +7,12 @@ are manuscript inputs, not edits to the manuscript or its existing figures.
 
 | File | Interpretation |
 |---|---|
+| [analysis_environment.json](analysis_environment.json) | Python/package versions, analysis source hashes and verified offline execution receipt; no API or weights. |
 | [automatic_metrics.csv](automatic_metrics.csv) | Existing automatic rules on all 381 items per arm; failures retained. |
 | [automatic_scores.pdf](automatic_scores.pdf) | Automatic generation and selection scores; also PNG and SVG. |
 | [baselines.csv](baselines.csv) | Four verified selection baselines on the same cohort. |
+| [similarity_metric.csv](similarity_metric.csv), [similarity_source.json](similarity_source.json) | Existing similarity result 245/381, bound to historical predictions by commit and hash; missing run metadata is explicit. |
+| [metric_coverage.csv](metric_coverage.csv) | Technical failures, stored format validity and automatic matches on distinct fields; human judgments remain separate. |
 | [technical_failures.csv](technical_failures.csv) | 17 failed/truncated occurrences, including both Gemini truncations. |
 | [models_and_settings.csv](models_and_settings.csv) | LLM identities, run IDs and collection settings; trained encoder identity is in the notebook and automatic-metric run ID. |
 | [human_review_coverage.csv](human_review_coverage.csv) | New judgments, approved reuse, reviewed strata, unreviewed answers and disagreements per system/task. |
@@ -19,22 +22,26 @@ are manuscript inputs, not edits to the manuscript or its existing figures.
 | [human_review_decisions.json](human_review_decisions.json) | All 620 new decision events, including superseded decisions. |
 | [human_review_rechecks.json](human_review_rechecks.json) | Two documented rechecks counted once in coverage. |
 | [clarification_cases.html](clarification_cases.html) | Historical unresolved human disagreements; also CSV with raw answers and run links. |
-| [agent_clarification_assessments.csv](agent_clarification_assessments.csv) | Separate delegated agent decisions: five groups / ten existing occurrences across four contexts; no new human judgments. |
+| [agent_clarification_assessments.csv](agent_clarification_assessments.csv) | Separate delegated agent assessments: five groups / ten existing occurrences across four contexts; no new human judgments. |
 | [pilot_results.csv](pilot_results.csv) | Development pilots, separate from test metrics. |
 | [cost_sessions.csv](cost_sessions.csv), [cost_total.csv](cost_total.csv) | Carried costs and increments; cumulative totals must not be added together. |
-| [dictalm_audit.json](dictalm_audit.json) | Separate audit: identities, source hashes, exact-cohort agreement, stopping reasons, accounting rejection and leading-label diagnostic. |
-| [dictalm_diagnostic_metrics.csv](dictalm_diagnostic_metrics.csv) | Original scores on 381 items, held outside the pooled comparison pending protocol decision. |
-| [dictalm_responses_381.csv](dictalm_responses_381.csv) | 762 journal-bound raw responses, prompts, candidate orders, original scores and separate diagnostic fields; no human judgments. |
+| [dictalm_audit.json](dictalm_audit.json) | Separate audit: identities, source hashes, exact-cohort agreement, stopping reasons, zero local API increment, leading-label diagnostic and Ben annotation provenance. |
+| [dictalm_diagnostic_metrics.csv](dictalm_diagnostic_metrics.csv) | Original automatic scores on 381 items, reported separately with the template limitation. |
+| [dictalm_reported_metrics.csv](dictalm_reported_metrics.csv) | Four distinct automatic, Ben and diagnostic measurements; no common ranking. |
+| [dictalm_ben_judgments.csv](dictalm_ben_judgments.csv), [dictalm_ben_cross_tab.csv](dictalm_ben_cross_tab.csv) | 381 unique Ben labels tied to original run/item/raw hash; stable IDs, source commit/hash and 121/72/4/184 agreement counts. |
+| [dictalm_accounting.csv](dictalm_accounting.csv) | Local API increment 0, historical local prior 0 and cumulative expenditure 23.1276784 ILS in separate fields. |
+| [dictalm_responses_381.csv](dictalm_responses_381.csv) | 762 journal-bound raw responses, prompts, candidate orders, original scores and separate diagnostic fields; human judgments exported in their own table. |
 
 The review is diagnostic and incomplete: 674/2,050 technically complete automatic
 nonpositives and 67/2,886 positives were reviewed. There are 338 nonpositive/`fits`
 occurrences in that selected subset. Nine positive/`not_fits` occurrences across
 four items retain historical pending flags, not nine independent confirmed false
-positives. At the user's request, a separate unblinded agent assessment resolves
-these contexts operationally; it does not represent personal user adjudication.
+positives. At the user's request, a separate unblinded agent layer assesses
+these contexts; it provides no new human adjudication or resolution of human disagreement.
 It accepts both centimeter forms and rejects the three remaining ambiguous or
 malformed responses. Its five groups include the generation control; all ten
-occurrences were already reviewed. It changes neither gold, automatic scores nor
+occurrences were already reviewed. The historical source term “resolved” describes an agent operational status only.
+It changes neither gold, automatic scores nor
 saved human labels and does not increase coverage. Exact evidence and limitations
 are retained in [assessments.json](../../saved-results/agent-clarifications-20261010/assessments.json).
 The 4,212 unreviewed occurrences include 17
@@ -49,11 +56,27 @@ the preserved historical `incomplete` status. Accounted expenditure is
 model collection and fine-tuning are outside this release. The manuscript remains separately
 maintained; rerunning this notebook only rewrites this export directory.
 
-The separate DictaLM audit adds 125/381 generation substring matches and 0/381
-strict valid selection labels. Its leading-label diagnostic matches gold on 243/381;
-none of these are human judgments. Pooling is held because the saved chat template
-omits the publisher-required newline and the zero-prior local session fails the
-existing accounting gate. No causal claim about the template is established.
-All raw sources remain unchanged. The new 762-answer review queue has no transferred
-judgments; total human coverage remains 741 answers. Across the larger, unpooled
-5,715-answer inventory, 4,974 answers remain unreviewed.
+The separate DictaLM results retain automatic generation 125/381 (32.8%), Ben's
+generation labels 193/381 (50.7%), strict selection 0/381 (0%), and diagnostic
+leading-label selection 243/381 (63.8%). The diagnostic is not a substitute for strict
+scoring. The saved chat template omits the publisher-specified newline; its causal
+effect is unknown. Zero API increment is not a scientific reporting barrier; no
+historical manifest or paid accounting gate has changed.
+
+Ben's source CSV, its introducing commit and response identity checks are documented
+in the [annotation provenance](../../saved-results/README.md#ben-dictalm-annotations).
+The file records yes/no under `same_as_gold`; a detailed rubric, annotation times and
+blinding are not documented. All 381 responses match the saved CSV; 234 match the raw
+journal exactly and 147 differ only in boundary whitespace. Journal text and hashes
+remain authoritative. The cross-tab is 121 both accept, 72 Ben only, 4 automatic
+only, and 184 neither. Re-running exports replaces the derived table with the same
+381 judgment IDs. No labels transfer to selection or other models.
+
+The historical closed review stays 741/4,953 responses. Ben's 381 generation labels
+are a separate layer; agent assessments add zero human coverage. No annotation queue
+is required for these exports. Qwen14B generation has 10/381 (2.6%) technical failures
+(9 incomplete responses and 1 service error), distinct from 47 format-valid answers
+and 44 automatic matches. All 381 remain in each score denominator.
+
+The paper's result placement still requires Shaked's decision. These exports do not
+edit `paper/` or change the main score to a lenient diagnostic.
