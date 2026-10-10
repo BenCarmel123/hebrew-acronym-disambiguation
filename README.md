@@ -15,8 +15,11 @@ also contributes candidate expansions. Text origin and label evidence are retain
 separately: natural text is not automatically a verified label, and authored text
 is not observed usage.
 
-The stored test split contains **395 items across 60 acronym types**: 267 Knesset,
-41 Wikipedia and 87 Claude-authored sentences. The research/encoder dev cohort
+The stored test split contains **381 items across 60 acronym types**: 253 Knesset,
+41 Wikipedia and 87 Claude-authored sentences. Fourteen earlier test items from four
+Knesset protocols that also supply training items were removed; new runs never
+collect them, and runs saved before the removal are scored without them
+([test cohort](src/hebrew_acronyms/test_cohort.py)). The research/encoder dev cohort
 (`data/study_v1/encoder_inputs/dev.csv`) contains 62 items; the test notebook's
 pilot uses the first ten of the 289 items in `data/splits/dev_items.csv`. The
 [data inventory](data/README.md) and [dataset card](data/mined/DATASET_CARD.md)
@@ -37,7 +40,7 @@ Encoder comparisons distinguish trained DictaBERT candidate scoring from an
 untrained DictaBERT similarity baseline. Four deterministic baselines are also
 available. The [checkpoint documentation](docs/checkpoints.md) records loading
 requirements and the existing weights' incomplete training provenance. The new
-395-item checkpoint inference uses an explicitly recorded first-occurrence target
+checkpoint inference uses an explicitly recorded first-occurrence target
 policy; these derived spans are not human annotations.
 
 ## Saved results
@@ -49,7 +52,7 @@ readable without executing cells. Default execution loads the bundled
 neither API accounts nor weights. The optional development demonstration is disabled
 and contributes no test observations.
 
-The test analysis preserves separate collection runs and full 395-item denominators,
+The test analysis preserves separate collection runs and full 381-item denominators,
 including technical failures. Gemini has a development pilot but no test result in
 this release. Human semantic review is pending; automatic scores do not replace it.
 Earlier measurements under [results/](results/test_results.md) remain historical

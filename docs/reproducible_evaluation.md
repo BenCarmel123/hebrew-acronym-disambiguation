@@ -3,7 +3,7 @@
 Use [run_test_eval_colab.ipynb](../notebooks/run_test_eval_colab.ipynb) as the
 execution entry point. It installs one reviewed commit, saves requests and outcomes
 to Drive, runs the fixed development pilot separately for each selected system,
-and gates each 395-item test on successful operation and a combined 100 ILS budget.
+and gates each 381-item test on successful operation and a combined 100 ILS budget.
 This guide does not claim a live Colab run has passed. Offline tests establish software contracts, not model performance.
 
 ## Accounts and keys
@@ -98,12 +98,12 @@ completing its own pilot and, if qualified, test run.
    are results, not a reason to retry. An incomplete pilot does not unlock that
    system's full test. Truncation or prompt defects require a corrected, separately
    identified pilot; a different system's successful pilot is insufficient.
-6. Review the displayed usage and time projection. It scales to 395 items with a
+6. Review the displayed usage and time projection. It scales to 381 items with a
    25% cost margin; 4 ILS/USD is a conversion/fee/tax allowance, not a quoted rate.
    Enter each inspected successful pilot's printed identity hash in
    `INSPECTED_PILOTS`. Before full test, its stored identity, source and settings,
    all 20 responses, remaining requests and shared spend are checked again.
-7. Run or resume qualified systems' full test: **395 items × 2 tasks = 790 logical
+7. Run or resume qualified systems' full test: **381 items × 2 tasks = 762 logical
    responses per system**. Retain failed or unrun items in the reported cohort.
    Keep the Drive output and use the download cell for a second copy. Historical
    `results/` directories and earlier release bundles remain unchanged.
@@ -208,7 +208,7 @@ A fresh strict encoder run also requires qualified target spans: the historical 
 CSV lacks the explicit span columns, and multiple target occurrences must not be
 resolved by silently taking the first match. The identified test inference
 `dictabert-test-20261009-f49c3b5` uses a researcher-authorized, quote-normalized
-first-occurrence policy, recorded with the derived 395-item input and checkpoint
+first-occurrence policy, recorded with the derived input and checkpoint
 identity. These spans are automatic targets, not human annotations. Its selected
 candidates reproduce the historical CSV, without proving that file's execution
 origin. Historical encoder results remain separate. The original training seed,
@@ -218,7 +218,7 @@ identities without inventing that missing provenance.
 
 Do not judge generation correctness from foreign letters alone. Keep automatic
 scores, output-quality flags and human semantic judgments separate. Retain all
-395 identities and explicit failures. Test contains 267 Knesset, 41 Wikipedia and
+381 identities and explicit failures. Test contains 253 Knesset, 41 Wikipedia and
 87 AI-authored items; it is not natural-only. Candidate selection now supports
 labels beyond Z, retaining the two 30-candidate items. This protocol change must
 remain visible when comparing historical and new results.
@@ -477,4 +477,17 @@ python -m hebrew_acronyms.run_local_ollama_study pilot --output-dir RUN --code-r
 python -m hebrew_acronyms.run_local_ollama_study full  --output-dir RUN --code-revision SHA --model TAG --pilot-identity ID
 ```
 
-The staged workflow is fixed to the 395-item test set it was audited on.
+The staged workflow is fixed to the 381-item test set.
+
+## Test cohort and document overlap
+
+Fourteen earlier test items come from four Knesset protocols that also supply
+training items. They are listed in
+[test_cohort.py](../src/hebrew_acronyms/test_cohort.py) and removed from
+`data/splits/test_items.csv`, so a new full test collects only the 381 remaining
+items and refuses a cohort that contains any of the 14. Runs saved before the
+removal cover all 395 items. Their records stay unchanged as evidence; scores,
+failures, baselines and human-review coverage use only the 381 scored items, while
+cost accounting still counts every collected call. Candidate order is seeded per
+item ID, so saved and new runs show identical prompts for the scored items and are
+compared item by item.
