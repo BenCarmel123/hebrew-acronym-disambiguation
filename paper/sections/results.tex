@@ -3,7 +3,7 @@
 % Skeleton following Vered Shwartz's advice: state the findings first, give results in full
 % and in an easy format, add examples, stay concise, do not oversell, report unflattering results.
 % TODO: every XX below is a manually judged generation score; fill them in and recheck each claim.
-Table~\ref{tab:test-results} and Figure~\ref{fig:arm-comparison} give accuracy for all systems on the 381 test items, and Figure~\ref{fig:generate-vs-select} compares the two formats for each LLM. Three results stand out. Selection beats generation for both LLMs. Fine-tuning improves the encoder. The fine-tuned encoder beats the small LLM, but not the proprietary LLM when that LLM selects from candidates. Sections~\ref{sec:res-formats} to~\ref{sec:res-errors} give the details.
+Table~\ref{tab:test-results} and Figure~\ref{fig:arm-comparison} give accuracy for all systems on the 381 test items, and Figure~\ref{fig:generate-vs-select} compares the two formats for each LLM. Three results stand out. Selection beats generation for every LLM. Fine-tuning improves the encoder. The fine-tuned encoder beats the open LLMs, but not the proprietary LLMs when they select from candidates. Sections~\ref{sec:res-formats} to~\ref{sec:res-errors} give the details.
 
 \begin{table}[t]
 \centering\small
@@ -11,18 +11,29 @@ Table~\ref{tab:test-results} and Figure~\ref{fig:arm-comparison} give accuracy f
 \toprule
 System & Accuracy & Invalid \\
 \midrule
-Random & 23.5\% & -- \\
-Most frequent & 37.0\% & -- \\
-Most mined & 48.0\% & -- \\
+Random & XX\% & -- \\
+Most frequent & XX\% & -- \\
+Most mined & XX\% & -- \\
 Oracle & 100.0\% & -- \\
 \midrule
-DictaBERT (untrained) & 64.3\% & -- \\
-DictaBERT (fine-tuned) & 71.7\% & -- \\
+DictaBERT (untrained) & XX\% & -- \\
+DictaBERT (fine-tuned) & XX\% & -- \\
 \midrule
 Qwen 2.5 7B, generation & XX\% & XX\% \\
-Qwen 2.5 7B, selection & 59.8\% & 0.8\% \\
+Qwen 2.5 7B, selection & XX\% & XX\% \\
+Qwen 2.5 14B, generation & XX\% & XX\% \\
+Qwen 2.5 14B, selection & XX\% & XX\% \\
+DictaLM, generation & XX\% & XX\% \\
+DictaLM, selection & XX\% & XX\% \\
+\midrule
 Gemini, generation & XX\% & XX\% \\
-Gemini, selection & 93.4\% & 0.5\% \\
+Gemini, selection & XX\% & XX\% \\
+GPT-4.1 mini, generation & XX\% & XX\% \\
+GPT-4.1 mini, selection & XX\% & XX\% \\
+Claude Haiku 5.5, generation & XX\% & XX\% \\
+Claude Haiku 5.5, selection & XX\% & XX\% \\
+Grok 4.7, generation & XX\% & XX\% \\
+Grok 4.7, selection & XX\% & XX\% \\
 \bottomrule
 \end{tabular}
 \caption{Test accuracy (381 items). For selection, an invalid answer is not a single valid letter. % TODO: define invalid for judged generation
@@ -33,7 +44,7 @@ Gemini, selection & 93.4\% & 0.5\% \\
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{figures/arm_comparison.pdf}
-\caption{Accuracy of all systems on the test set, sorted, with the baselines and the oracle as reference lines. % TODO: regenerate with the judged generation scores
+\caption{Accuracy of all systems on the test set, sorted, with the baselines and the oracle as reference lines. % TODO: update this figure: add Qwen 14B, DictaLM, GPT-4.1 mini, Claude Haiku and Grok, and use the final test scores
 }
 \label{fig:arm-comparison}
 \end{figure}
@@ -41,19 +52,19 @@ Gemini, selection & 93.4\% & 0.5\% \\
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{figures/generate_vs_select.pdf}
-\caption{Accuracy under free generation and under candidate selection, for each LLM. % TODO: regenerate with the judged generation scores
+\caption{Accuracy under free generation and under candidate selection, for each LLM. % TODO: update this figure: add Qwen 14B, DictaLM, GPT-4.1 mini, Claude Haiku and Grok, and use the final test scores
 }
 \label{fig:generate-vs-select}
 \end{figure}
 
 \subsection{Generation versus selection}
 \label{sec:res-formats}
-Candidate selection beats free generation for both LLMs. Accuracy rises from XX\% to 59.8\% for Qwen and from XX\% to 93.4\% for Gemini. % TODO: one sentence on why, from the error analysis, e.g. where generated answers go wrong
+Candidate selection beats free generation for every LLM. Accuracy rises from XX\% to XX\% for Qwen 7B, XX\% to XX\% for Qwen 14B, XX\% to XX\% for DictaLM, XX\% to XX\% for Gemini, XX\% to XX\% for GPT-4.1 mini, XX\% to XX\% for Claude Haiku and XX\% to XX\% for Grok. % TODO: one sentence on why, from the error analysis, e.g. where generated answers go wrong
 Because selection is constrained to the inventory, this gain also depends on the inventory containing the right answer, which holds for every test item (the oracle is 100\%).
 
 \subsection{Fine-tuning and the encoder}
 \label{sec:res-encoder}
-Fine-tuning raises the encoder from 64.3\% to 71.7\%, a gain of 7.4 points from fewer than 3,000 training items. The fine-tuned encoder beats Qwen's selection (59.8\%) and Gemini's generation (XX\%). It trails Gemini's selection (93.4\%) by 21.7 points. So a model about 35 times smaller than Qwen can beat Qwen at selection, but it does not match the best system. We ran each system once, so we cannot say how stable the 7.4-point gain is.
+Fine-tuning raises the encoder from XX\% to XX\%, a gain of XX points from fewer than 3,000 training items. The fine-tuned encoder beats the open LLMs' selection (XX\%) and the proprietary LLMs' generation (XX\%). It trails the best proprietary selection (XX\%) by XX points. So a model about 35 times smaller than Qwen 7B can beat Qwen at selection, but it does not match the best system. We ran each system once, so we cannot say how stable the gain is.
 
 \subsection{Results by kind of sentence}
 \label{sec:res-source}
@@ -75,7 +86,7 @@ System & Knesset & Wikipedia & Authored \\
 
 \subsection{Examples and errors}
 \label{sec:res-errors}
-% TODO: add three to five short examples in a table: a generated answer judged correct as a variant (\heb{שקל חדש} vs \heb{שקלים חדשים}), a generated answer judged wrong, a selection error by Gemini, and a selection error by the encoder.
+% TODO: add three to five short examples in a table: a generated answer judged correct as a variant (\heb{שקל חדש} vs \heb{שקלים חדשים}), a generated answer judged wrong, a selection error by a proprietary LLM, and a selection error by the encoder.
 Table~\ref{tab:res-examples} shows examples of correct variants and of errors.
 
 \begin{table}[t]
