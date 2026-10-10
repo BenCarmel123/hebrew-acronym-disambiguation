@@ -48,7 +48,7 @@ A language model can expand an acronym in two ways. In \emph{free generation}, i
 
 We run this comparison on a human-reviewed held-out test set of 381 Hebrew sentences. Most (77\%) occur naturally, in parliamentary proceedings and on Wikipedia, and the rest were written by an LLM to add a second sense to types that had only one. We test three open LLMs, one of them the Hebrew-specialised DictaLM, four proprietary LLMs, and a pre-trained Hebrew encoder, which we evaluate both before and after fine-tuning. All systems see the same sentence and the same marked acronym. No acronym form in the test set appears in training, so the encoder is tested on acronyms it has never seen.
 
-Our findings are as follows. First, candidate selection outperforms free generation for every LLM: accuracy rises from 8.1--50.7\% to 58.5--69.8\% for the open LLMs, and from 33.9--54.3\% to 83.2--93.7\% for the proprietary ones. Second, fine-tuning helps. Training the encoder on fewer than 3,000 examples raises its candidate-selection accuracy from 64.3\% to 71.7\%, so candidate selection can be learned. Third, the fine-tuned encoder's selection accuracy (71.7\%) is higher than every open LLM selection (58.5--69.8\%) and the best proprietary generation (54.3\%), but lower than every proprietary selection (83.2--93.7\%). A small fine-tuned model can therefore outperform larger language models in some settings, though not the strongest LLMs when they are given candidates. Generated answers are scored automatically (except DictaLM's, judged by hand), so valid variants of an expansion, such as \heb{שקלים חדשים} for \heb{שקל חדש}, can be counted as wrong; a partial human review indicates that generation scores are underestimates.
+Our findings are as follows. First, a small encoder fine-tuned on fewer than 3,000 examples reaches 71.7\% in candidate selection, up from 64.3\% before fine-tuning. That is higher than every open LLM, including the much larger Hebrew-specialised DictaLM 2.0 (58.5--69.8\%), though lower than every proprietary LLM (83.2--93.7\%). Second, candidate selection outperforms free generation for every LLM: accuracy rises from 8.1--50.7\% to 58.5--69.8\% for the open LLMs, and from 33.9--54.3\% to 83.2--93.7\% for the proprietary ones. Third, automatic scoring underrates free generation. It can count valid variants of an expansion, such as \heb{שקלים חדשים} for \heb{שקל חדש}, as wrong, and judging DictaLM's answers by hand raises its generation score from 32.8\% to 50.7\%.
 
 % ============================================================
 \section{Related Work}
@@ -347,6 +347,15 @@ Case & Example \\
 \caption{Examples of generated answers and selection errors.}
 \label{tab:res-examples}
 \end{table}
+
+\subsection{Conclusions}
+\label{sec:conclusions}
+We draw three conclusions. First, a small encoder fine-tuned on little data can beat a much larger LLM that is not fine-tuned. DictaBERT, with about 0.2B parameters and fewer than 3,000 mostly weakly labeled training items, reaches 71.7\% in selection, above the Hebrew-specialised DictaLM 2.0 (7.25B, 63.8\%) and both Qwen models. Fine-tuning adds 7.3 points over the untrained encoder, and earlier development runs showed gains in the same direction. A larger or cleaner training set would likely help further; we leave this to future work. The proprietary LLMs still lead the encoder by 11.5 to 22.0 points.
+
+Second, choosing from candidates beats writing the expansion freely. Selection beats generation for all seven LLMs, by 13.1 points for DictaLM to 58.3 points for Qwen 14B. This assumes that the inventory contains the right answer, as it does for every test item.
+
+Third, automatic scoring underrates free generation. Judged by hand, DictaLM's generation rises from 32.8\% to 50.7\%, moving it from below GPT-4.1 mini to above Grok. In the partial review of the other systems, 338 of 674 reviewed answers that the automatic rule marked wrong were judged correct. How generation is judged therefore changes which models look better, and the other generation scores, which remain automatic, are likely underestimates.
+
 
 % ============================================================
 \section{Limitations}

@@ -118,3 +118,11 @@ Case & Example \\
 \caption{Examples of generated answers and selection errors.}
 \label{tab:res-examples}
 \end{table}
+
+\subsection{Conclusions}
+\label{sec:conclusions}
+We draw three conclusions. First, a small encoder fine-tuned on little data can beat a much larger LLM that is not fine-tuned. DictaBERT, with about 0.2B parameters and fewer than 3,000 mostly weakly labeled training items, reaches 71.7\% in selection, above the Hebrew-specialised DictaLM 2.0 (7.25B, 63.8\%) and both Qwen models. Fine-tuning adds 7.3 points over the untrained encoder, and earlier development runs showed gains in the same direction. A larger or cleaner training set would likely help further; we leave this to future work. The proprietary LLMs still lead the encoder by 11.5 to 22.0 points.
+
+Second, choosing from candidates beats writing the expansion freely. Selection beats generation for all seven LLMs, by 13.1 points for DictaLM to 58.3 points for Qwen 14B. This assumes that the inventory contains the right answer, as it does for every test item.
+
+Third, automatic scoring underrates free generation. Judged by hand, DictaLM's generation rises from 32.8\% to 50.7\%, moving it from below GPT-4.1 mini to above Grok. In the partial review of the other systems, 338 of 674 reviewed answers that the automatic rule marked wrong were judged correct. How generation is judged therefore changes which models look better, and the other generation scores, which remain automatic, are likely underestimates.
