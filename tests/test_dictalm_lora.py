@@ -122,6 +122,14 @@ class TrainingTests(unittest.TestCase):
         for example in examples.build_selection_examples(ROWS, TINY_CONFIG.seed):
             self.assertEqual(generate(example["prompt"]), example["answer"])
 
+    def test_loading_rejects_a_model_with_offloaded_layers(self):
+        with torch.device("meta"):
+            offloaded = tiny_causal_lm()
+        with (patch("transformers.AutoTokenizer.from_pretrained", return_value=ByteTokenizer()),
+              patch("transformers.AutoModelForCausalLM.from_pretrained", return_value=offloaded)):
+            with self.assertRaisesRegex(RuntimeError, "not on the GPU"):
+                training.load_base_model("invented-model")
+
     def test_training_requires_trainable_parameters(self):
         model = tiny_causal_lm()
         for parameter in model.parameters():

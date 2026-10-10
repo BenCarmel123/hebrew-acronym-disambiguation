@@ -62,11 +62,16 @@ def set_seed(seed: int) -> None:
 
 
 def load_base_model(model_id: str, revision: str | None = None, *, dtype: str = "bfloat16",
-                    load_in_4bit: bool = False, device_map: str | None = "auto"):
-    """Load tokenizer and causal LM; 4-bit loading needs bitsandbytes and a CUDA GPU."""
+                    load_in_4bit: bool = False):
+    """Load tokenizer and causal LM wholly on one device; 4-bit loading needs bitsandbytes and CUDA.
+
+    The model is never split or offloaded: offloaded layers cannot be trained, so a
+    model that does not fit raises an out-of-memory error instead.
+    """
     from transformers import AutoModelForCausalLM, AutoTokenizer
     if dtype not in DTYPES:
         raise ValueError(f"dtype must be one of {sorted(DTYPES)}")
+    device_map = {"": 0} if torch.cuda.is_available() else None
     kwargs = {"revision": revision, "dtype": DTYPES[dtype], "device_map": device_map}
     if load_in_4bit:
         from transformers import BitsAndBytesConfig
@@ -77,6 +82,10 @@ def load_base_model(model_id: str, revision: str | None = None, *, dtype: str = 
         # Padding is masked from attention and loss, so reusing EOS changes no target.
         tok.pad_token = tok.eos_token
     model = AutoModelForCausalLM.from_pretrained(model_id, **kwargs)
+    offloaded = {name: str(p.device) for name, p in model.named_parameters() if p.device.type == "meta"}
+    if offloaded:
+        raise RuntimeError(f"{len(offloaded)} parameters are not on the GPU; free GPU memory "
+                           "(restart the runtime) or load in 4-bit")
     return tok, model
 
 
