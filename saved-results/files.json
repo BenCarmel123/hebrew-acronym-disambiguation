@@ -712,6 +712,20 @@
       "sha256": "0ac5657299270c3adebe68272edb4c04364849a3e51aefc1981d5780b830d404",
       "bytes": 18454,
       "original_artifact": "agent-clarifications-20261010/assessments.json"
+    },
+    "local-runs/dictalm-20261010/dictalm_generate_human_tags.csv": {
+      "sha256": "c6cfec23d97d9b2f29eac135454c4d609f19e6aba9280060a4c8ab406c51cbf0",
+      "bytes": 31122,
+      "original_artifact": "local-runs/dictalm-20261010/dictalm_generate_human_tags.csv",
+      "source_commit": "b5cabe8ed749b5eff14de6cda48aa5ac838dc684",
+      "annotator": "Ben",
+      "run_id": "c6cc64b4017547d884540a16af02a066"
+    },
+    "../results/dictabert/test_details.csv": {
+      "sha256": "f0b7ba4f81d79fb734199117d09445b4d3516a8d3b102d7ee7a60d1eb9589873",
+      "bytes": 136262,
+      "original_artifact": "results/dictabert/test_details.csv",
+      "source_commit": "4a3d0051f4ae299f492ab7263cd57bfacd1e8793"
     }
   }
 }
