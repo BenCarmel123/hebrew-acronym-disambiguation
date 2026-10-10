@@ -1,48 +1,17 @@
 \section{Systems and Experimental Design}
 \label{sec:systems}
-Table~\ref{tab:systems} defines the arms. All LLMs get the same prompt for each task, and selection shows the candidates in the same seeded, shuffled order for every item. These controls align inputs but do not make the systems equivalent. The models also differ greatly in size: DictaBERT has about 0.2B parameters, 35 times fewer than the 7B Qwen model. The sizes of the four proprietary models are not public.
-
-\begin{table}[t]
-\centering\small
-\begin{tabular}{@{}lll@{}}
-\toprule
-System & Candidates & Output \\
-\midrule
-DictaBERT ranker & Yes & Top candidate \\
-LLM generation & No & Expansion text \\
-LLM selection & Yes & Candidate label \\
-\bottomrule
-\end{tabular}
-\caption{All arms receive sentence context and target information. The encoder marks a span; LLM prompts name the acronym separately. Each of the seven LLMs runs both tasks. Only the DictaBERT ranker receives task-specific supervised training.}
-\label{tab:systems}
-\end{table}
+The encoder ranks candidates; each LLM performs both generation and selection. Only the ranker receives task-specific supervised training. All LLMs get the same prompt for each task, and selection shows the candidates in the same seeded, shuffled order for every item. These controls align inputs but do not make the systems equivalent. The models also differ greatly in size: DictaBERT has about 0.2B parameters (184 million in the saved reconstruction), compared with 7B and 14B for Qwen. Parameter counts for the four proprietary models are not available in the saved records.
 
 \subsection{Supervised Hebrew candidate ranker}
 DictaBERT is a pretrained Hebrew encoder \citep{shmidman2023dictabert}. Our implementation is a \emph{cross-encoder}: the marked sentence and one candidate are encoded jointly, so their tokens can attend to each other. A dropout layer and a linear head turn the pooled representation into a scalar score. Candidates are scored independently, and prediction chooses the highest score within the item's candidates.
 
-For each training item, the reference candidate is positive and the other candidates are negative. The objective is binary cross-entropy on the pair scores, with the symbols defined in Table~\ref{tab:loss-notation}:
+For each training item, the reference candidate is positive and the other candidates are negative. The objective is binary cross-entropy on the pair scores, over $M$ sentence--candidate pairs:
 \begin{equation}
 \mathcal{L}=-\frac{1}{M}\sum_{j=1}^{M}\big[z_j\log p_j+(1-z_j)\log(1-p_j)\big].
 \end{equation}
-AdamW updates the whole model, with no adapter.
+Here $p_j=\sigma(u_j)$ is the sigmoid of pair score $u_j$, and $z_j$ is 1 for the reference candidate and 0 otherwise. AdamW updates the whole model, with no adapter.
 
-\begin{table}[t]
-\centering\small
-\begin{tabular}{@{}cp{0.78\columnwidth}@{}}
-\toprule
-Symbol & Meaning \\
-\midrule
-$M$ & Number of sentence--candidate pairs \\
-$u_j$ & Score of pair $j$ \\
-$p_j$ & $\sigma(u_j)$, the match probability, with $\sigma$ the sigmoid function \\
-$z_j$ & Label of pair $j$: 1 for the reference candidate, 0 otherwise \\
-\bottomrule
-\end{tabular}
-\caption{Symbols in the training loss.}
-\label{tab:loss-notation}
-\end{table}
-
-The reference Colab notebook specifies dropout 0.1, learning rate $2\times10^{-5}$, pair batch size 16, one epoch and checkpoint selection by lowest development pair loss. The authors attribute the supplied weights to Ben's Colab run based on \texttt{dicta-il/dictabert}. The notebook sets seed 42 after model initialization; the weight filename says seed 43. The executed seed, exact training input snapshot and selected epoch/loss are not recoverable from a complete training manifest. These are documented settings, not a reproduced training run.
+The reference Colab notebook specifies dropout 0.1, learning rate $2\times10^{-5}$, pair batch size 16, one epoch and checkpoint selection by lowest development pair loss. The authors attribute the supplied weights to Ben's Colab run based on \texttt{dicta-il/dictabert}. The historical training manifest is incomplete: the executed seed, exact input snapshot and selected epoch/loss are unknown. These are documented settings, not a reproduced training run; the checkpoint documentation records the available evidence (Section~\ref{sec:artifacts}).
 
 The saved inference reconstruction verifies the full state dictionary, including its scoring head. Each pair is the marked sentence followed by the candidate, joined by BERT special tokens. Context is cropped from the outside toward a nominal 256-token limit while retaining the target and candidate. Required tokens can exceed that limit in the historical Colab encoder. Test spans use the recorded first quote-normalized occurrence, with attached letters outside the marked span; these are automatic spans, not human annotations. The LLMs receive the full original sentence.
 

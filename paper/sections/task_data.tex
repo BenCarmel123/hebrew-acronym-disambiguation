@@ -1,29 +1,11 @@
 \section{Task and Data}
 \label{sec:data}
 \subsection{The unit of prediction}
-Each item $i$ has the six elements listed in Table~\ref{tab:notation}. The span identifies one occurrence even when the sentence contains several abbreviations. For span-based encoder inputs, $r_i=x_i[s_i]$ and the span is marked with \texttt{[ACR]} and \texttt{[/ACR]}. In the saved test inference, the span is derived automatically; LLM prompts instead name the acronym alongside the original sentence (Section~\ref{sec:systems}).
+Each item contains a sentence $x$, an acronym $a$, a candidate inventory $C$ and a reference answer $y\in C$. For the encoder, a character span $s$ identifies the target text $x[s]$, marked with \texttt{[ACR]} and \texttt{[/ACR]}. In saved test inference this span is derived automatically; LLM prompts name the acronym alongside the original sentence (Section~\ref{sec:systems}).
 
-\begin{table}[!htbp]
-\centering\small
-\begin{tabular}{@{}cp{0.78\columnwidth}@{}}
-\toprule
-Symbol & Meaning \\
-\midrule
-$a_i$ & Acronym type; also named in the LLM prompt \\
-$x_i$ & Sentence \\
-$s_i$ & Half-open character span of the target in $x_i$ \\
-$r_i$ & Raw target text, $x_i[s_i]$ \\
-$C_i$ & Candidate expansions (the inventory) \\
-$y_i$ & Reference expansion \\
-\bottomrule
-\end{tabular}
-\caption{Elements of an item.}
-\label{tab:notation}
-\end{table}
+Generation predicts an answer from sentence context and target information, without candidates. Selection picks one member of $C$ for the same item. We use \emph{expansion} as shorthand for the stored inventory answer: besides ordinary spelled-out expressions, it includes numerical interpretations in gematria (the use of Hebrew letters as numbers) and conventional or named uses that are not literal expansions. For example, the reference for \heb{ח״י} in one test sentence is \heb{שמונה עשרה בגימטריה} (eighteen in gematria; Table~\ref{tab:res-examples}). Evaluation therefore measures agreement with this inventory and its reference labels, not only recovery of the words that formed an acronym. We retain all such items and labels.
 
-Generation predicts an expansion from sentence context and target information, without candidates. Selection picks one member of $C_i$ for the same item. Both are compared with the reference $y_i$, which is also the training label. The intended answer is a true expansion of the acronym, not just a description of what it refers to.
-
-Formally, the two formats differ in their output space:
+The output spaces are:
 \begin{equation}
 \begin{aligned}
 \hat{y}^{\mathrm{gen}}&=f(x,t)\in\Sigma^{*},\\
@@ -43,7 +25,7 @@ Generation & A short expansion, e.g.\ \heb{חבר כנסת} \\
 Selection & A label assigned to one supplied candidate \\
 \bottomrule
 \end{tabular}
-\caption{Illustrative input and answer formats. The sentence means ``A member of parliament gave a speech in the plenum.'' The LLM prompts name the target separately; the encoder marks its span. The example makes no claim about system accuracy.}
+\caption{Illustrative input and answer formats. The sentence means ``A member of parliament gave a speech in the plenum.'' This is not a scored item.}
 \label{tab:example}
 \end{table}
 
@@ -77,10 +59,10 @@ Claude-authored & 136 & 0 & 87 \\
 
 \paragraph{Train.} The current encoder training file contains 2,829 items, which give 12,684 sentence--candidate pairs. Its exact identity at historical training time is not recovered. Most items are substituted, so most labels are weak. Stored labels were reused without comprehensive reannotation.
 
-\paragraph{Development.} The research development set holds 62 natural Knesset items for 11 types and supports encoder checkpoint selection and development comparisons. It is distinct from the collection pilot: the first ten of 289 items in the saved execution dev file. Neither is the 381-item test cohort. Of its labels, 42 reuse an earlier human review of the same sentence, and 20 are AI-assisted author decisions, so this is not independent annotation.
+\paragraph{Development.} The research development set holds 62 natural Knesset items for 11 types and supports encoder checkpoint selection and development comparisons. It is distinct from both the execution pilot and test cohort. Its labels combine reused human reviews and AI-assisted author decisions, rather than independent annotation.
 
-\paragraph{Test.} The test set has 381 items for 60 types, and a human reviewer went over the entire set. For the Knesset sentences, the review compared each label with the candidate list: of 1,045 mined sentences, 941 were confirmed, 100 were corrected and four were dropped. All 253 Knesset test items come from this pool (221 confirmed, 32 corrected). The 87 Claude-authored items add three sentences each to 29 types whose reviewed Knesset examples all shared one sense. We removed 14 Knesset items from four protocols that also supply training items, so that no test document is shared with train or dev. A single reviewer did the work, so we have no agreement estimate.
+\paragraph{Test.} The test set has 381 items for 60 types. Human-review evidence is documented for all 253 Knesset items; the 87 Claude-authored items carry a human-review provenance marker. The 41 Wikipedia items have a stored verified status but no recorded review verdict, so the available records do not establish human review of every test label. The Knesset review compared labels with the candidate list: 221 test labels were confirmed and 32 corrected. The 87 Claude-authored items add three sentences each to 29 types whose reviewed Knesset examples all shared one sense. We removed 14 Knesset items from four protocols that also supply training items, leaving no shared recorded document key between test and the documented train/dev files. No inter-annotator agreement estimate is available. This label provenance is distinct from the review of model responses in Section~\ref{sec:eval}.
 
 \subsection{Separation of the sets}
 \label{sec:separation}
-Preparation checked item identity, target boundaries and candidate structure. These checks show structural validity, not that a label is correct. We split by acronym type. The test set shares no acronym form or sentence string with train or dev, and train and dev share none either. Documents are not fully separated: train and dev share three documents (three train and five dev items), and the test set shares no document with train or dev. Prefixed variants of one acronym can also fall in different sets: train has \heb{מד״ר} and dev has \heb{בד״ר}. The split therefore does not show generalization to wholly unseen acronym families.
+Preparation checked item identity, target boundaries and candidate structure. These checks show structural validity, not that a label is correct. In the documented train, development and test files, exact acronym strings and sentence strings are disjoint across sets. This is a property of those files, not a reconstruction of the historical training inputs or a claim about pretraining exposure. Recorded document keys (source and title) are disjoint between test and train/dev, but train and dev share three keys (three train and five dev items). Prefixed variants of one acronym can also fall in different sets: train has \heb{מד״ר} and dev has \heb{בד״ר}. The split therefore does not show generalization to wholly unseen acronym families.
