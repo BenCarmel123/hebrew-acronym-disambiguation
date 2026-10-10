@@ -1,0 +1,8 @@
+{
+  "path": "results/dictabert/test_details.csv",
+  "commit": "4a3d0051f4ae299f492ab7263cd57bfacd1e8793",
+  "sha256": "f0b7ba4f81d79fb734199117d09445b4d3516a8d3b102d7ee7a60d1eb9589873",
+  "bytes": 136262,
+  "source_kind": "historical_prediction_csv",
+  "limitation": "No identified run manifest, sentence snapshot, model revision, collection settings, timing or technical attempt log is preserved in this CSV."
+}

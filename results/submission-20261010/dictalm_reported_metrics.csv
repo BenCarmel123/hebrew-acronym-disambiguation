@@ -1,0 +1,5 @@
+metric,task,judgment_layer,n_correct,system,run_id,n_items,accuracy
+automatic_generation,generate,automatic,125,dictalm,c6cc64b4017547d884540a16af02a066,381,0.32808398950131235
+ben_generation,generate,human_ben,193,dictalm,c6cc64b4017547d884540a16af02a066,381,0.5065616797900262
+strict_selection,select,automatic,0,dictalm,c6cc64b4017547d884540a16af02a066,381,0.0
+diagnostic_leading_label_selection,select,diagnostic,243,dictalm,c6cc64b4017547d884540a16af02a066,381,0.6377952755905512

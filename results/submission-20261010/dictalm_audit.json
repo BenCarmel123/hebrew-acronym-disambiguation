@@ -4,7 +4,7 @@
   "protocol_concern": "Saved template ends with [/INST] without the publisher-required following newline; causal effect unknown; tokenized request not logged.",
   "publisher_format_url": "https://huggingface.co/dicta-il/dictalm2.0-instruct-GGUF#instruction-format",
   "publisher_format_inspected_date": "2026-10-10",
-  "accounting_concern": "Independent zero-cost local session records zero prior; cannot append to the paid chronology without an explicit accounting decision.",
+  "accounting_concern": "The local Ollama run adds zero API cost; its historical session records zero prior. This does not block reporting the result. Cumulative paid expenditure is accounted for separately; historical manifests and paid-run accounting gates remain unchanged.",
   "session_identity": "be83bb814f3780167bd5d6144f9d2f83bb5669488115aea2f48cc1d7310d98a7",
   "model_identity": {
     "details": {
@@ -86,6 +86,11 @@
       "bytes": 1572963
     },
     {
+      "path": "local-runs/dictalm-20261010/dictalm_generate_human_tags.csv",
+      "sha256": "c6cfec23d97d9b2f29eac135454c4d609f19e6aba9280060a4c8ab406c51cbf0",
+      "bytes": 31122
+    },
+    {
       "path": "local-runs/dictalm-20261010/dictalm_test_generate_details.csv",
       "sha256": "d4c95c4ad035b1a32f7d0515e86e7c91e720412d535c957c24c915dfd92bc6ef",
       "bytes": 170496
@@ -156,6 +161,48 @@
       "comparison_status": "held_for_protocol_review"
     }
   ],
+  "reported_metrics": [
+    {
+      "metric": "automatic_generation",
+      "task": "generate",
+      "judgment_layer": "automatic",
+      "n_correct": 125,
+      "system": "dictalm",
+      "run_id": "c6cc64b4017547d884540a16af02a066",
+      "n_items": 381,
+      "accuracy": 0.32808398950131235
+    },
+    {
+      "metric": "ben_generation",
+      "task": "generate",
+      "judgment_layer": "human_ben",
+      "n_correct": 193,
+      "system": "dictalm",
+      "run_id": "c6cc64b4017547d884540a16af02a066",
+      "n_items": 381,
+      "accuracy": 0.5065616797900262
+    },
+    {
+      "metric": "strict_selection",
+      "task": "select",
+      "judgment_layer": "automatic",
+      "n_correct": 0,
+      "system": "dictalm",
+      "run_id": "c6cc64b4017547d884540a16af02a066",
+      "n_items": 381,
+      "accuracy": 0.0
+    },
+    {
+      "metric": "diagnostic_leading_label_selection",
+      "task": "select",
+      "judgment_layer": "diagnostic",
+      "n_correct": 243,
+      "system": "dictalm",
+      "run_id": "c6cc64b4017547d884540a16af02a066",
+      "n_items": 381,
+      "accuracy": 0.6377952755905512
+    }
+  ],
   "pilot": {
     "run_id": "b20e4b8b0b3647b3afbc26061c69ef38",
     "n_records": 20,
@@ -179,5 +226,37 @@
     "human_judgments": 0,
     "official_score_unchanged": true
   },
-  "comparison_rejection": "Prior expenditure does not match the preceding cumulative total"
+  "ben_annotation": {
+    "provenance": {
+      "annotator": "Ben",
+      "source_path": "local-runs/dictalm-20261010/dictalm_generate_human_tags.csv",
+      "source_sha256": "c6cfec23d97d9b2f29eac135454c4d609f19e6aba9280060a4c8ab406c51cbf0",
+      "source_commit": "b5cabe8ed749b5eff14de6cda48aa5ac838dc684",
+      "source_run_id": "c6cc64b4017547d884540a16af02a066",
+      "source_generation_csv": "local-runs/dictalm-20261010/dictalm_test_generate_details.csv",
+      "source_generation_csv_sha256": "d4c95c4ad035b1a32f7d0515e86e7c91e720412d535c957c24c915dfd92bc6ef",
+      "recorded_rule": "The CSV records yes/no under same_as_gold for each generation response.",
+      "limitations": "Annotation times, blinding and a detailed decision rubric are not documented; no protocol is reconstructed."
+    },
+    "validation": {
+      "n_unique_items": 381,
+      "all_in_scored_cohort": true,
+      "source_csv_exact_matches": 381,
+      "journal_exact_matches": 234,
+      "journal_boundary_whitespace_only": 147,
+      "original_response_hashes_preserved": true
+    },
+    "summary": {
+      "n_items": 381,
+      "n_yes": 193,
+      "n_no": 188,
+      "accuracy": 0.5065616797900262
+    },
+    "cross_tab": {
+      "both_accept": 121,
+      "ben_only": 72,
+      "automatic_only": 4,
+      "both_reject": 184
+    }
+  }
 }
