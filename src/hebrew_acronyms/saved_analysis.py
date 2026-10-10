@@ -225,7 +225,7 @@ def failure_examples(failures, limit=2, preview_length=240):
     for row in [r for r in failures if r["response"]][:limit]:
         raw = row["response"]
         label = f'{MODEL_LABELS[row["system"]]} · {row["task"]} · {row["item_id"]}'
-        note = f'First {preview_length} characters of {len(raw)}; full text linked below.' if len(raw) > preview_length else 'Complete saved response.'
+        note = f'First {preview_length} characters of {len(raw)}; full text is in the linked failure records.' if len(raw) > preview_length else 'Complete saved response.'
         examples.append(f'<p><strong>{escape(label)}</strong> — {note}</p>'
                         '<blockquote dir="auto" style="white-space:pre-wrap;word-break:normal;'
                         'overflow-wrap:break-word;max-width:760px">' + escape(raw[:preview_length]) + '</blockquote>')
