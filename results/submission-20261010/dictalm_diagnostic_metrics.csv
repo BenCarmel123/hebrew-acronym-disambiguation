@@ -1,0 +1,3 @@
+system,task,n_items,n_completed,status_counts,accuracy,score,n_valid,n_correct,run_id,comparison_status
+dictalm,generate,381,381,"{""response_received"": 381}",0.32808398950131235,historical_quote_normalized_gold_substring,152,125,c6cc64b4017547d884540a16af02a066,held_for_protocol_review
+dictalm,select,381,381,"{""response_received"": 381}",0.0,strict_candidate_label_v1,0,0,c6cc64b4017547d884540a16af02a066,held_for_protocol_review

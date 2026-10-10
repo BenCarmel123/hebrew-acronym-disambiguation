@@ -657,6 +657,61 @@
       "sha256": "183b182322ae4d0041fa18ccacd89f56b184f703fbfadf9bba5468b9617b6ab3",
       "bytes": 2371,
       "original_artifact": "Derived portable review evidence; see human-review-final-20261010/receipt.json"
+    },
+    "local-runs/dictalm-20261010/session.json": {
+      "sha256": "a1b5927476232b25624c239388edb21d068fc7aec5cd94eca6047bc0625682a4",
+      "bytes": 8469,
+      "original_artifact": "local-runs/dictalm-20261010/session.json"
+    },
+    "local-runs/dictalm-20261010/session-summary.json": {
+      "sha256": "438128f85c13eacb800d7dd2e3fe16c0f26473647502ea9fcd8537026af394de",
+      "bytes": 1446,
+      "original_artifact": "local-runs/dictalm-20261010/session-summary.json"
+    },
+    "local-runs/dictalm-20261010/dictalm_test_select_details.csv": {
+      "sha256": "045376f8ac1a24721e7aef74119cad70b344be36b7415fa7cb935f03d30aa0f3",
+      "bytes": 234086,
+      "original_artifact": "local-runs/dictalm-20261010/dictalm_test_select_details.csv"
+    },
+    "local-runs/dictalm-20261010/dictalm_test_generate_details.csv": {
+      "sha256": "d4c95c4ad035b1a32f7d0515e86e7c91e720412d535c957c24c915dfd92bc6ef",
+      "bytes": 170496,
+      "original_artifact": "local-runs/dictalm-20261010/dictalm_test_generate_details.csv"
+    },
+    "local-runs/dictalm-20261010/dictalm/full-test/summary.json": {
+      "sha256": "c03f468f17925d27e17b1930410657510eb76bb17689c1706435a4d923d1cd67",
+      "bytes": 1572963,
+      "original_artifact": "local-runs/dictalm-20261010/dictalm/full-test/summary.json"
+    },
+    "local-runs/dictalm-20261010/dictalm/full-test/manifest.json": {
+      "sha256": "aba266f2f766e56bd259b8632ea0a816fed67acd4f2435d4582e7efe12f7de5b",
+      "bytes": 921486,
+      "original_artifact": "local-runs/dictalm-20261010/dictalm/full-test/manifest.json"
+    },
+    "local-runs/dictalm-20261010/dictalm/full-test/attempts.jsonl": {
+      "sha256": "d1f1eb0041a91d03c955b163758a4a6d2c774e71a6b3c50ee72e29885d07ebe3",
+      "bytes": 2094434,
+      "original_artifact": "local-runs/dictalm-20261010/dictalm/full-test/attempts.jsonl"
+    },
+    "local-runs/dictalm-20261010/dictalm/dev-pilot/summary.json": {
+      "sha256": "0976394c8d08917c501b9975a6d4b41836dabb5114326d13ace36629692113e5",
+      "bytes": 39454,
+      "original_artifact": "local-runs/dictalm-20261010/dictalm/dev-pilot/summary.json"
+    },
+    "local-runs/dictalm-20261010/dictalm/dev-pilot/manifest.json": {
+      "sha256": "64c3e23b238c0c157f80cd447f42dec0fc38334bc2b497e0861bf77d7a712f69",
+      "bytes": 31242,
+      "original_artifact": "local-runs/dictalm-20261010/dictalm/dev-pilot/manifest.json"
+    },
+    "local-runs/dictalm-20261010/dictalm/dev-pilot/attempts.jsonl": {
+      "sha256": "44409582712541731db6310f31e2044269655b43fe6b93c21cc149402bd29188",
+      "bytes": 52418,
+      "original_artifact": "local-runs/dictalm-20261010/dictalm/dev-pilot/attempts.jsonl"
+    },
+    "agent-clarifications-20261010/assessments.json": {
+      "sha256": "0ac5657299270c3adebe68272edb4c04364849a3e51aefc1981d5780b830d404",
+      "bytes": 18454,
+      "original_artifact": "agent-clarifications-20261010/assessments.json"
     }
   }
 }

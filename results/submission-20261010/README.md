@@ -18,15 +18,26 @@ are manuscript inputs, not edits to the manuscript or its existing figures.
 | [response_review_bindings.csv](response_review_bindings.csv) | All 4,953 exact responses with run, task, hash, automatic score and separate human status. |
 | [human_review_decisions.json](human_review_decisions.json) | All 620 new decision events, including superseded decisions. |
 | [human_review_rechecks.json](human_review_rechecks.json) | Two documented rechecks counted once in coverage. |
-| [clarification_cases.html](clarification_cases.html) | Four contexts for discussion; also CSV with raw answers and run links. |
+| [clarification_cases.html](clarification_cases.html) | Historical unresolved human disagreements; also CSV with raw answers and run links. |
+| [agent_clarification_assessments.csv](agent_clarification_assessments.csv) | Separate delegated agent decisions: five groups / ten existing occurrences across four contexts; no new human judgments. |
 | [pilot_results.csv](pilot_results.csv) | Development pilots, separate from test metrics. |
 | [cost_sessions.csv](cost_sessions.csv), [cost_total.csv](cost_total.csv) | Carried costs and increments; cumulative totals must not be added together. |
+| [dictalm_audit.json](dictalm_audit.json) | Separate audit: identities, source hashes, exact-cohort agreement, stopping reasons, accounting rejection and leading-label diagnostic. |
+| [dictalm_diagnostic_metrics.csv](dictalm_diagnostic_metrics.csv) | Original scores on 381 items, held outside the pooled comparison pending protocol decision. |
+| [dictalm_responses_381.csv](dictalm_responses_381.csv) | 762 journal-bound raw responses, prompts, candidate orders, original scores and separate diagnostic fields; no human judgments. |
 
 The review is diagnostic and incomplete: 674/2,050 technically complete automatic
 nonpositives and 67/2,886 positives were reviewed. There are 338 nonpositive/`fits`
 occurrences in that selected subset. Nine positive/`not_fits` occurrences across
-four items remain pending clarification, not nine independent confirmed false
-positives. No label was changed. The 4,212 unreviewed occurrences include 17
+four items retain historical pending flags, not nine independent confirmed false
+positives. At the user's request, a separate unblinded agent assessment resolves
+these contexts operationally; it does not represent personal user adjudication.
+It accepts both centimeter forms and rejects the three remaining ambiguous or
+malformed responses. Its five groups include the generation control; all ten
+occurrences were already reviewed. It changes neither gold, automatic scores nor
+saved human labels and does not increase coverage. Exact evidence and limitations
+are retained in [assessments.json](../../saved-results/agent-clarifications-20261010/assessments.json).
+The 4,212 unreviewed occurrences include 17
 technical failures. Prior/unknown exposure and the focused table's negative default
 with explicit confirmation limit interpretation. These data cannot estimate
 overall human accuracy or fairly rank systems by selectively reviewed subsets.
@@ -35,5 +46,14 @@ Trained DictaBERT is selection-only, with automatic first-occurrence spans and
 incomplete historical training provenance. Gemini collection is finished despite
 the preserved historical `incomplete` status. Accounted expenditure is
 23.1276784 ILS, including uncertainty allowances, not a provider invoice. Additional
-models and fine-tuning are outside this release. The manuscript remains separately
+model collection and fine-tuning are outside this release. The manuscript remains separately
 maintained; rerunning this notebook only rewrites this export directory.
+
+The separate DictaLM audit adds 125/381 generation substring matches and 0/381
+strict valid selection labels. Its leading-label diagnostic matches gold on 243/381;
+none of these are human judgments. Pooling is held because the saved chat template
+omits the publisher-required newline and the zero-prior local session fails the
+existing accounting gate. No causal claim about the template is established.
+All raw sources remain unchanged. The new 762-answer review queue has no transferred
+judgments; total human coverage remains 741 answers. Across the larger, unpooled
+5,715-answer inventory, 4,974 answers remain unreviewed.
