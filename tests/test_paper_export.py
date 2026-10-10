@@ -7,13 +7,17 @@ import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
-from tests.run_experimental_study import guard, predictions
+from tests.run_experimental_study import disable_guard, enable_guard, predictions
 
 
 class PaperExportTests(unittest.TestCase):
     @classmethod
+    def tearDownClass(cls):
+        disable_guard()
+
+    @classmethod
     def setUpClass(cls):
-        sys.addaudithook(guard)
+        enable_guard()
         from hebrew_acronyms import experimental_study, paper_export
         cls.study, cls.exporter = experimental_study, paper_export
 
