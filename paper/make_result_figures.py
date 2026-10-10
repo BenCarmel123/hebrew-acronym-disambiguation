@@ -117,60 +117,58 @@ def arm_comparison(scores, baselines, path):
 
 
 def generate_vs_select(scores, baselines, path):
-    """Separate bar columns expose task-specific scores without paired marks."""
-    names = dict(LLMS)
+    """Stack the two comparisons, showing only applicable systems in each."""
     systems = ["qwen", "qwen14", "gemini", "openai", "anthropic", "xai"]
-    selection = [("dictabert_similarity", "DictaBERT similarity"),
-                 ("dictabert", "DictaBERT ranker")]
-    selection += [(key, names[key]) for key in systems]
+    llm_labels = ["Qwen 2.5\n7B", "Qwen 2.5\n14B", "Gemini\n3.8 Flash",
+                  "GPT-4.1\nmini", "Claude\nHaiku 5.5", "Grok\n4.7"]
+    selection = ["dictabert_similarity", "dictabert", *systems]
+    selection_labels = ["DictaBERT\nsimilarity", "DictaBERT\nranker", *llm_labels]
     blue, charcoal = "#28608b", "#333333"
     with plt.rc_context({"font.family": "DejaVu Sans", "font.size": 10,
                          "pdf.fonttype": 42}):
-        fig = plt.figure(figsize=(7.0, 2.65))
-        left = fig.add_axes((0.23, 0.16, 0.16, 0.66))
-        generation = fig.add_axes((0.495, 0.16, 0.16, 0.66), sharey=left)
-        selected = fig.add_axes((0.765, 0.16, 0.16, 0.66), sharey=left)
-        fig.text(0.23, 0.95, "(a) All systems", weight="bold", fontsize=10)
-        fig.text(0.495, 0.95, "(b) LLMs: two task-specific scores", weight="bold", fontsize=10)
-        for x, title in [(0.23, "Selection"), (0.495, "Generation"), (0.765, "Selection")]:
-            fig.text(x, 0.855, title, fontsize=10)
+        fig = plt.figure(figsize=(7.0, 2.95))
+        top = fig.add_axes((0.075, 0.65, 0.91, 0.235))
+        bottom = fig.add_axes((0.075, 0.145, 0.91, 0.235))
+        fig.text(0.075, 0.96, "(a) Candidate selection", weight="bold", fontsize=10)
+        fig.text(0.985, 0.96, f"Dashed: most-mined ({baselines['most_mined']:.1%})",
+                 ha="right", fontsize=10)
+        fig.text(0.075, 0.465, "(b) LLM generation and selection", weight="bold", fontsize=10)
 
-        def bar(ax, value, y, generation=False, encoder=False):
-            ax.barh(y, value, height=0.52,
-                    color="white" if generation else charcoal if encoder else blue,
-                    edgecolor=charcoal if generation else "none", linewidth=0.8,
-                    hatch="///" if generation else None, zorder=3)
-            # Aligned numbers sit outside the bars, never between paired marks.
-            ax.text(1.41, y, f"{100 * value:.1f}", ha="right", va="center",
-                    fontsize=10, clip_on=False)
+        def bar(ax, position, value, width, generation=False, encoder=False, label=None):
+            ax.bar(position, value, width=width,
+                   color="white" if generation else charcoal if encoder else blue,
+                   edgecolor=charcoal if generation else "none", linewidth=0.8,
+                   hatch="///" if generation else None, label=label, zorder=3)
+            ax.annotate(f"{100 * value:.1f}", (position, value), xytext=(0, 3),
+                        textcoords="offset points", ha="center", va="bottom", fontsize=10)
 
-        for index, (key, _) in enumerate(selection):
-            bar(left, scores[(key, "select")], index, encoder=key.startswith("dictabert"))
-        left.axvline(baselines["most_mined"], color=charcoal, linestyle="--",
-                     linewidth=0.8, zorder=4)
-        left.set_yticks(range(len(selection)), [label for _, label in selection])
-        left.set_ylim(len(selection) - 0.5, -1.0)
-        for index, key in enumerate(systems, start=2):
-            bar(generation, scores[(key, "generate")], index, generation=True)
-            bar(selected, scores[(key, "select")], index)
-        for ax in (generation, selected):
-            ax.tick_params(axis="y", labelleft=False)
-            ax.text(0.5, 0.5, "Not applicable", ha="center", va="center",
-                    fontsize=9, color="#555555", style="italic")
-        for ax in (left, generation, selected):
-            ax.set_xlim(0, 1)
-            ax.set_xticks([0, 0.5, 1])
-            ax.xaxis.set_major_formatter(PercentFormatter(1, decimals=0))
-            ax.tick_params(axis="y", length=0, pad=7)
-            ax.tick_params(axis="x", labelsize=9)
-            ax.grid(axis="x", color="#e5e5e5", linewidth=0.5)
+        for index, key in enumerate(selection):
+            bar(top, index, scores[(key, "select")], 0.55, encoder=key.startswith("dictabert"))
+        top.axhline(baselines["most_mined"], color=charcoal, linestyle="--",
+                    linewidth=0.8, zorder=4)
+        top.set_xticks(range(len(selection)), selection_labels)
+        top.set_xlim(-0.55, len(selection) - 0.45)
+        for index, key in enumerate(systems):
+            bar(bottom, index - 0.21, scores[(key, "generate")], 0.34,
+                generation=True, label="Generation" if index == 0 else None)
+            bar(bottom, index + 0.21, scores[(key, "select")], 0.34,
+                label="Selection" if index == 0 else None)
+        bottom.set_xticks(range(len(systems)), llm_labels)
+        bottom.set_xlim(-0.55, len(systems) - 0.45)
+        handles, labels = bottom.get_legend_handles_labels()
+        fig.legend(handles, labels, loc="center right", bbox_to_anchor=(0.99, 0.475),
+                   frameon=False, ncol=2, fontsize=10, handlelength=1.4,
+                   handletextpad=0.5, columnspacing=1.0)
+        for ax in (top, bottom):
+            ax.set_ylim(0, 1)
+            ax.set_yticks([0, 0.5, 1])
+            ax.yaxis.set_major_formatter(PercentFormatter(1, decimals=0))
+            ax.tick_params(axis="x", length=0, pad=5, labelsize=10)
+            ax.tick_params(axis="y", labelsize=9)
+            ax.grid(axis="y", color="#e5e5e5", linewidth=0.5)
             ax.set_axisbelow(True)
-            for boundary in (1.5, 3.5):
-                ax.axhline(boundary, color="#cccccc", linewidth=0.6)
             for side in ("top", "right", "left"):
                 ax.spines[side].set_visible(False)
-        fig.text(0.23, 0.015, f"Dashed line: most-mined ({baselines['most_mined']:.1%})", fontsize=9)
-        fig.text(0.765, 0.015, "Scores (%)", fontsize=9)
         save_figure(fig, path)
 
 

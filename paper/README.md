@@ -35,12 +35,12 @@ The main table retains the numerical results. `figures/generate_vs_select.pdf`
 shows candidate selection (two encoder variants and six LLMs) alongside generation
 and selection for the same six LLMs. The panels preserve task-specific scoring;
 encoders rank candidates without the strict LLM text-label decoder. The most-mined
-line uses the saved 0.4803 value, displayed as 48.0%. All three bar columns span
-0--100%. A shared model-label column aligns selection across all systems with
-separate generation and selection columns for the six LLMs. Numbers have fixed
-positions outside the bars; generation uses open hatched bars and selection uses
-solid bars. Encoder rows in the LLM columns are not applicable, not zero scores.
-Full metric definitions appear in the adjacent caption.
+line uses the saved 0.4803 value, displayed as 48.0%. The two panels are stacked
+at full figure width, with 0--100% vertical axes and values above the bars.
+The upper panel compares selection across all eight systems; the lower panel
+contains only the six LLMs, with open hatched generation bars and solid selection
+bars. No empty encoder rows or not-applicable labels are needed. Model labels
+wrap over two lines at 10 points. Full metric definitions remain in the caption.
 
 Regenerate this vector PDF from the repository root with the installed project
 environment, then build the paper:
