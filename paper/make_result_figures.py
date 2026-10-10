@@ -14,7 +14,6 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.ticker import PercentFormatter
-from matplotlib.lines import Line2D
 
 ROOT = Path(__file__).resolve().parents[1]
 SUBMISSION = ROOT / "results" / "submission-20261010"
@@ -118,77 +117,60 @@ def arm_comparison(scores, baselines, path):
 
 
 def generate_vs_select(scores, baselines, path):
-    """Two descriptive panels; task-specific scores are not a common metric."""
-    # Keep the LLM order identical in both panels and the main manuscript table.
+    """Separate bar columns expose task-specific scores without paired marks."""
     names = dict(LLMS)
     systems = ["qwen", "qwen14", "gemini", "openai", "anthropic", "xai"]
     selection = [("dictabert_similarity", "DictaBERT similarity"),
                  ("dictabert", "DictaBERT ranker")]
     selection += [(key, names[key]) for key in systems]
     blue, charcoal = "#28608b", "#333333"
-    with plt.rc_context({"font.family": "DejaVu Sans", "font.size": 9,
+    with plt.rc_context({"font.family": "DejaVu Sans", "font.size": 10,
                          "pdf.fonttype": 42}):
         fig = plt.figure(figsize=(7.0, 2.65))
-        # One model-label column and identical row positions free horizontal
-        # space for both comparisons. Encoder rows have no points in panel (b).
-        left = fig.add_axes((0.21, 0.16, 0.34, 0.65))
-        right = fig.add_axes((0.63, 0.16, 0.34, 0.65), sharey=left)
-        fig.text(0.21, 0.95, "(a) Candidate selection", weight="bold", fontsize=10)
-        fig.text(0.63, 0.95, "(b) Generation vs selection", weight="bold", fontsize=10)
-        fig.legend([
-            Line2D([], [], marker="o", linestyle="none", markerfacecolor="white",
-                   markeredgecolor=charcoal, markersize=5),
-            Line2D([], [], marker="s", linestyle="none", color=blue, markersize=5)],
-            ["Generation", "Selection"], ncol=2,
-            loc="upper left", bbox_to_anchor=(0.615, 0.92), frameon=False,
-            fontsize=9, handletextpad=0.4, columnspacing=0.9)
+        left = fig.add_axes((0.23, 0.16, 0.16, 0.66))
+        generation = fig.add_axes((0.495, 0.16, 0.16, 0.66), sharey=left)
+        selected = fig.add_axes((0.765, 0.16, 0.16, 0.66), sharey=left)
+        fig.text(0.23, 0.95, "(a) All systems", weight="bold", fontsize=10)
+        fig.text(0.495, 0.95, "(b) LLMs: two task-specific scores", weight="bold", fontsize=10)
+        for x, title in [(0.23, "Selection"), (0.495, "Generation"), (0.765, "Selection")]:
+            fig.text(x, 0.855, title, fontsize=10)
 
-        def point(ax, value, y, marker, color, filled=True, label_left=False):
-            ax.plot(value, y, marker=marker, linestyle="none", markersize=5,
-                    markeredgecolor=color, markerfacecolor=color if filled else "white",
-                    zorder=3)
-            # Keep direct labels within the 0--100% plotting region.
-            high = value >= 0.80 or label_left
-            ax.text(value + (-0.035 if high else 0.035), y, f"{value:.1%}",
-                    ha="right" if high else "left", va="center", fontsize=9,
-                    bbox={"facecolor": "white", "edgecolor": "none", "pad": 0.1},
-                    zorder=4)
+        def bar(ax, value, y, generation=False, encoder=False):
+            ax.barh(y, value, height=0.52,
+                    color="white" if generation else charcoal if encoder else blue,
+                    edgecolor=charcoal if generation else "none", linewidth=0.8,
+                    hatch="///" if generation else None, zorder=3)
+            # Aligned numbers sit outside the bars, never between paired marks.
+            ax.text(1.41, y, f"{100 * value:.1f}", ha="right", va="center",
+                    fontsize=10, clip_on=False)
 
         for index, (key, _) in enumerate(selection):
-            encoder = key.startswith("dictabert")
-            point(left, scores[(key, "select")], index,
-                  "D" if encoder else "s", charcoal if encoder else blue)
+            bar(left, scores[(key, "select")], index, encoder=key.startswith("dictabert"))
         left.axvline(baselines["most_mined"], color=charcoal, linestyle="--",
-                     linewidth=0.8, zorder=1)
-        left.text(baselines["most_mined"], -0.78,
-                  f"Most-mined {baselines['most_mined']:.1%}",
-                  ha="center", va="bottom", fontsize=8)
+                     linewidth=0.8, zorder=4)
         left.set_yticks(range(len(selection)), [label for _, label in selection])
         left.set_ylim(len(selection) - 0.5, -1.0)
-        left.axhline(1.5, color="#dddddd", linewidth=0.6)
-        left.axhline(3.5, color="#dddddd", linewidth=0.6)
         for index, key in enumerate(systems, start=2):
-            generate = scores[(key, "generate")]
-            # Put mid-range generation labels before their open circles, away
-            # from selection labels; near zero, retain room inside the axis.
-            point(right, generate, index, "o", charcoal, False, label_left=generate >= 0.20)
-            point(right, scores[(key, "select")], index, "s", blue)
-        right.tick_params(axis="y", labelleft=False)
-        right.text(0.5, 0.5, "LLMs only", ha="center", va="center",
-                   fontsize=9, color="#555555", style="italic")
-        right.axhline(1.5, color="#dddddd", linewidth=0.6)
-        right.axhline(3.5, color="#dddddd", linewidth=0.6)
-        for ax in (left, right):
+            bar(generation, scores[(key, "generate")], index, generation=True)
+            bar(selected, scores[(key, "select")], index)
+        for ax in (generation, selected):
+            ax.tick_params(axis="y", labelleft=False)
+            ax.text(0.5, 0.5, "Not applicable", ha="center", va="center",
+                    fontsize=9, color="#555555", style="italic")
+        for ax in (left, generation, selected):
             ax.set_xlim(0, 1)
-            ax.set_xticks([0, 0.25, 0.5, 0.75, 1])
+            ax.set_xticks([0, 0.5, 1])
             ax.xaxis.set_major_formatter(PercentFormatter(1, decimals=0))
-            ax.tick_params(axis="y", length=0, pad=5)
-            ax.tick_params(axis="x", labelsize=8)
-            ax.grid(axis="x", color="#eeeeee", linewidth=0.5)
+            ax.tick_params(axis="y", length=0, pad=7)
+            ax.tick_params(axis="x", labelsize=9)
+            ax.grid(axis="x", color="#e5e5e5", linewidth=0.5)
             ax.set_axisbelow(True)
+            for boundary in (1.5, 3.5):
+                ax.axhline(boundary, color="#cccccc", linewidth=0.6)
             for side in ("top", "right", "left"):
                 ax.spines[side].set_visible(False)
-            ax.set_xlabel("Automatic score (%)", fontsize=8.5)
+        fig.text(0.23, 0.015, f"Dashed line: most-mined ({baselines['most_mined']:.1%})", fontsize=9)
+        fig.text(0.765, 0.015, "Scores (%)", fontsize=9)
         save_figure(fig, path)
 
 
