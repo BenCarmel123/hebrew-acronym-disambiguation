@@ -102,11 +102,11 @@ not a human annotation and does not establish the provenance of the historical
 `results/dictabertx/test_details.csv` predictions.
 
 `test_encoder_inference.run_encoder_test` verifies a one-to-one, ordered mapping
-to all 395 original test rows, preserving every source field. It loads the approved
+to all original test rows, preserving every source field. It loads the approved
 local checkpoint with the existing strict Colab loader, validates three predictions,
 and then records all test selection predictions incrementally. It does not train,
 download weights, or perform generation. Exact candidate accuracy retains all
-395 items in the denominator; raw scores, failures, checkpoint reconstruction and
+test items in the denominator; raw scores, failures, checkpoint reconstruction and
 source identities are saved together. An existing run directory is never overwritten.
 
 
