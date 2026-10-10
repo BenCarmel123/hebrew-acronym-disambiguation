@@ -1,0 +1,14 @@
+system,task,run_id,total,new_human_reviewed,historical_reused,reviewed,positive_total,positive_reviewed,negative_total,negative_reviewed,technical_failures,fits,not_fits,unsure,automatic_negative_human_fits,automatic_positive_human_not_fits,groups,unreviewed,valid_unreviewed,unresolved
+anthropic_generate,generation,3248737a597b435181227711caea89d0,381,109,6,115,165,9,215,106,1,75,40,0,66,0,115,266,265,266
+anthropic_select,selection,3248737a597b435181227711caea89d0,381,8,0,8,339,1,40,7,2,0,8,0,0,1,8,373,371,373
+dictabert_select,selection,dictabert-test-20261009-f49c3b5,381,3,0,3,273,1,108,2,0,1,2,0,0,0,3,378,378,378
+gemini_generate,generation,6658d323657f4df3aced950bfe6abb07,381,88,0,88,207,17,172,71,2,75,13,0,60,2,88,293,291,293
+gemini_select,selection,6658d323657f4df3aced950bfe6abb07,381,11,0,11,357,1,24,10,0,0,11,0,0,1,11,370,370,370
+openai_generate,generation,358e1fe65fa048c191eda08c078fd4cd,381,113,11,124,129,10,251,114,1,67,57,0,57,0,124,257,256,257
+openai_select,selection,358e1fe65fa048c191eda08c078fd4cd,381,7,0,7,317,1,64,6,0,0,7,0,0,1,7,374,374,374
+qwen14_generate,generation,f23e084aace743e8a61a1a71dfbb33d4,381,82,2,84,44,5,327,79,10,18,66,0,14,1,84,297,287,297
+qwen14_select,selection,f23e084aace743e8a61a1a71dfbb33d4,381,8,0,8,266,1,115,7,0,0,8,0,0,1,8,373,373,373
+qwen_generate,generation,cd1331b460364d4ebc341194c07dc1fe,381,101,3,104,31,5,349,99,1,18,86,0,13,0,104,277,276,277
+qwen_select,selection,cd1331b460364d4ebc341194c07dc1fe,381,9,0,9,223,1,158,8,0,0,9,0,0,1,9,372,372,372
+xai_generate,generation,885c4382ca904f0baca692ae9cc37ac9,381,158,12,170,184,14,197,156,0,142,28,0,128,0,170,211,211,211
+xai_select,selection,885c4382ca904f0baca692ae9cc37ac9,381,10,0,10,351,1,30,9,0,0,10,0,0,1,10,371,371,371

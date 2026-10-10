@@ -1,0 +1,12 @@
+{
+  "annotations.history.jsonl": "265c8658f613d1eeaccd6ff8614c4a2647f971c42d78733de3fd57f29c7d1bbc",
+  "gemini-review-data.json": "f5c4aa362720865ed40ae7c9f9edfd100d443e8d2c8303a9db569f0e4aab62de",
+  "annotations.drafts.json": "0fd5321d3a2546c90a81c5e46a1e76269cc3e10495c47ed58e45f180f5ae7700",
+  "combined-review-coverage.json": "7aa9b73903e779584dd53260238c113ba57e598ac33ae7ef64afd5ad5fc74b23",
+  "review-export.json": "cfde0bbc065f3fbe7a134500a3b5dfeb2bc335b3149662492ef229250c19d06f",
+  "selection-manifest.json": "5fdae882d58691319e91cc930236de8a57cb106eedc85c934d7c766f28922cc4",
+  "review-data-full4953.json": "47368756fad90a7f7696a1be3720a9ff55191be17906744591f2ab205b47becd",
+  "validation.json": "01288ceddb73d433101c699f4630605ab78d1961188ff9dd32ddc6959dea37c1",
+  "annotations.json": "feeb432f72605cf4d327932fae3eaf45ae6dbede1180d3cf789448bff25f5815",
+  "review-data-focus200.json": "3878d15ba2f01c77dca88906f11811442850f181e068ff280fac1f694f555536"
+}
