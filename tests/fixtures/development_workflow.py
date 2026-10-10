@@ -119,4 +119,3 @@ if RUN_DEVELOPMENT_APPENDIX:
     if saved_sources:
         comparison_view, comparison = display_saved_comparison(saved_sources)
         display(HTML(comparison_view))
-
