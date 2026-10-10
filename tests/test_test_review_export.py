@@ -141,3 +141,39 @@ class ReviewExportTests(unittest.TestCase):
             self.assertEqual(answer['binding']['run_id'], 'encoder-fixture')
         result = review_coverage(self.root/'encoder.json', self.root/'absent.json')
         self.assertEqual(result['rows'][0]['not_reviewed'], SCORED_ITEMS)
+
+
+class IdentifiedCoverageTests(unittest.TestCase):
+    """Small invented source checks: one decision cannot jump to another context."""
+    def test_source_context_and_coverage_guards(self):
+        import copy
+        import hashlib
+        from hebrew_acronyms.test_review_export import identified_review_coverage
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);cohort=root/'test.csv';cohort.write_text('fixture')
+            item={'id':'source','original_item_id':'fixture','sentence':'context','acronym':'ABC','gold':'gold'}
+            a={'id':'a','system_id':'fixture_generate','task':'generation','raw':'variant','decoded':'variant',
+               'option_mapping':[],'technical_failure':False,'auto_score':False,
+               'binding':{'run_id':'run','item_id':'fixture','response_sha256':hashlib.sha256(b'variant').hexdigest()}}
+            item['answers']=[a]
+            source=root/'source.json';source.write_text(json.dumps({'items':[item]}))
+            row=dict(system='fixture_generate',task='generation',run_id='run',total=1,reviewed=1,
+                     positive_total=0,positive_reviewed=0,negative_total=1,negative_reviewed=1,
+                     technical_failures=0,unsure=1,fits=0,not_fits=0,decisions=1,
+                     automatic_negative_human_fits=0,automatic_positive_human_not_fits=0,unreviewed=0,unresolved=1)
+            export={'protocol_version':'identified-test-review-v1','reviewer':'invented fixture',
+                    'cohort_sha256':hashlib.sha256(cohort.read_bytes()).hexdigest(),
+                    'source_files':[{'path':'source.json','sha256':hashlib.sha256(source.read_bytes()).hexdigest(),'bytes':source.stat().st_size}],
+                    'decisions':[{'decision_id':'d','original_item_id':'fixture','answer_ids':['a'],'bindings':[a['binding']],
+                        'judgment':{'label':'unsure','label_updated_at':'2026-10-10T00:00:00+00:00','origin':'identified-test-review-v1'}}],
+                    'coverage':[row],'limitations':'fixture'}
+            path=root/'export.json'
+            def check(value):
+                path.write_text(json.dumps(value));return identified_review_coverage(path,root,cohort)
+            self.assertEqual(check(export)['covered_answers'],1)
+            bad=copy.deepcopy(export);bad['coverage'][0]['reviewed']=2
+            with self.assertRaisesRegex(ValueError,'coverage'):check(bad)
+            bad=copy.deepcopy(export);bad['decisions'][0]['bindings'][0]['run_id']='another'
+            with self.assertRaisesRegex(ValueError,'response'):check(bad)
+            bad=copy.deepcopy(export);bad['reviewer']='QA_NOT_HUMAN'
+            with self.assertRaisesRegex(ValueError,'QA'):check(bad)
