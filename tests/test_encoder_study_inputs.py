@@ -9,13 +9,17 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
-from tests.run_experimental_study import guard, predictions
+from tests.run_experimental_study import disable_guard, enable_guard, predictions
 
 
 class EncoderInputTests(unittest.TestCase):
     @classmethod
+    def tearDownClass(cls):
+        disable_guard()
+
+    @classmethod
     def setUpClass(cls):
-        sys.addaudithook(guard)
+        enable_guard()
         from hebrew_acronyms import experimental_study
         from hebrew_acronyms.models.dictabert_cross_encoder import model, eval
         cls.study, cls.model, cls.eval = experimental_study, model, eval

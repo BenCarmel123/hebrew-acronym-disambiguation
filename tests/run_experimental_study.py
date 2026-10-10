@@ -11,9 +11,25 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
+# Audit hooks cannot be removed, so the guard is installed once and switched off
+# when a test class finishes; otherwise it would block unrelated later tests.
+_GUARD = {"installed": False, "active": False}
+
+
+def enable_guard():
+    if not _GUARD["installed"]:
+        sys.addaudithook(guard)
+        _GUARD["installed"] = True
+    _GUARD["active"] = True
+
+
+def disable_guard():
+    _GUARD["active"] = False
 
 
 def guard(event, args):
+    if not _GUARD["active"]:
+        return
     if event in {"socket.connect", "socket.getaddrinfo", "socket.sendto", "socket.__new__"}:
         raise RuntimeError("Network forbidden in study fixture test process")
     if event == "open" and isinstance(args[0], (str, bytes, os.PathLike)):
@@ -126,7 +142,7 @@ def execute(controls=None, *, qwen_failure=False, gemini_failure=False):
 
 
 def main():
-    sys.addaudithook(guard)
+    enable_guard()
     from hebrew_acronyms import experimental_study as study
     default = execute()
     assert all(record["status"] == "not_run" for record in default["artifact"]["records"])
