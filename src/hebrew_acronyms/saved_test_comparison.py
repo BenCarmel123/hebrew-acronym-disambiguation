@@ -7,13 +7,17 @@ import math
 from pathlib import Path
 
 from hebrew_acronyms import test_evaluation as evaluation
+from hebrew_acronyms.test_cohort import SCORED_ITEMS, is_scored, scored_ids
 
 
 # Audited collector implementations: a319f9d and the xAI/Qwen14 extension.
 # The extension adds provider dispatch/usage only; existing scoring is unchanged.
+# The third requires the 381-item scored cohort for new full tests and uses it for
+# cost projection; prompts, parsing and scoring are unchanged.
 COMPATIBLE_COLLECTOR_SHA256 = {
     "1434bedc4dac4a79e681d3178d8c2eb2f408ba12d3931255c09f90ca3f8abbff",
     "480eaf990037d51f3fedb153a6558367f5ec94ddbdb1d7a207e116424e6cb3de",
+    "3205040d9db8f7a3e7a2a5eea2ca1d4c54d74b7e35545fe3bbc8da56a34eae1c",
 }
 
 
@@ -23,24 +27,51 @@ def _finish_reason(record):
 
 
 def _test_signature(identity):
+    """Scored rows and prompts of a saved 395-item or a new 381-item full test.
+
+    Both cohorts must agree on these. Source hashes differ between them, so they
+    are checked separately against the session, not as part of the signature.
+    """
     rows = identity["rows"]
     item_ids = [row["item_id"] for row in rows]
-    if identity["cohort"] != "full_test" or len(set(item_ids)) != 395 or len(rows) != 395:
-        raise ValueError("Comparison requires the complete 395-item test cohort")
+    if identity["cohort"] != "full_test" or len(set(item_ids)) != len(rows):
+        raise ValueError("Comparison requires a complete full-test cohort")
+    scored = set(scored_ids(item_ids))
     requests = identity["requests"]
     keys = [(r["item_id"], r["task"]) for r in requests]
     expected = {(item, task) for item in item_ids for task in ("generate", "select")}
-    if len(keys) != 790 or set(keys) != expected:
+    if len(keys) != 2 * len(rows) or set(keys) != expected:
         raise ValueError("Test requests must cover each item and task exactly once")
     for request in requests:
         if hashlib.sha256(request["prompt"].encode()).hexdigest() != request["prompt_sha256"]:
             raise ValueError("Prompt hash mismatch")
-    return {
-        key: identity[key] for key in
-        ("protocol", "source_sha256", "rows", "seed", "target_policy", "target_occurrences")
-    } | {"requests": [{k: r[k] for k in
-                      ("item_id", "task", "prompt", "prompt_sha256", "shown_order")}
-                     for r in requests]}
+    return {key: identity[key] for key in ("protocol", "seed", "target_policy")} | {
+        "rows": [row for row in rows if row["item_id"] in scored],
+        "target_occurrences": {k: v for k, v in identity["target_occurrences"].items() if k in scored},
+        "requests": [{k: r[k] for k in ("item_id", "task", "prompt", "prompt_sha256", "shown_order")}
+                     for r in requests if r["item_id"] in scored]}
+
+
+def _scored_metric(group, records):
+    """Recompute one system/task group over the scored items only."""
+    subset = [r for r in records if r["task"] == group["task"] and is_scored(r["item_id"])]
+    return {"system": group["system"], "task": group["task"], "n_items": len(subset),
+            "n_completed": sum(r["status"] == "response_received" for r in subset),
+            "status_counts": dict(Counter(r["status"] for r in subset)),
+            "accuracy": sum(r["correct"] for r in subset) / len(subset), "score": group["score"],
+            "n_valid": sum(r["valid"] for r in subset), "n_correct": sum(r["correct"] for r in subset)}
+
+
+def scored_baselines(baselines):
+    """Saved deterministic baselines restricted to the scored items, rounded as saved."""
+    details = [d for d in baselines["details"] if is_scored(d["item_id"])]
+    n = len(details)
+    summary = {"n_items": n, "mean_candidates": round(sum(d["n_candidates"] for d in details) / n, 2),
+               "random": round(sum(d["random_expected_correct"] for d in details) / n, 4)}
+    for name in ("most_frequent", "most_mined", "oracle"):
+        summary[name] = round(sum(d[f"{name}_correct"] for d in details) / n, 4)
+    return baselines | {"n_items": n, "summary": summary, "details": details,
+                        "collected_n_items": baselines["n_items"]}
 
 
 def compare_saved_tests(session_sources, expected_test_runs, *, diagnostic_sources=(), continuation_sources=()):
@@ -86,7 +117,7 @@ def compare_saved_tests(session_sources, expected_test_runs, *, diagnostic_sourc
         raise ValueError("Duplicate session directory")
     sessions, models, metrics, failures, pilots, costs = [], [], [], [], [], []
     seen_sessions, seen_runs, seen_attempts = set(), set(), set()
-    found_tests, signature, reference_identity = {}, None, None
+    found_tests, signature, reference_identity, test_sources = {}, None, None, set()
     total, initial_prior, measured, uncertain = None, None, 0.0, 0.0
     baseline_paths, original_roots = [], {}
     for index, (root, (_, expected_session)) in enumerate(zip(roots, all_sources)):
@@ -196,6 +227,7 @@ def compare_saved_tests(session_sources, expected_test_runs, *, diagnostic_sourc
             if signature is not None and signature != current_signature:
                 raise ValueError("Test items, protocol, prompts or candidate orders differ")
             signature = current_signature
+            test_sources.add(run["source_sha256"])
             found_tests[name] = manifest["run_id"]
             returned = sorted({r["response_metadata"].get("model_version") or
                                r["response_metadata"].get("model") or "not reported"
@@ -205,11 +237,11 @@ def compare_saved_tests(session_sources, expected_test_runs, *, diagnostic_sourc
                 "seconds": summary["timings_seconds"][name], "unverified": summary["n_identity_unverified"],
                 "finish_reasons": dict(Counter(_finish_reason(r) for r in summary["records"])),
                 "manifest_path": str(path), "manifest_sha256": hashlib.sha256(path.read_bytes()).hexdigest()})
+            # Calls, usage and cost above cover every collected item; scores cover the scored items.
             for group in summary["by_system_task"]:
-                records = [r for r in summary["records"] if r["task"] == group["task"]]
-                metrics.append(group | {"run_id": manifest["run_id"], "n_correct": sum(r["correct"] for r in records)})
+                metrics.append(_scored_metric(group, summary["records"]) | {"run_id": manifest["run_id"]})
             for record in summary["records"]:
-                if record["status"] != "response_received":
+                if record["status"] != "response_received" and is_scored(record["item_id"]):
                     failures.append({k: record[k] for k in ("system", "task", "item_id", "status", "attempts", "response")}
                                     | {"run_id": manifest["run_id"],
                                        "finish_reason": _finish_reason(record)})
@@ -247,18 +279,20 @@ def compare_saved_tests(session_sources, expected_test_runs, *, diagnostic_sourc
     baselines = json.loads(baseline_paths[0].read_text())
     rows = {r["item_id"]: r for r in signature["rows"]}
     details = baselines["details"]
-    if (baselines["n_items"] != 395 or len(details) != 395
-            or {r["item_id"] for r in details} != set(rows)
+    if (baselines["n_items"] != len(details)
+            or scored_ids([r["item_id"] for r in details]) != list(rows)
             or baselines["code_revision"] != reference_identity["code_revision"]
-            or next(x["sha256"] for x in baselines["inputs"] if x["name"] == "test_items.csv") != signature["source_sha256"]
-            or any(r["gold"] != rows[r["item_id"]]["gold_expansion"].strip() for r in details)):
+            or next(x["sha256"] for x in baselines["inputs"] if x["name"] == "test_items.csv") not in test_sources
+            or any(r["gold"] != rows[r["item_id"]]["gold_expansion"].strip() for r in details if r["item_id"] in rows)):
         raise ValueError("Baseline test cohort or provenance differs")
     for path in baseline_paths[1:]:
         if json.loads(path.read_text()) != baselines:
             raise ValueError("Saved baseline results differ")
+    baselines = scored_baselines(baselines)
     return {"sessions": sessions, "models": models, "metrics": metrics, "failures": failures,
             "pilots": pilots, "cost_sessions": costs, "baselines": baselines,
-            "baseline_path": str(baseline_paths[0]), "test_source_sha256": signature["source_sha256"],
+            "baseline_path": str(baseline_paths[0]), "test_source_sha256": sorted(test_sources),
+            "n_scored_items": SCORED_ITEMS,
             "cost": {"initial_prior_allocation_ils": initial_prior, "token_cost_ils": measured,
                      "uncertain_attempt_allowances_ils": uncertain, "total_accounted_ils": total},
             "unique_attempts": len(seen_attempts), "diagnostic_requests": len(seen_diagnostics), "test_runs": found_tests}

@@ -12,6 +12,7 @@ from pathlib import Path
 import re
 
 from hebrew_acronyms import test_evaluation as evaluation
+from hebrew_acronyms.test_cohort import SCORED_ITEMS
 
 SYSTEM_NAMES = ("qwen", "gemini", "openai", "anthropic", "qwen14", "xai", "dictalm")
 # Systems served by the local Ollama adapter under their own names.
@@ -85,7 +86,8 @@ def _prepare(root, session, system, cohort, metadata):
         identity["sources"][cohort]["path"], _directory(root, name, cohort),
         cohort=cohort, systems=[system], code_revision=identity["code_revision"],
         seed=identity["seed"], max_attempts=identity["max_attempts"],
-        max_calls=40 if cohort == "dev_pilot" else 1580,
+        # Two tasks with at most two attempts each per item.
+        max_calls=40 if cohort == "dev_pilot" else 4 * SCORED_ITEMS,
         metadata={"session_identity": session["identity_sha256"], "model_identity": metadata},
         reserve_per_call_usd={name: identity["reserves"][name]},
         budget_usd=(100 - identity["prior_spend_ils"]) / identity["ils_per_usd"],
@@ -165,7 +167,7 @@ def review_system_pilot(output_dir, system, *, model_identity=None):
     if (summary["n_items"] != 10 or summary["n_records"] != 20 or summary["n_completed"] != 20
             or summary["n_ambiguous"] or summary["n_identity_unverified"]):
         raise ValueError("This system's pilot is incomplete or its identity is unverified")
-    cost = evaluation.estimate_cost(summary, session["identity"]["rates"], full_items=395)
+    cost = evaluation.estimate_cost(summary, session["identity"]["rates"], full_items=SCORED_ITEMS)
     total = session_summary(root)
     full_dir = _directory(root, system["name"], "full_test")
     full_cost = (evaluation.summarize_evaluation(full_dir)["charged_or_reserved_usd"]

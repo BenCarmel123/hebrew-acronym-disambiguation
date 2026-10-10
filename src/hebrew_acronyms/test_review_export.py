@@ -11,6 +11,7 @@ import re
 
 from hebrew_acronyms import test_evaluation as evaluation
 from hebrew_acronyms.data_processing.prepare_encoder_inputs import QUOTES
+from hebrew_acronyms.test_cohort import is_scored, scored_ids
 
 
 def digest(value):
@@ -34,7 +35,8 @@ def export_review(run_sources, output_path):
         seen.add(expected_id)
         summary = evaluation.summarize_evaluation(directory)
         rows = {r['item_id']: r for r in manifest['identity']['rows']}
-        if len(rows) != 395 or len(summary['records']) != 790:
+        scored_ids(rows)
+        if len(summary['records']) != 2 * len(rows):
             raise ValueError('Full test denominators are required')
         system = manifest['identity']['systems'][0]
         for task in ('generate', 'select'):
@@ -47,6 +49,9 @@ def export_review(run_sources, output_path):
             sources.append({'path': str(path.resolve()), 'sha256': hashlib.sha256(path.read_bytes()).hexdigest(),
                             'bytes': path.stat().st_size})
         for record in summary['records']:
+            # Items that share a document with training are never scored, so never queued.
+            if not is_scored(record['item_id']):
+                continue
             row = rows[record['item_id']]
             raw = record['response']
             binding = {'item_id': row['item_id'], 'task': record['task'], 'run_id': expected_id,
@@ -130,6 +135,9 @@ def review_coverage(data_path, annotations_path):
         raise ValueError('Duplicate or unknown review item')
     groups, timestamps, starts = {}, [], []
     for item_id, item in items.items():
+        # Earlier bundles queued all 395 items; only scored items count towards coverage.
+        if not is_scored(item['original_item_id']):
+            continue
         record = records.get(item_id, {})
         complete = record.get('completion', {}).get('status') == 'complete'
         reviewed = record.get('reviewed') or {}
@@ -194,7 +202,6 @@ def export_encoder_review(directory, test_path, output_path, *, expected_run_id,
                           expected_identity, expected_predictions_sha256):
     """Queue identified encoder candidate choices; this is selection, not generation."""
     from hebrew_acronyms.encoder_test_results import load_encoder_test
-    from hebrew_acronyms.models.common.pairs import load_rows
     output_path, directory = Path(output_path), Path(directory)
     if output_path.exists():
         raise FileExistsError(output_path)
@@ -202,7 +209,9 @@ def export_encoder_review(directory, test_path, output_path, *, expected_run_id,
                               expected_identity=expected_identity,
                               expected_predictions_sha256=expected_predictions_sha256)
     items = []
-    for row, record in zip(load_rows(test_path), saved['records']):
+    for row, record in zip(saved['rows'], saved['records']):
+        if not is_scored(row['item_id']):
+            continue
         raw = record['selected_candidate'] or ''
         binding = {'item_id': row['item_id'], 'task': 'select', 'run_id': expected_run_id,
                    'response_sha256': hashlib.sha256(raw.encode()).hexdigest()}

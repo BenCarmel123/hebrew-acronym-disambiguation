@@ -12,6 +12,7 @@ import re
 
 from hebrew_acronyms.data_processing.prepare_encoder_inputs import locate_target, QUOTES
 from hebrew_acronyms.models.common.pairs import explicit_span, find_span, validate_ids
+from hebrew_acronyms.test_cohort import check_scored_cohort
 
 
 def span_candidates(sentence, acronym):
@@ -39,8 +40,7 @@ def qualify_test(source, decisions=None, *, policy="qualified"):
     with Path(source).open(encoding='utf-8-sig', newline='') as handle:
         rows = list(csv.DictReader(handle))
     validate_ids(rows)
-    if len(rows) != 395:
-        raise ValueError('Expected the unchanged 395-item test set')
+    check_scored_cohort([r['item_id'] for r in rows])
     decisions = decisions or {}
     if set(decisions) - {r['item_id'] for r in rows}:
         raise ValueError('Unexpected span decision ID')

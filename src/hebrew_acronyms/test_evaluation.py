@@ -25,6 +25,7 @@ import uuid
 
 from hebrew_acronyms.models.common import eval as scoring
 from hebrew_acronyms.models.common.pairs import _normalise, candidates_for, load_rows, validate_ids
+from hebrew_acronyms.test_cohort import SCORED_ITEMS, check_scored_cohort
 
 PROTOCOL = "fixed-cohort-item-shuffle-labels-v1"
 TASKS = ("generate", "select")
@@ -129,7 +130,8 @@ def prepare_evaluation(input_path, output_dir, *, cohort, systems, code_revision
     """Freeze full source bytes, selected rows, settings, code and all prompts.
 
     Existing runs are reused only if this complete identity matches. ``dev_pilot``
-    uses the first ten CSV rows; ``full_test`` requires exactly 395 rows. Fixture
+    uses the first ten CSV rows; ``full_test`` requires exactly the 381 scored rows,
+    without the 14 items that share a document with training (see test_cohort.py). Fixture
     mode is solely for offline tests. Price reserve is an upper-bound allocation
     per started call, including calls with unknown billing; it is not an invoice.
     """
@@ -147,8 +149,8 @@ def prepare_evaluation(input_path, output_dir, *, cohort, systems, code_revision
         if len(rows) < 10:
             raise ValueError("dev_pilot requires at least ten rows")
         rows = rows[:10]
-    elif cohort == "full_test" and len(rows) != 395:
-        raise ValueError("full_test requires all 395 items")
+    elif cohort == "full_test":
+        check_scored_cohort([row["item_id"] for row in rows])
     if not rows or not systems:
         raise ValueError("At least one item and one system are required")
     if len({system["name"] for system in systems}) != len(systems):
@@ -587,7 +589,7 @@ def summarize_evaluation(output_dir):
                                       for attempt_id, start in starts.items())}
 
 
-def estimate_cost(summary, rates_usd_per_million, *, full_items=395, reserve_fraction=.25):
+def estimate_cost(summary, rates_usd_per_million, *, full_items=SCORED_ITEMS, reserve_fraction=.25):
     """Scale measured pilot costs plus recorded reserves for uncertain attempts.
 
     All logical answers must still be complete and identity-verified. Unknown

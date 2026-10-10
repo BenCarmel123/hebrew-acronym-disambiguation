@@ -8,6 +8,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 from hebrew_acronyms import test_evaluation as runner
+from hebrew_acronyms.test_cohort import DOCUMENT_OVERLAP_IDS, SCORED_ITEMS
 
 
 class EvaluationTests(unittest.TestCase):
@@ -289,29 +290,34 @@ class EvaluationTests(unittest.TestCase):
                 self.assertNotIn("שני", request["prompt"])
 
     def test_full_cohort_all_rows_and_pilot_first_ten(self):
-        self.rows = [{**self.rows[0], "item_id": f"item-{n}"} for n in range(395)]
+        self.rows = [{**self.rows[0], "item_id": f"item-{n}"} for n in range(SCORED_ITEMS)]
         self.write_rows()
         real_system = [{"name": "gemini", "provider": "gemini", "model": "gemini-3.8-flash", "settings": {
             "timeout": 120, "generation_config": {"maxOutputTokens": 128}}}]
         full = runner.prepare_evaluation(self.source, self.output, cohort="full_test", systems=real_system, code_revision="a" * 40)
-        self.assertEqual(len(full["identity"]["rows"]), 395)
-        self.assertEqual(len(full["identity"]["requests"]), 790)
-        self.assertEqual(runner.summarize_evaluation(self.output)["n_pending"], 790)
+        self.assertEqual(len(full["identity"]["rows"]), SCORED_ITEMS)
+        self.assertEqual(len(full["identity"]["requests"]), 2 * SCORED_ITEMS)
+        self.assertEqual(runner.summarize_evaluation(self.output)["n_pending"], 2 * SCORED_ITEMS)
         pilot = runner.prepare_evaluation(self.source, self.root / "pilot", cohort="dev_pilot", systems=real_system, code_revision="a" * 40)
         self.assertEqual([row["item_id"] for row in pilot["identity"]["rows"]], [f"item-{n}" for n in range(10)])
         with self.assertRaisesRegex(ValueError, "fixture"):
             runner.run_evaluation(self.output, code_revision="a" * 40, responders={})
         self.rows.pop()
         self.write_rows()
-        with self.assertRaisesRegex(ValueError, "395"):
+        with self.assertRaisesRegex(ValueError, "without document overlap"):
             runner.prepare_evaluation(self.source, self.root / "wrong", cohort="full_test", systems=real_system, code_revision="a" * 40)
+        # A full test may not contain an item that shares a document with training.
+        self.rows.append({**self.rows[0], "item_id": sorted(DOCUMENT_OVERLAP_IDS)[0]})
+        self.write_rows()
+        with self.assertRaisesRegex(ValueError, "without document overlap"):
+            runner.prepare_evaluation(self.source, self.root / "overlap", cohort="full_test", systems=real_system, code_revision="a" * 40)
 
     def test_unknown_usage_cost_not_silently_zero(self):
         self.prepare()
         summary = self.run_saved()
         estimate = runner.estimate_cost(summary, {"mock": {"input": 1, "output": 2}})
         self.assertAlmostEqual(estimate["pilot_usd"], .000056)
-        self.assertAlmostEqual(estimate["projected_full_usd"], .000056 * 395 / 2)
+        self.assertAlmostEqual(estimate["projected_full_usd"], .000056 * SCORED_ITEMS / 2)
         summary["usage"]["mock"]["attempts_without_usage"] = 1
         with self.assertRaisesRegex(ValueError, "unknown billed usage"):
             runner.estimate_cost(summary, {"mock": {"input": 1, "output": 2}})
@@ -354,7 +360,7 @@ class EvaluationTests(unittest.TestCase):
         self.assertAlmostEqual(estimate["measured_pilot_usd"], .000056)
         self.assertAlmostEqual(estimate["unknown_usage_reserve_usd"], .02)
         self.assertAlmostEqual(estimate["pilot_usd"], .020056)
-        self.assertAlmostEqual(estimate["projected_full_usd"], .020056 * 395 / 2)
+        self.assertAlmostEqual(estimate["projected_full_usd"], .020056 * SCORED_ITEMS / 2)
         self.assertEqual(estimate["by_system"]["mock"]["unknown_usage_attempts"], 1)
         # Completion and identity checks still hold even with sufficient reserves.
         summary["n_identity_unverified"] = 1

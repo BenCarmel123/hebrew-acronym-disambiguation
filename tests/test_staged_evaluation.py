@@ -9,6 +9,7 @@ from unittest.mock import Mock, patch
 
 from hebrew_acronyms import staged_evaluation as staged
 from hebrew_acronyms import test_evaluation as runner
+from hebrew_acronyms.test_cohort import SCORED_ITEMS
 
 
 class StagedEvaluationTests(unittest.TestCase):
@@ -18,7 +19,7 @@ class StagedEvaluationTests(unittest.TestCase):
         self.root = Path(self.temp.name)
         self.output = self.root / "session"
         self.dev, self.test = self.root / "dev.csv", self.root / "test.csv"
-        for path, count in ((self.dev, 12), (self.test, 395)):
+        for path, count in ((self.dev, 12), (self.test, SCORED_ITEMS)):
             with path.open("w", newline="") as stream:
                 writer = csv.DictWriter(stream, fieldnames=["item_id", "acronym", "sentence", "gold_expansion", "candidates"])
                 writer.writeheader()
@@ -146,8 +147,8 @@ class StagedEvaluationTests(unittest.TestCase):
             staged.run_system_full(self.output, changed, inspected_pilot_identity=first["manifest"]["identity_sha256"])
         self.assertEqual(self.call.call_count, 20)
         full = self.full(max_new_calls=1)
-        self.assertEqual(full["n_items"], 395)
-        self.assertEqual(full["n_records"], 790)
+        self.assertEqual(full["n_items"], SCORED_ITEMS)
+        self.assertEqual(full["n_records"], 2 * SCORED_ITEMS)
 
     def test_full_resume_then_add_system_recomputes_all_journals(self):
         self.pilot()
@@ -162,12 +163,12 @@ class StagedEvaluationTests(unittest.TestCase):
     def test_complete_fixed_full_cohort_does_not_resend_on_resume(self):
         self.pilot()
         full = self.full()
-        self.assertEqual((full["n_items"], full["n_records"], full["n_completed"]), (395, 790, 790))
+        self.assertEqual((full["n_items"], full["n_records"], full["n_completed"]), (SCORED_ITEMS, 2 * SCORED_ITEMS, 2 * SCORED_ITEMS))
         self.assertEqual({group["task"]: group["n_items"] for group in full["by_system_task"]},
-                         {"generate": 395, "select": 395})
+                         {"generate": SCORED_ITEMS, "select": SCORED_ITEMS})
         self.full()
-        self.assertEqual(self.call.call_count, 810)
-        self.assertAlmostEqual(staged.session_summary(self.output)["charged_or_reserved_usd"], 810 * .000012)
+        self.assertEqual(self.call.call_count, 2 * SCORED_ITEMS + 20)
+        self.assertAlmostEqual(staged.session_summary(self.output)["charged_or_reserved_usd"], (2 * SCORED_ITEMS + 20) * .000012)
 
     def test_budget_limit_accumulates_unknown_usage_across_switches(self):
         # A separate session with two conservative calls left in the global cap.
