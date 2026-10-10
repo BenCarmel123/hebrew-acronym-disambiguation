@@ -58,11 +58,11 @@ Table~\ref{tab:data} shows how the three sets differ in size and in the kind of 
 \toprule
 Quantity & Train & Dev & Test \\
 \midrule
-Items & 2,829 & 62 & 395 \\
+Items & 2,829 & 62 & 381 \\
 Acronym types & 434 & 11 & 60 \\
 \midrule
 Substituted Wikipedia & 2,316 & 0 & 0 \\
-Natural Knesset & 319 & 62 & 267 \\
+Natural Knesset & 319 & 62 & 253 \\
 Natural Wikipedia & 50 & 0 & 41 \\
 Deglossed Wikipedia & 8 & 0 & 0 \\
 Claude-authored & 136 & 0 & 87 \\
@@ -76,8 +76,8 @@ Claude-authored & 136 & 0 & 87 \\
 
 \paragraph{Development.} Development holds 62 natural Knesset items for 11 types, and we use it only to select the encoder checkpoint. Of its labels, 42 reuse an earlier human review of the same sentence, and 20 are AI-assisted author decisions, so this is not independent annotation.
 
-\paragraph{Test.} The test set has 395 items for 60 types, and a human reviewer went over the entire set. For the Knesset sentences, the review compared each label with the candidate list: of 1,045 mined sentences, 941 were confirmed, 100 were corrected and four were dropped. All 267 Knesset test items come from this pool (234 confirmed, 33 corrected). The 87 Claude-authored items add three sentences each to 29 types whose reviewed Knesset examples all shared one sense. A single reviewer did the work, so we have no agreement estimate.
+\paragraph{Test.} The test set has 381 items for 60 types, and a human reviewer went over the entire set. For the Knesset sentences, the review compared each label with the candidate list: of 1,045 mined sentences, 941 were confirmed, 100 were corrected and four were dropped. All 253 Knesset test items come from this pool (221 confirmed, 32 corrected). The 87 Claude-authored items add three sentences each to 29 types whose reviewed Knesset examples all shared one sense. We removed 14 Knesset items from four protocols that also supply training items, so that no test document is shared with train or dev. A single reviewer did the work, so we have no agreement estimate.
 
 \subsection{Separation of the sets}
 \label{sec:separation}
-Preparation checked item identity, target boundaries and candidate structure. These checks show structural validity, not that a label is correct. We split by acronym type. The test set shares no acronym form or sentence string with train or dev, and train and dev share none either. Documents are not fully separated: train and dev share three documents (three train and five dev items), and test shares four Knesset protocols with train (five train and 14 test items). Prefixed variants of one acronym can also fall in different sets: train has \heb{מד״ר} and dev has \heb{בד״ר}. The split therefore does not show generalization to wholly unseen acronym families.
+Preparation checked item identity, target boundaries and candidate structure. These checks show structural validity, not that a label is correct. We split by acronym type. The test set shares no acronym form or sentence string with train or dev, and train and dev share none either. Documents are not fully separated: train and dev share three documents (three train and five dev items), and the test set shares no document with train or dev. Prefixed variants of one acronym can also fall in different sets: train has \heb{מד״ר} and dev has \heb{בד״ר}. The split therefore does not show generalization to wholly unseen acronym families.

@@ -47,9 +47,9 @@ Hebrew makes this problem harder than it is in many languages. Short words are w
 
 A language model can expand an acronym in two ways. In \emph{free generation}, it reads the sentence and writes the expansion. In \emph{candidate selection}, it is also given a list of possible expansions and picks one. Generation can produce an answer that is not on any list, but it can also produce a wrong or unsupported one. Selection limits the answer to the list, so it depends on the list being complete. Prior work has not directly compared the two formats on the same occurrences.
 
-We run this comparison on a human-reviewed held-out test set of 395 Hebrew sentences. Most (78\%) occur naturally, in parliamentary proceedings and on Wikipedia, and the rest were written by an LLM to add a second sense to types that had only one. We test a small LLM, a proprietary LLM, and a pre-trained Hebrew encoder, which we evaluate both before and after fine-tuning. All systems see the same sentence and the same marked acronym. No acronym form in the test set appears in training, so the encoder is tested on acronyms it has never seen.
+We run this comparison on a human-reviewed held-out test set of 381 Hebrew sentences. Most (77\%) occur naturally, in parliamentary proceedings and on Wikipedia, and the rest were written by an LLM to add a second sense to types that had only one. We test a small LLM, a proprietary LLM, and a pre-trained Hebrew encoder, which we evaluate both before and after fine-tuning. All systems see the same sentence and the same marked acronym. No acronym form in the test set appears in training, so the encoder is tested on acronyms it has never seen.
 
-Our findings are as follows. First, candidate selection outperforms free generation for both LLMs: accuracy rises from XX\% to 59.5\% for the small LLM, and from XX\% to 93.7\% for the proprietary one. Second, fine-tuning helps. Training the encoder on fewer than 3,000 examples raises its candidate-selection accuracy from 65.1\% to 72.4\%, so candidate selection can be learned. Third, the fine-tuned encoder's selection accuracy (72.4\%) is higher than the small LLM's selection (59.5\%) and the proprietary LLM's generation (XX\%), but lower than that LLM's selection (93.7\%). A small fine-tuned model can therefore outperform larger language models in some settings, though not the strongest LLM when it is given candidates. Generated answers are judged by hand, so variants of the same expansion, such as \heb{שקל חדש} and \heb{שקלים חדשים}, count as correct.
+Our findings are as follows. First, candidate selection outperforms free generation for both LLMs: accuracy rises from XX\% to 59.8\% for the small LLM, and from XX\% to 93.4\% for the proprietary one. Second, fine-tuning helps. Training the encoder on fewer than 3,000 examples raises its candidate-selection accuracy from 64.3\% to 71.7\%, so candidate selection can be learned. Third, the fine-tuned encoder's selection accuracy (71.7\%) is higher than the small LLM's selection (59.8\%) and the proprietary LLM's generation (XX\%), but lower than that LLM's selection (93.4\%). A small fine-tuned model can therefore outperform larger language models in some settings, though not the strongest LLM when it is given candidates. Generated answers are judged by hand, so variants of the same expansion, such as \heb{שקל חדש} and \heb{שקלים חדשים}, count as correct.
 
 % ============================================================
 \section{Related Work}
@@ -132,11 +132,11 @@ Table~\ref{tab:data} shows how the three sets differ in size and in the kind of 
 \toprule
 Quantity & Train & Dev & Test \\
 \midrule
-Items & 2,829 & 62 & 395 \\
+Items & 2,829 & 62 & 381 \\
 Acronym types & 434 & 11 & 60 \\
 \midrule
 Substituted Wikipedia & 2,316 & 0 & 0 \\
-Natural Knesset & 319 & 62 & 267 \\
+Natural Knesset & 319 & 62 & 253 \\
 Natural Wikipedia & 50 & 0 & 41 \\
 Deglossed Wikipedia & 8 & 0 & 0 \\
 Claude-authored & 136 & 0 & 87 \\
@@ -150,11 +150,11 @@ Claude-authored & 136 & 0 & 87 \\
 
 \paragraph{Development.} Development holds 62 natural Knesset items for 11 types, and we use it only to select the encoder checkpoint. Of its labels, 42 reuse an earlier human review of the same sentence, and 20 are AI-assisted author decisions, so this is not independent annotation.
 
-\paragraph{Test.} The test set has 395 items for 60 types, and a human reviewer went over the entire set. For the Knesset sentences, the review compared each label with the candidate list: of 1,045 mined sentences, 941 were confirmed, 100 were corrected and four were dropped. All 267 Knesset test items come from this pool (234 confirmed, 33 corrected). The 87 Claude-authored items add three sentences each to 29 types whose reviewed Knesset examples all shared one sense. A single reviewer did the work, so we have no agreement estimate.
+\paragraph{Test.} The test set has 381 items for 60 types, and a human reviewer went over the entire set. For the Knesset sentences, the review compared each label with the candidate list: of 1,045 mined sentences, 941 were confirmed, 100 were corrected and four were dropped. All 253 Knesset test items come from this pool (221 confirmed, 32 corrected). The 87 Claude-authored items add three sentences each to 29 types whose reviewed Knesset examples all shared one sense. We removed 14 Knesset items from four protocols that also supply training items, so that no test document is shared with train or dev. A single reviewer did the work, so we have no agreement estimate.
 
 \subsection{Separation of the sets}
 \label{sec:separation}
-Preparation checked item identity, target boundaries and candidate structure. These checks show structural validity, not that a label is correct. We split by acronym type. The test set shares no acronym form or sentence string with train or dev, and train and dev share none either. Documents are not fully separated: train and dev share three documents (three train and five dev items), and test shares four Knesset protocols with train (five train and 14 test items). Prefixed variants of one acronym can also fall in different sets: train has \heb{מד״ר} and dev has \heb{בד״ר}. The split therefore does not show generalization to wholly unseen acronym families.
+Preparation checked item identity, target boundaries and candidate structure. These checks show structural validity, not that a label is correct. We split by acronym type. The test set shares no acronym form or sentence string with train or dev, and train and dev share none either. Documents are not fully separated: train and dev share three documents (three train and five dev items), and the test set shares no document with train or dev. Prefixed variants of one acronym can also fall in different sets: train has \heb{מד״ר} and dev has \heb{בד״ר}. The split therefore does not show generalization to wholly unseen acronym families.
 
 % ============================================================
 \section{Systems and Experimental Design}
@@ -214,11 +214,11 @@ The generation prompt, written in Hebrew, asks for the expansion of the marked a
 \label{sec:eval}
 % ============================================================
 \subsection{Scoring}
-All systems are scored on the same 395 items. A selection is correct when the chosen candidate equals the reference expansion. An LLM answer to a selection prompt must be one uppercase letter in the displayed range, and anything else, such as ``A.'', counts as wrong. Generated answers are judged by hand, and valid variants of the same expansion, such as \heb{שקל חדש} and \heb{שקלים חדשים}, count as correct. Accuracy is the share of correct items,
+All systems are scored on the same 381 items. A selection is correct when the chosen candidate equals the reference expansion. An LLM answer to a selection prompt must be one uppercase letter in the displayed range, and anything else, such as ``A.'', counts as wrong. Generated answers are judged by hand, and valid variants of the same expansion, such as \heb{שקל חדש} and \heb{שקלים חדשים}, count as correct. Accuracy is the share of correct items,
 \begin{equation}
 \mathrm{Acc}=\frac{1}{N}\sum_{i=1}^{N}c_i,
 \end{equation}
-where $c_i=1$ if item $i$ is correct and $N=395$. Failed or invalid responses count as wrong and stay in the denominator.
+where $c_i=1$ if item $i$ is correct and $N=381$. Failed or invalid responses count as wrong and stay in the denominator.
 
 \subsection{Reference points and variability}
 % TODO: after Shaked finishes the manual judging, rerun the selection arms a few times with fixed seeds and report the spread; add bootstrap confidence intervals from the per-item results.
@@ -231,7 +231,7 @@ We report four reference points: random choice among the candidates; the candida
 % Skeleton following Vered Shwartz's advice: state the findings first, give results in full
 % and in an easy format, add examples, stay concise, do not oversell, report unflattering results.
 % TODO: every XX below is a manually judged generation score; fill them in and recheck each claim.
-Table~\ref{tab:test-results} and Figure~\ref{fig:arm-comparison} give accuracy for all systems on the 395 test items, and Figure~\ref{fig:generate-vs-select} compares the two formats for each LLM. Three results stand out. Selection beats generation for both LLMs. Fine-tuning improves the encoder. The fine-tuned encoder beats the small LLM, but not the proprietary LLM when that LLM selects from candidates. Sections~\ref{sec:res-formats} to~\ref{sec:res-errors} give the details.
+Table~\ref{tab:test-results} and Figure~\ref{fig:arm-comparison} give accuracy for all systems on the 381 test items, and Figure~\ref{fig:generate-vs-select} compares the two formats for each LLM. Three results stand out. Selection beats generation for both LLMs. Fine-tuning improves the encoder. The fine-tuned encoder beats the small LLM, but not the proprietary LLM when that LLM selects from candidates. Sections~\ref{sec:res-formats} to~\ref{sec:res-errors} give the details.
 
 \begin{table}[t]
 \centering\small
@@ -239,21 +239,21 @@ Table~\ref{tab:test-results} and Figure~\ref{fig:arm-comparison} give accuracy f
 \toprule
 System & Accuracy & Invalid \\
 \midrule
-Random & 23.4\% & -- \\
-Most frequent & 38.2\% & -- \\
-Most mined & 48.9\% & -- \\
+Random & 23.5\% & -- \\
+Most frequent & 37.0\% & -- \\
+Most mined & 48.0\% & -- \\
 Oracle & 100.0\% & -- \\
 \midrule
-DictaBERT (untrained) & 65.1\% & -- \\
-DictaBERT (fine-tuned) & 72.4\% & -- \\
+DictaBERT (untrained) & 64.3\% & -- \\
+DictaBERT (fine-tuned) & 71.7\% & -- \\
 \midrule
 Qwen 2.5 7B, generation & XX\% & XX\% \\
-Qwen 2.5 7B, selection & 59.5\% & 0.8\% \\
+Qwen 2.5 7B, selection & 59.8\% & 0.8\% \\
 Gemini, generation & XX\% & XX\% \\
-Gemini, selection & 93.7\% & 0.5\% \\
+Gemini, selection & 93.4\% & 0.5\% \\
 \bottomrule
 \end{tabular}
-\caption{Test accuracy (395 items). For selection, an invalid answer is not a single valid letter. % TODO: define invalid for judged generation
+\caption{Test accuracy (381 items). For selection, an invalid answer is not a single valid letter. % TODO: define invalid for judged generation
 }
 \label{tab:test-results}
 \end{table}
@@ -276,17 +276,17 @@ Gemini, selection & 93.7\% & 0.5\% \\
 
 \subsection{Generation versus selection}
 \label{sec:res-formats}
-Candidate selection beats free generation for both LLMs. Accuracy rises from XX\% to 59.5\% for Qwen and from XX\% to 93.7\% for Gemini. % TODO: one sentence on why, from the error analysis, e.g. where generated answers go wrong
+Candidate selection beats free generation for both LLMs. Accuracy rises from XX\% to 59.8\% for Qwen and from XX\% to 93.4\% for Gemini. % TODO: one sentence on why, from the error analysis, e.g. where generated answers go wrong
 Because selection is constrained to the inventory, this gain also depends on the inventory containing the right answer, which holds for every test item (the oracle is 100\%).
 
 \subsection{Fine-tuning and the encoder}
 \label{sec:res-encoder}
-Fine-tuning raises the encoder from 65.1\% to 72.4\%, a gain of 7.3 points from fewer than 3,000 training items. The fine-tuned encoder beats Qwen's selection (59.5\%) and Gemini's generation (XX\%). It trails Gemini's selection (93.7\%) by 21.3 points. So a model about 35 times smaller than Qwen can beat Qwen at selection, but it does not match the best system. We ran each system once, so we cannot say how stable the 7.3-point gain is.
+Fine-tuning raises the encoder from 64.3\% to 71.7\%, a gain of 7.4 points from fewer than 3,000 training items. The fine-tuned encoder beats Qwen's selection (59.8\%) and Gemini's generation (XX\%). It trails Gemini's selection (93.4\%) by 21.7 points. So a model about 35 times smaller than Qwen can beat Qwen at selection, but it does not match the best system. We ran each system once, so we cannot say how stable the 7.4-point gain is.
 
 \subsection{Results by kind of sentence}
 \label{sec:res-source}
-% TODO: add a table of accuracy for each system on the 267 Knesset, 41 Wikipedia and 87 Claude-authored items, and one sentence on whether authored items are easier or harder.
-Because 22\% of the test items were written by an LLM, we report accuracy separately for each kind of sentence in Table~\ref{tab:res-source}.
+% TODO: add a table of accuracy for each system on the 253 Knesset, 41 Wikipedia and 87 Claude-authored items, and one sentence on whether authored items are easier or harder.
+Because 23\% of the test items were written by an LLM, we report accuracy separately for each kind of sentence in Table~\ref{tab:res-source}.
 
 \begin{table}[t]
 \centering\small
@@ -297,7 +297,7 @@ System & Knesset & Wikipedia & Authored \\
 % TODO: fill in from the per-item results
 \bottomrule
 \end{tabular}
-\caption{Test accuracy by kind of sentence (267, 41 and 87 items).}
+\caption{Test accuracy by kind of sentence (253, 41 and 87 items).}
 \label{tab:res-source}
 \end{table}
 
@@ -322,7 +322,7 @@ Case & Example \\
 % ============================================================
 \section{Limitations}
 % ============================================================
-\paragraph{Test set.} 87 of the 395 test items (22\%) were written by an LLM, not observed in text, and a single human reviewer checked the labels, so we have no agreement estimate. No acronym form or sentence is shared between the test set and training. Some test acronyms may still be prefixed variants of training acronyms: a rough automatic check flags 15 such pairs, which we have not reviewed. The test set also shares four Knesset protocols with training (five training items and 14 test items), because we split by acronym type and not by document. We did not re-run the systems to measure the effect of this overlap.
+\paragraph{Test set.} 87 of the 381 test items (23\%) were written by an LLM, not observed in text, and a single human reviewer checked the labels, so we have no agreement estimate. No acronym form or sentence is shared between the test set and training. Some test acronyms may still be prefixed variants of training acronyms: a rough automatic check flags 15 such pairs, which we have not reviewed. The test set shares no document with train or dev: we removed 14 Knesset items from four protocols that also supply training items.
 
 \paragraph{Training and development.} Training is mostly substituted Wikipedia sentences and includes LLM-written text, while the test set is mostly natural parliamentary text, so domain, construction and acronym mix differ together. Whether the models saw the test sentences in pretraining is unknown. The development set has only 62 items for 11 types, and it has label defects: one \heb{מט״ח} sentence about the educational technology center is labeled foreign currency. We use it only to choose a checkpoint, but these defects may have affected that choice.
 
