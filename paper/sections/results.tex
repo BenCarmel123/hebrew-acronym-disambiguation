@@ -1,92 +1,77 @@
 \section{Results and Discussion}
 \label{sec:results}
-% Skeleton following Vered Shwartz's advice: state the findings first, give results in full
-% and in an easy format, add examples, stay concise, do not oversell, report unflattering results.
-Table~\ref{tab:test-results} and Figure~\ref{fig:arm-comparison} give accuracy for all systems on the 381 test items, and Figure~\ref{fig:generate-vs-select} compares the two formats for each LLM. Three results stand out. Selection beats generation for every LLM. Fine-tuning improves the encoder. The fine-tuned encoder beats the open LLMs, but not the proprietary LLMs when they select from candidates. Sections~\ref{sec:res-formats} to~\ref{sec:res-errors} give the details.
+Table~\ref{tab:test-results} and Figure~\ref{fig:arm-comparison} support two findings. The task-trained encoder is competitive with the local Qwen models tested here, while the API models obtain higher selection scores. For each of the six LLMs in the main comparison, selection scores exceed generation scores. This second finding depends on both candidate access and the different scoring rules; it does not isolate model ability. DictaLM is reported separately in Table~\ref{tab:dictalm-supplement}.
 
 \begin{table}[t]
 \centering\small
-\begin{tabular}{lrr}
+\begin{tabular}{@{}lrr@{}}
 \toprule
-System & Accuracy & Invalid \\
+System & Generation & Selection \\
 \midrule
-Random & 23.5\% & -- \\
-Most frequent & 37.0\% & -- \\
-Most mined & 48.0\% & -- \\
-Oracle & 100.0\% & -- \\
+Random & -- & 23.5 \\
+Most frequent & -- & 37.0 \\
+Most mined & -- & 48.0 \\
+Oracle & -- & 100.0 \\
 \midrule
-DictaBERT (untrained) & 64.3\% & -- \\
-DictaBERT (fine-tuned) & 71.7\% & -- \\
+DictaBERT similarity & -- & 64.3 \\
+DictaBERT ranker & -- & 71.7 \\
 \midrule
-Qwen 2.5 7B, generation & 8.1\% & 0.3\% \\
-Qwen 2.5 7B, selection & 58.5\% & 0.0\% \\
-Qwen 2.5 14B, generation & 11.5\% & 2.6\% \\
-Qwen 2.5 14B, selection & 69.8\% & 1.8\% \\
-DictaLM 2.0, generation$^{\dagger}$ & 50.7\% & 0.0\% \\
-DictaLM 2.0, selection$^{*}$ & 63.8\% & 0.0\% \\
-\midrule
-Gemini, generation & 54.3\% & 0.5\% \\
-Gemini, selection & 93.7\% & 0.0\% \\
-GPT-4.1 mini, generation & 33.9\% & 0.3\% \\
-GPT-4.1 mini, selection & 83.2\% & 0.0\% \\
-Claude Haiku 5.5, generation & 43.3\% & 0.3\% \\
-Claude Haiku 5.5, selection & 89.0\% & 0.5\% \\
-Grok 4.7, generation & 48.3\% & 0.0\% \\
-Grok 4.7, selection & 92.1\% & 0.3\% \\
+Qwen 2.5 7B & 8.1 & 58.5 \\
+Qwen 2.5 14B & 11.5 & 69.8 \\
+Gemini & 54.3 & 93.7 \\
+GPT-4.1 mini & 33.9 & 83.2 \\
+Claude Haiku 5.5 & 43.3 & 89.0 \\
+Grok 4.7 & 48.3 & 92.1 \\
 \bottomrule
 \end{tabular}
-\caption{Test accuracy (381 items). Scores are automatic, except DictaLM generation (Section~\ref{sec:eval}). For selection, an invalid answer is not a single valid letter; for generation, it is a failed or truncated response. $^{*}$Leading letter read from a letter-plus-candidate answer; 0.0\% under the strict rule. $^{\dagger}$Judged by hand (32.8\% under the automatic rule); all other generation scores are automatic.
-}
+\caption{Automatic test scores (\%), all with denominator 381 including failures. Generation: normalized reference substring. LLM selection: strict candidate label and reference equality. Baselines and encoders: exact candidate match. Similarity uses a pretrained encoder without task adaptation; the ranker is task-trained. Columns have different metrics (Section~\ref{sec:eval}).}
 \label{tab:test-results}
 \end{table}
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{figures/arm_comparison.pdf}
-\caption{Accuracy of all systems on the test set, sorted, with the baselines and the oracle as reference lines. Dark blue: proprietary LLM selection; light blue: open LLM selection; grey: generation. DictaLM selection uses the leading-letter reading and DictaLM generation is judged by hand (Section~\ref{sec:eval}); all other generation scores are automatic.
-}
+\caption{Candidate-selection scores on 381 items. LLM responses require a strict valid label; encoders and baselines are scored by candidate equality. The oracle marks reference availability, not a deployable system.}
 \label{fig:arm-comparison}
 \end{figure}
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{figures/generate_vs_select.pdf}
-\caption{Accuracy under free generation and under candidate selection, for each LLM, open models first. DictaLM selection uses the leading-letter reading and DictaLM generation is judged by hand (Section~\ref{sec:eval}); all other generation scores are automatic.
-}
+\caption{Automatic generation and selection scores for the six main LLMs (381 items each). Both the supplied information and the scoring rule change between tasks, so the gap does not isolate model ability. DictaLM's distinct measurements are in Table~\ref{tab:dictalm-supplement}.}
 \label{fig:generate-vs-select}
 \end{figure}
 
+\subsection{The task-trained encoder}
+\label{sec:res-encoder}
+The fine-tuned encoder reaches 273/381 (71.7\%) in candidate selection, compared with 223/381 (58.5\%) for Qwen 7B and 266/381 (69.8\%) for Qwen 14B. The latter gap is seven items (1.8 percentage points); without repeated runs or an uncertainty estimate it does not establish a stable advantage. The four API models score 317--357/381 (83.2--93.7\%), above the encoder by 11.5--22.0 points. A small task-adapted Hebrew encoder is therefore a competitive option relative to these local Qwen configurations, but does not match the tested API models at selection.
+
+The pretrained similarity baseline scores 245/381 (64.3\%), versus 273/381 for the ranker, a difference of 28 items (7.3 points). This is not an ablation of training: separate context/candidate vectors and cosine similarity are replaced by joint encoding and a learned scoring head. The results do not establish that fine-tuning matters more than size or that Hebrew pretraining caused an advantage. Likewise, the Qwen 7B and 14B runs compare two model configurations, not a controlled intervention on size.
+
 \subsection{Generation versus selection}
 \label{sec:res-formats}
-Candidate selection beats free generation for every LLM. Accuracy rises from 8.1\% to 58.5\% for Qwen 7B, 11.5\% to 69.8\% for Qwen 14B, 50.7\% to 63.8\% for DictaLM (hand-judged generation), 54.3\% to 93.7\% for Gemini, 33.9\% to 83.2\% for GPT-4.1 mini, 43.3\% to 89.0\% for Claude Haiku and 48.3\% to 92.1\% for Grok. % TODO: one sentence on why, from the error analysis, e.g. where generated answers go wrong
-Because selection is constrained to the inventory, this gain also depends on the inventory containing the right answer, which holds for every test item (the oracle is 100\%).
+Selection scores exceed generation scores for every LLM in the main comparison. Qwen 7B rises from 31/381 (8.1\%) to 223/381 (58.5\%), and Qwen 14B from 44/381 (11.5\%) to 266/381 (69.8\%). The corresponding percentages are 54.3 to 93.7 for Gemini, 33.9 to 83.2 for GPT-4.1 mini, 43.3 to 89.0 for Claude Haiku and 48.3 to 92.1 for Grok (Figure~\ref{fig:generate-vs-select}).
 
-\subsection{Fine-tuning and the encoder}
-\label{sec:res-encoder}
-Fine-tuning raises the encoder from 64.3\% to 71.7\%, a gain of 7.3 points from fewer than 3,000 training items. The fine-tuned encoder beats every open LLM selection (at most 69.8\%) and every proprietary generation (at most 54.3\%). It trails the best proprietary selection (93.7\%) by 22.0 points. So a model about 35 times smaller than Qwen 7B can beat Qwen at selection, but it does not match the best system.
-
-Scale alone does not explain these results. Doubling Qwen from 7B to 14B parameters raises selection from 58.5\% to 69.8\% and generation from 8.1\% to 11.5\%, so the extra 7B parameters help, mainly when candidates are given. DictaLM 2.0, a Hebrew-specialised model of 7.25B parameters, roughly 35 times larger than DictaBERT, reaches 63.8\% in selection. That is 7.9 points below the fine-tuned encoder and about the same as the untrained one (64.3\%). Hebrew pretraining therefore gives DictaLM the strongest open-model generation (50.7\%, judged by hand and so not strictly comparable with the automatic scores of the other models; 32.8\% under the automatic rule), but task-specific fine-tuning on fewer than 3,000 items matters more for selection than an LLM's size or Hebrew specialisation. We ran each system once, so we cannot say how stable these gains are, and the half-point gap between DictaLM and the untrained encoder is not meaningful.
+Because selection is constrained to the inventory, this comparison depends on the inventory containing the reference, which holds for every test item (the oracle is 100\%). Generation must produce an expansion without that help and is checked by string inclusion, whereas selection must return a valid label. The observed gap describes these task and measurement configurations together. It does not measure the gain from candidates alone or a difference in semantic understanding under a common metric.
 
 \subsection{Results by kind of sentence}
 \label{sec:res-source}
-Because 23\% of the test items were written by an LLM, we report accuracy separately for each kind of sentence in Table~\ref{tab:res-source}. Natural Wikipedia items are the easiest for most systems. Authored items are not consistently easier or harder than Knesset items: they score lower for nine of the 14 LLM arms, and higher for the other five and for both encoders.
+Because 87 of the test items were written by an LLM, Table~\ref{tab:res-source} separates the three sentence sources. The overall difference between similarity and the trained encoder is concentrated in Knesset items: 146 to 177 correct out of 253. It is 31 to 30 out of 41 for Wikipedia and 68 to 66 out of 87 for authored sentences. This limits generalization of the aggregate improvement. The groups also differ in acronym and sentence composition, so the differences do not identify an effect of source.
 
 \begin{table}[t]
 \centering\small
-\begin{tabular}{lrrr}
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}lrrr@{}}
 \toprule
 System & Knesset & Wikipedia & Authored \\
 \midrule
-DictaBERT (untrained) & 57.7 & 75.6 & 78.2 \\
-DictaBERT (fine-tuned) & 70.0 & 73.2 & 75.9 \\
+DictaBERT similarity & 57.7 & 75.6 & 78.2 \\
+DictaBERT ranker & 70.0 & 73.2 & 75.9 \\
 \midrule
 Qwen 7B, gen. & 8.7 & 12.2 & 4.6 \\
 Qwen 7B, sel. & 54.5 & 70.7 & 64.4 \\
 Qwen 14B, gen. & 13.0 & 17.1 & 4.6 \\
 Qwen 14B, sel. & 65.6 & 78.0 & 78.2 \\
-DictaLM 2.0, gen.$^{\dagger}$ & 53.4 & 73.2 & 32.2 \\
-DictaLM 2.0, sel. & 64.4 & 75.6 & 56.3 \\
-\midrule
 Gemini, gen. & 47.8 & 78.0 & 62.1 \\
 Gemini, sel. & 94.9 & 95.1 & 89.7 \\
 GPT-4.1 mini, gen. & 32.8 & 51.2 & 28.7 \\
@@ -97,32 +82,60 @@ Grok, gen. & 44.3 & 68.3 & 50.6 \\
 Grok, sel. & 94.1 & 95.1 & 85.1 \\
 \bottomrule
 \end{tabular}
-\caption{Test accuracy (\%) by kind of sentence (253, 41 and 87 items). Automatic, except $^{\dagger}$ hand-judged.}
+\caption{Automatic scores (\%) by source, with denominators 253, 41 and 87. Generation uses normalized reference substring; LLM selection uses strict labels; encoders use candidate equality. No manual or lenient scores are mixed in.}
 \label{tab:res-source}
+\end{table}
+
+\subsection{DictaLM and measurement}
+\label{sec:res-measurement}
+The separate DictaLM results show why the scoring distinction matters (Table~\ref{tab:dictalm-supplement}). Automatic generation accepts 125 responses and Ben accepts 193. They agree on 121 accepted responses; 72 are accepted only by Ben, four only automatically and 184 by neither. Thus the annotation identifies disagreement with the string rule in both directions, without establishing a uniform semantic metric for the other models.
+
+All 381 selection responses fail strict label-only decoding. Reading a leading label yields 243 reference matches, but this is a diagnostic of saved responses, not a replacement result. The template mismatch described in Section~\ref{sec:eval} further limits comparison; we cannot attribute the behavior to that mismatch or to Hebrew specialization.
+
+\begin{table}[t]
+\centering\small
+\begin{tabular}{@{}lrr@{}}
+\toprule
+DictaLM measurement & Count & \% \\
+\midrule
+Generation: automatic & 125/381 & 32.8 \\
+Generation: Ben's labels & 193/381 & 50.7 \\
+Selection: strict & 0/381 & 0.0 \\
+Selection: leading label & 243/381 & 63.8 \\
+\bottomrule
+\end{tabular}
+\caption{Supplementary DictaLM results, without a common ranking. The last row is a lenient diagnostic; Ben's labels are a separate annotation layer with an incompletely documented rule. The saved input template omits a publisher-specified newline, whose effect is unknown.}
+\label{tab:dictalm-supplement}
 \end{table}
 
 \subsection{Examples and errors}
 \label{sec:res-errors}
-% TODO: add three to five short examples in a table: a generated answer judged correct as a variant (\heb{שקל חדש} vs \heb{שקלים חדשים}), a generated answer judged wrong, a selection error by a proprietary LLM, and a selection error by the encoder.
-Table~\ref{tab:res-examples} shows examples of correct variants and of errors.
+Table~\ref{tab:res-examples} illustrates a string mismatch, a strict-format failure and an encoder error using saved responses. These examples explain scoring behavior; they are not a new annotation sample or an estimate of error prevalence.
 
 \begin{table}[t]
 \centering\small
-\begin{tabular}{p{0.2\columnwidth}p{0.7\columnwidth}}
+\begin{tabular}{@{}p{0.24\columnwidth}p{0.68\columnwidth}@{}}
 \toprule
-Case & Example \\
+Item / system & Saved evidence \\
 \midrule
-% TODO
+\texttt{kn-0002}\newline DictaLM &
+Context excerpt: \heb{עודף של 650 מיליון ש"ח.}\newline
+Reference: \heb{שקל חדש} (new shekel).\newline
+Generation: \heb{ש"ח = שקלים חדשים.}\newline
+Automatic: no; Ben: yes.\newline
+Selection: \texttt{C.} \heb{שקל חדש}. Strict: no; leading-label diagnostic: yes. \\
+\midrule
+\texttt{kn4-0048}\newline DictaBERT ranker &
+Context excerpt: \heb{18 תומכים, ח"י תומכים}\newline
+Reference: \heb{שמונה עשרה בגימטריה} (eighteen in gematria).\newline
+Selected: \heb{חוק יסוד} (Basic Law).\newline
+Exact candidate match: no. \\
 \bottomrule
 \end{tabular}
-\caption{Examples of generated answers and selection errors.}
+\caption{Two Knesset items, identified by stored item ID. Excerpts preserve the target and local context. Responses and decisions come from the identified exports: DictaLM run \texttt{c6cc64b4\ldots}, Ben's bound labels, and encoder run \texttt{dictabert-test-20261009-f49c3b5}. Boundary whitespace is omitted.}
 \label{tab:res-examples}
 \end{table}
 
 \subsection{Conclusions}
 \label{sec:conclusions}
-We draw three conclusions. First, a small encoder fine-tuned on little data can beat a much larger LLM that is not fine-tuned. DictaBERT, with about 0.2B parameters and fewer than 3,000 mostly weakly labeled training items, reaches 71.7\% in selection, above the Hebrew-specialised DictaLM 2.0 (7.25B, 63.8\%) and both Qwen models. Fine-tuning adds 7.3 points over the untrained encoder, and earlier development runs showed gains in the same direction. A larger or cleaner training set would likely help further; we leave this to future work. The proprietary LLMs still lead the encoder by 11.5 to 22.0 points.
-
-Second, choosing from candidates beats writing the expansion freely. Selection beats generation for all seven LLMs, by 13.1 points for DictaLM to 58.3 points for Qwen 14B. This assumes that the inventory contains the right answer, as it does for every test item.
-
-Third, automatic scoring underrates free generation. Judged by hand, DictaLM's generation rises from 32.8\% to 50.7\%, moving it from below GPT-4.1 mini to above Grok. In the partial review of the other systems, 338 of 674 reviewed answers that the automatic rule marked wrong were judged correct. How generation is judged therefore changes which models look better, and the other generation scores, which remain automatic, are likely underestimates.
+We draw two conclusions. First, the task-trained encoder is competitive with the tested local Qwen models on candidate selection, while the API models score higher. The comparison supports this practical observation without isolating training, architecture or model size. Second, selection scores exceed generation scores for the six main LLMs under the evaluated configurations. Candidate access and scoring differ together, so this is not an isolated measure of model ability. The DictaLM annotation and decoding diagnostics illustrate why these measurements must be interpreted separately.

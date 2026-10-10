@@ -1,7 +1,7 @@
 \section{Task and Data}
 \label{sec:data}
 \subsection{The unit of prediction}
-Each item $i$ has the six elements listed in Table~\ref{tab:notation}. The span identifies one occurrence even when the sentence contains several abbreviations. We keep $r_i=x_i[s_i]$, including any attached prefix, and mark the span with \texttt{[ACR]} and \texttt{[/ACR]}.
+Each item $i$ has the six elements listed in Table~\ref{tab:notation}. The span identifies one occurrence even when the sentence contains several abbreviations. For span-based encoder inputs, $r_i=x_i[s_i]$ and the span is marked with \texttt{[ACR]} and \texttt{[/ACR]}. In the saved test inference, the span is derived automatically; LLM prompts instead name the acronym alongside the original sentence (Section~\ref{sec:systems}).
 
 \begin{table}[!htbp]
 \centering\small
@@ -9,10 +9,10 @@ Each item $i$ has the six elements listed in Table~\ref{tab:notation}. The span 
 \toprule
 Symbol & Meaning \\
 \midrule
-$a_i$ & Acronym type, used only for grouping, never as model input \\
+$a_i$ & Acronym type; also named in the LLM prompt \\
 $x_i$ & Sentence \\
 $s_i$ & Half-open character span of the target in $x_i$ \\
-$r_i$ & Raw target text, $x_i[s_i]$, with any attached prefix \\
+$r_i$ & Raw target text, $x_i[s_i]$ \\
 $C_i$ & Candidate expansions (the inventory) \\
 $y_i$ & Reference expansion \\
 \bottomrule
@@ -21,13 +21,16 @@ $y_i$ & Reference expansion \\
 \label{tab:notation}
 \end{table}
 
-Generation predicts an expansion from $(x_i,s_i,r_i)$, without candidates. Selection picks one member of $C_i$ for the same marked sentence. Both are compared with the reference $y_i$, which is also the training label. The intended answer is a true expansion of the acronym, not just a description of what it refers to.
+Generation predicts an expansion from sentence context and target information, without candidates. Selection picks one member of $C_i$ for the same item. Both are compared with the reference $y_i$, which is also the training label. The intended answer is a true expansion of the acronym, not just a description of what it refers to.
 
 Formally, the two formats differ in their output space:
 \begin{equation}
-\hat{y}^{\mathrm{gen}}=f(x,s)\in\Sigma^{*},\; \hat{y}^{\mathrm{sel}}=\operatorname*{arg\,max}_{c\in C}\mathrm{score}(x,s,c),
+\begin{aligned}
+\hat{y}^{\mathrm{gen}}&=f(x,t)\in\Sigma^{*},\\
+\hat{y}^{\mathrm{sel}}&=\operatorname*{arg\,max}_{c\in C}\mathrm{score}(x,t,c),
+\end{aligned}
 \end{equation}
-where $\Sigma^{*}$ is the set of all Hebrew strings, so generation may return any string, while selection returns one candidate in $C$.
+where $t$ denotes the target information and $\Sigma^{*}$ is the set of text strings, so generation may return any string, while selection returns one candidate in $C$.
 
 Table~\ref{tab:example} illustrates the interface with a constructed example, not a dataset item.
 \begin{table}[t]
@@ -37,10 +40,10 @@ Table~\ref{tab:example} illustrates the interface with a constructed example, no
 Sentence & \heb{ח״כ נשא נאום במליאה.} \\
 Target & \heb{ח״כ} (the first token) \\
 Generation & A short expansion, e.g.\ \heb{חבר כנסת} \\
-Selection & A letter assigned to one supplied candidate \\
+Selection & A label assigned to one supplied candidate \\
 \bottomrule
 \end{tabular}
-\caption{Illustrative input and answer formats. The sentence means ``A member of parliament gave a speech in the plenum.'' The target is shown separately here for readability; both tasks receive it marked inside the sentence. The example makes no claim about system accuracy.}
+\caption{Illustrative input and answer formats. The sentence means ``A member of parliament gave a speech in the plenum.'' The LLM prompts name the target separately; the encoder marks its span. The example makes no claim about system accuracy.}
 \label{tab:example}
 \end{table}
 
@@ -72,9 +75,9 @@ Claude-authored & 136 & 0 & 87 \\
 \label{tab:data}
 \end{table}
 
-\paragraph{Train.} The encoder trains on 2,829 items, which give 12,684 sentence--candidate pairs. Most items are substituted, so most labels are weak. Stored labels were reused without comprehensive reannotation.
+\paragraph{Train.} The current encoder training file contains 2,829 items, which give 12,684 sentence--candidate pairs. Its exact identity at historical training time is not recovered. Most items are substituted, so most labels are weak. Stored labels were reused without comprehensive reannotation.
 
-\paragraph{Development.} Development holds 62 natural Knesset items for 11 types, and we use it only to select the encoder checkpoint. Of its labels, 42 reuse an earlier human review of the same sentence, and 20 are AI-assisted author decisions, so this is not independent annotation.
+\paragraph{Development.} The research development set holds 62 natural Knesset items for 11 types and supports encoder checkpoint selection and development comparisons. It is distinct from the collection pilot: the first ten of 289 items in the saved execution dev file. Neither is the 381-item test cohort. Of its labels, 42 reuse an earlier human review of the same sentence, and 20 are AI-assisted author decisions, so this is not independent annotation.
 
 \paragraph{Test.} The test set has 381 items for 60 types, and a human reviewer went over the entire set. For the Knesset sentences, the review compared each label with the candidate list: of 1,045 mined sentences, 941 were confirmed, 100 were corrected and four were dropped. All 253 Knesset test items come from this pool (221 confirmed, 32 corrected). The 87 Claude-authored items add three sentences each to 29 types whose reviewed Knesset examples all shared one sense. We removed 14 Knesset items from four protocols that also supply training items, so that no test document is shared with train or dev. A single reviewer did the work, so we have no agreement estimate.
 
