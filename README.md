@@ -53,8 +53,11 @@ neither API accounts nor weights. The optional development demonstration is disa
 and contributes no test observations.
 
 The test analysis preserves separate collection runs and full 381-item denominators,
-including technical failures. Gemini has a development pilot but no test result in
-this release. Human semantic review is pending; automatic scores do not replace it.
+including technical failures. Gemini now includes all 381 items in both tasks:
+357/381 selection and 207/381 generation under the existing automatic rules,
+with two truncated generation responses retained. Its separate
+[review add-on](saved-results/human-review-gemini381-20261010/README.md) is prepared
+but inactive. Human semantic review is incomplete; automatic scores do not replace it.
 Earlier measurements under [results/](results/test_results.md) remain historical
 sources and are not silently pooled with the identified collection.
 

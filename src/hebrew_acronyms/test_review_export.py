@@ -19,7 +19,7 @@ def digest(value):
                                     separators=(",", ":")).encode()).hexdigest()
 
 
-def export_review(run_sources, output_path):
+def export_review(run_sources, output_path, *, source_root=None):
     """Write a fresh immutable input bundle for (directory, expected run ID) pairs."""
     output_path = Path(output_path)
     if output_path.exists():
@@ -46,7 +46,8 @@ def export_review(run_sources, output_path):
                             'task': 'generation' if task == 'generate' else 'selection',
                             'response_type': 'text' if task == 'generate' else 'letter'})
         for path in [directory / 'manifest.json', *sorted(directory.glob('attempts*.jsonl'))]:
-            sources.append({'path': str(path.resolve()), 'sha256': hashlib.sha256(path.read_bytes()).hexdigest(),
+            source_path = path.resolve().relative_to(Path(source_root).resolve()) if source_root else path.resolve()
+            sources.append({'path': str(source_path), 'sha256': hashlib.sha256(path.read_bytes()).hexdigest(),
                             'bytes': path.stat().st_size})
         for record in summary['records']:
             # Items that share a document with training are never scored, so never queued.
@@ -70,7 +71,9 @@ def export_review(run_sources, output_path):
                       'status': record['status'], 'technical_failure': technical,
                       'auto_score': record['correct'], 'auto_valid': record['valid'],
                       'auto_score_rule': 'historical_quote_normalized_gold_substring' if not shown else 'strict_candidate_label_v1',
-                      'mechanical_flags': flags, 'source_file': str(directory / 'attempts.jsonl'),
+                      'mechanical_flags': flags,
+                      'source_file': str((directory / 'attempts.jsonl').resolve().relative_to(Path(source_root).resolve()))
+                                     if source_root else str(directory / 'attempts.jsonl'),
                       'binding': binding, 'prompt_sha256': record['prompt_sha256']}
             spans = [{'start': m.start(), 'end': m.end()} for m in re.finditer(
                 re.escape(row['acronym'].translate(QUOTES)), row['sentence'].translate(QUOTES))]
