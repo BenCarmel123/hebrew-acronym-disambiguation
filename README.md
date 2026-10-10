@@ -36,9 +36,9 @@ DictaLM, a Hebrew-specialised LLM, runs locally without fine-tuning; see the
 [local DictaLM run](docs/reproducible_evaluation.md#local-dictalm-run). Exact model IDs,
 settings, returned versions and response usage are recorded in each run.
 
-Encoder comparisons distinguish trained DictaBERT candidate scoring from an
-untrained DictaBERT similarity baseline. Four deterministic baselines are also
-available. The [checkpoint documentation](docs/checkpoints.md) records loading
+Encoder comparisons distinguish trained DictaBERT candidate scoring from a
+pretrained DictaBERT similarity baseline without task adaptation. Four deterministic
+baselines are also available. The [checkpoint documentation](docs/checkpoints.md) records loading
 requirements and the existing weights' incomplete training provenance. The new
 checkpoint inference uses an explicitly recorded first-occurrence target
 policy; these derived spans are not human annotations.
@@ -78,7 +78,8 @@ include the source commit, hash, raw-response binding and partially documented r
 The saved chat template omits the publisher-specified newline; its causal effect is
 unknown. The zero local API increment does not prevent reporting results: cumulative
 accounted expenditure remains 23.1276784 ILS and historical manifests remain intact.
-Paper presentation awaits Shaked's decision.
+The paper reports these four measurements in a separate supplementary table,
+without a common ranking.
 
 [Metric coverage](results/submission-20261010/metric_coverage.csv) separates technical
 failures, stored format validity and automatic matches; human judgments are separate.
