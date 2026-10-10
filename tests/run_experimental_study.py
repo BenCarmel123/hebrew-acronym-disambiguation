@@ -62,7 +62,8 @@ def execute(controls=None, *, qwen_failure=False, gemini_failure=False):
     from hebrew_acronyms.models.dictabert_cross_encoder import model, eval as encoder_eval
     from hebrew_acronyms.models.qwen import eval as qwen_eval
     from hebrew_acronyms.models.gemini import eval as gemini_eval
-    namespace = {"__name__": "__main__"}
+    # Research result loading is covered separately; this harness uses only invented inputs.
+    namespace = {"__name__": "__main__", "RUN_SAVED_TEST_ANALYSIS": False, "RUN_DEVELOPMENT_APPENDIX": True}
     notebook = json.loads((ROOT / "notebooks/experimental_study.ipynb").read_text())
     display_module = SimpleNamespace(HTML=lambda value: value, display=lambda value: None)
     def fake_load(checkpoint, **kwargs):

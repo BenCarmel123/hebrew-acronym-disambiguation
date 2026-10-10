@@ -1,0 +1,276 @@
+{
+  "format_version": 1,
+  "description": "Immutable analysis inputs copied byte-for-byte; original paths are provenance, not runtime dependencies.",
+  "files": {
+    "colab-runs/evaluation-20261009-a319f9d/extracted/session.json": {
+      "sha256": "119213642d94e7a803e01a2fe217eb56ef2db8462f6ff51448c2536147a29765",
+      "bytes": 7594,
+      "original_artifact": "colab-runs/evaluation-20261009-a319f9d/extracted/session.json"
+    },
+    "colab-runs/evaluation-20261009-a319f9d/extracted/gemini/dev-pilot/manifest.json": {
+      "sha256": "8256ef18ec6705c515456534fbe31897fe913d9efee88b489518ffd8afa6c142",
+      "bytes": 29083,
+      "original_artifact": "colab-runs/evaluation-20261009-a319f9d/extracted/gemini/dev-pilot/manifest.json"
+    },
+    "colab-runs/evaluation-20261009-a319f9d/extracted/qwen/full-test/manifest.json": {
+      "sha256": "3b683decbdcd4ca2dcf5ac0119a1aaafca040635e1ade06cd60654a0170b3d57",
+      "bytes": 920134,
+      "original_artifact": "colab-runs/evaluation-20261009-a319f9d/extracted/qwen/full-test/manifest.json"
+    },
+    "colab-runs/evaluation-20261009-a319f9d/extracted/qwen/dev-pilot/manifest.json": {
+      "sha256": "27bf63352e26f1286db7841de03b28025d1b1862b5dae0e1e74cad4130336fbf",
+      "bytes": 32200,
+      "original_artifact": "colab-runs/evaluation-20261009-a319f9d/extracted/qwen/dev-pilot/manifest.json"
+    },
+    "colab-runs/evaluation-20261009-a319f9d/extracted/anthropic/full-test/manifest.json": {
+      "sha256": "0ef81d47b1aba6ad427e9f9ea82ad8a26d9cc08d79ad9993acb29364c93d46d9",
+      "bytes": 920904,
+      "original_artifact": "colab-runs/evaluation-20261009-a319f9d/extracted/anthropic/full-test/manifest.json"
+    },
+    "colab-runs/evaluation-20261009-a319f9d/extracted/anthropic/dev-pilot/manifest.json": {
+      "sha256": "2c427e34c5e5303cdb8756acc509bd63142734d38509db8d6a3cfa9bcd9f941c",
+      "bytes": 29120,
+      "original_artifact": "colab-runs/evaluation-20261009-a319f9d/extracted/anthropic/dev-pilot/manifest.json"
+    },
+    "colab-runs/evaluation-20261009-a319f9d/extracted/openai/full-test/manifest.json": {
+      "sha256": "b0d8a478f12596228bdb4b7c5661033c9b4625858471208d261af21cc2cba65d",
+      "bytes": 918529,
+      "original_artifact": "colab-runs/evaluation-20261009-a319f9d/extracted/openai/full-test/manifest.json"
+    },
+    "colab-runs/evaluation-20261009-a319f9d/extracted/openai/dev-pilot/manifest.json": {
+      "sha256": "063c73b34b7bb038663911442b456904a33e22471219a770224fafe06408e66d",
+      "bytes": 29055,
+      "original_artifact": "colab-runs/evaluation-20261009-a319f9d/extracted/openai/dev-pilot/manifest.json"
+    },
+    "colab-runs/evaluation-20261009-a319f9d/extracted/openai/full-test/attempts.jsonl": {
+      "sha256": "826506ed1cc399ca9a8122b9ffed9fca7a4e27873bc05ce2cf9ea23a2e38c54f",
+      "bytes": 1886200,
+      "original_artifact": "colab-runs/evaluation-20261009-a319f9d/extracted/openai/full-test/attempts.jsonl"
+    },
+    "colab-runs/evaluation-20261009-a319f9d/extracted/openai/dev-pilot/attempts.jsonl": {
+      "sha256": "7bb002168d33e98bde60af026ae97090dbfe3490c5c12529fd499c85ffeb20f2",
+      "bytes": 47060,
+      "original_artifact": "colab-runs/evaluation-20261009-a319f9d/extracted/openai/dev-pilot/attempts.jsonl"
+    },
+    "colab-runs/evaluation-20261009-a319f9d/extracted/anthropic/full-test/attempts.jsonl": {
+      "sha256": "be6c5fd9b6082d79bae518eb3827d37afd8a164d357f0c6456ae061becf1b7f4",
+      "bytes": 1939479,
+      "original_artifact": "colab-runs/evaluation-20261009-a319f9d/extracted/anthropic/full-test/attempts.jsonl"
+    },
+    "colab-runs/evaluation-20261009-a319f9d/extracted/anthropic/dev-pilot/attempts.jsonl": {
+      "sha256": "d51d0e11fa0b4802184ee22db9d893e4e71d4c34b40b0fed4889caf1ec5ec132",
+      "bytes": 47806,
+      "original_artifact": "colab-runs/evaluation-20261009-a319f9d/extracted/anthropic/dev-pilot/attempts.jsonl"
+    },
+    "colab-runs/evaluation-20261009-a319f9d/extracted/qwen/full-test/attempts.jsonl": {
+      "sha256": "c24b93d76a9a50aee39335fe73ce65aaa54b85177e553d5e4bf147b50cf8ea39",
+      "bytes": 1966828,
+      "original_artifact": "colab-runs/evaluation-20261009-a319f9d/extracted/qwen/full-test/attempts.jsonl"
+    },
+    "colab-runs/evaluation-20261009-a319f9d/extracted/qwen/dev-pilot/attempts.jsonl": {
+      "sha256": "ad809d99874616353116a25a7d5bf4112b52635951e9044aa06709e51503fc3c",
+      "bytes": 49235,
+      "original_artifact": "colab-runs/evaluation-20261009-a319f9d/extracted/qwen/dev-pilot/attempts.jsonl"
+    },
+    "colab-runs/evaluation-20261009-a319f9d/extracted/gemini/dev-pilot/attempts.jsonl": {
+      "sha256": "148e7c6a58203ba349a49476031667f1c86459af540ca770f5af56428a4b7374",
+      "bytes": 12224,
+      "original_artifact": "colab-runs/evaluation-20261009-a319f9d/extracted/gemini/dev-pilot/attempts.jsonl"
+    },
+    "colab-runs/evaluation-20261009-a319f9d/extracted/baselines/baselines.json": {
+      "sha256": "31b1f89cfecf322ec727a4d298291e7eb445766e270b55dc56606c2f8c30ef85",
+      "bytes": 159088,
+      "original_artifact": "colab-runs/evaluation-20261009-a319f9d/extracted/baselines/baselines.json"
+    },
+    "collection-notebooks/evaluation-20261009-a319f9d/run_test_eval_colab_executed_snapshot.ipynb": {
+      "sha256": "63c546ed0995c4a49f1522c6210acb05dafca984b6783ed8a317ffe01d83a5c9",
+      "bytes": 221360,
+      "original_artifact": "colab-runs/evaluation-20261009-a319f9d/run_test_eval_colab_executed_snapshot.ipynb"
+    },
+    "colab-runs/evaluation-gemini-retry-20261009-a319f9d/extracted/session.json": {
+      "sha256": "e7fcf89301d1438e2c51d067b74e5dd3293d34e75429ee3b04a0eed5c8ee4fba",
+      "bytes": 7600,
+      "original_artifact": "colab-runs/evaluation-gemini-retry-20261009-a319f9d/extracted/session.json"
+    },
+    "colab-runs/evaluation-gemini-retry-20261009-a319f9d/extracted/gemini/dev-pilot/manifest.json": {
+      "sha256": "ec060ced796635e7deab53d9b1df32333c13e2511f86c091bda37681a0250ea3",
+      "bytes": 29090,
+      "original_artifact": "colab-runs/evaluation-gemini-retry-20261009-a319f9d/extracted/gemini/dev-pilot/manifest.json"
+    },
+    "colab-runs/evaluation-gemini-retry-20261009-a319f9d/extracted/gemini/dev-pilot/attempts.jsonl": {
+      "sha256": "8fa053f3053ce7926bf07c3233c5868afade6dba2988d0477ca7e4732cde04fe",
+      "bytes": 52882,
+      "original_artifact": "colab-runs/evaluation-gemini-retry-20261009-a319f9d/extracted/gemini/dev-pilot/attempts.jsonl"
+    },
+    "collection-notebooks/evaluation-gemini-retry-20261009-a319f9d/run_test_eval_gemini_retry_20261009.ipynb": {
+      "sha256": "96d0752703ae78bbc25d8f50ba0104cdd64d152fe3aee16fe27bc4e5d82c9b6b",
+      "bytes": 94104,
+      "original_artifact": "colab-runs/evaluation-gemini-retry-20261009-a319f9d/run_test_eval_gemini_retry_20261009.ipynb"
+    },
+    "colab-runs/evaluation-xai-qwen14-20261009-64f47b7/extracted/session.json": {
+      "sha256": "edd1d74c19c92008a2e58e878cc96de9f75d783bb7b88aca52b9a2ecc89fb752",
+      "bytes": 7986,
+      "original_artifact": "colab-runs/evaluation-xai-qwen14-20261009-64f47b7/extracted/session.json"
+    },
+    "colab-runs/evaluation-xai-qwen14-20261009-64f47b7/extracted/xai/dev-pilot/manifest.json": {
+      "sha256": "b8514edbac8c299052e0770400fecd50dc37281c22316a5e9ebd65405e0f1797",
+      "bytes": 29236,
+      "original_artifact": "colab-runs/evaluation-xai-qwen14-20261009-64f47b7/extracted/xai/dev-pilot/manifest.json"
+    },
+    "colab-runs/evaluation-xai-qwen14-20261009-64f47b7/extracted/qwen14/dev-pilot/manifest.json": {
+      "sha256": "72be5b17e90c6d0601eef694c7ab487ff3fafcb114fd7958895deed87ed667b7",
+      "bytes": 32535,
+      "original_artifact": "colab-runs/evaluation-xai-qwen14-20261009-64f47b7/extracted/qwen14/dev-pilot/manifest.json"
+    },
+    "colab-runs/evaluation-xai-qwen14-20261009-64f47b7/extracted/qwen14/dev-pilot/attempts.jsonl": {
+      "sha256": "26f0be5e5ae30b235acd9d923b7adb9c7151d35a87366b94711324d9f44aa51e",
+      "bytes": 49908,
+      "original_artifact": "colab-runs/evaluation-xai-qwen14-20261009-64f47b7/extracted/qwen14/dev-pilot/attempts.jsonl"
+    },
+    "colab-runs/evaluation-xai-qwen14-20261009-64f47b7/extracted/xai/dev-pilot/attempts.jsonl": {
+      "sha256": "765d284269e13a1178592bad1aea7c102811163d423f7c037686debd3b8d9c1a",
+      "bytes": 39536,
+      "original_artifact": "colab-runs/evaluation-xai-qwen14-20261009-64f47b7/extracted/xai/dev-pilot/attempts.jsonl"
+    },
+    "collection-notebooks/evaluation-xai-qwen14-20261009-64f47b7/executed-notebook.ipynb": {
+      "sha256": "89417f708ebb61b5d86cd176d47cdd9e467e408107bfa03f6d20a2e6f1724d58",
+      "bytes": 153371,
+      "original_artifact": "colab-runs/evaluation-xai-qwen14-20261009-64f47b7/executed-notebook.ipynb"
+    },
+    "collection-notebooks/evaluation-xai-qwen14-20261009-e9c8ef7/qwen-full-executed.ipynb": {
+      "sha256": "b60a3d4021061f47526e9bd9b7e2721d56f5e6bf49d399dc1a308e5be36de220",
+      "bytes": 157762,
+      "original_artifact": "colab-runs/evaluation-xai-qwen14-20261009-e9c8ef7/qwen-full-executed.ipynb"
+    },
+    "colab-runs/evaluation-xai-qwen14-20261009-64f47b7/diagnostic/extracted/recovered-finish.json": {
+      "sha256": "6b3e9430e2b9f9b5f0fb298b87447b48f4eefa8fb7c659a1b7981602297deb77",
+      "bytes": 805,
+      "original_artifact": "colab-runs/evaluation-xai-qwen14-20261009-64f47b7/diagnostic/extracted/recovered-finish.json"
+    },
+    "colab-runs/evaluation-xai-qwen14-20261009-64f47b7/diagnostic/extracted/diagnostic.jsonl": {
+      "sha256": "e1436f143f73d846412d48f537cb8592afe1332de2879feba7f1572aae931d28",
+      "bytes": 306,
+      "original_artifact": "colab-runs/evaluation-xai-qwen14-20261009-64f47b7/diagnostic/extracted/diagnostic.jsonl"
+    },
+    "study-runs/dictabert-test-20261009-f49c3b5/summary.json": {
+      "sha256": "841f25fe9dc04e574a74820722064c324264e8529f3a94a66055fda8a34a1dc5",
+      "bytes": 675,
+      "original_artifact": "study-runs/dictabert-test-20261009-f49c3b5/summary.json"
+    },
+    "study-runs/dictabert-test-20261009-f49c3b5/predictions.jsonl": {
+      "sha256": "51050d90e9067c50077f14cea660c3a4ceee761044f514665ad1066cd80187b8",
+      "bytes": 253013,
+      "original_artifact": "study-runs/dictabert-test-20261009-f49c3b5/predictions.jsonl"
+    },
+    "study-runs/dictabert-test-20261009-f49c3b5/historical-comparison.json": {
+      "sha256": "48b576ca6986a1a0dc09820f047abb28409a764ff5618241a9e570860090b099",
+      "bytes": 575,
+      "original_artifact": "study-runs/dictabert-test-20261009-f49c3b5/historical-comparison.json"
+    },
+    "study-runs/dictabert-test-20261009-f49c3b5/checkpoint-reconstruction.json": {
+      "sha256": "4c9b5c12f4f62043f7525c4ab9a7dd0f5778e924fb9097349aa6803bf0e57cc6",
+      "bytes": 2307,
+      "original_artifact": "study-runs/dictabert-test-20261009-f49c3b5/checkpoint-reconstruction.json"
+    },
+    "study-runs/dictabert-test-20261009-f49c3b5/inputs.json": {
+      "sha256": "daf815d7136697562d5e46b8eaac2d12e1af627a53ac4aef9fbb9ebe9b42606a",
+      "bytes": 337928,
+      "original_artifact": "study-runs/dictabert-test-20261009-f49c3b5/inputs.json"
+    },
+    "study-runs/dictabert-test-20261009-f49c3b5/validation.json": {
+      "sha256": "46c595f81768613c596ea52ff2e8358a0ff1e5d54b23494fba4a2ce39f6dd8b5",
+      "bytes": 66,
+      "original_artifact": "study-runs/dictabert-test-20261009-f49c3b5/validation.json"
+    },
+    "study-runs/dictabert-test-20261009-f49c3b5/manifest.json": {
+      "sha256": "1d6a006ef823b694200618dc4560f0f93199e5d02ee479f9692a4a6f0954b7e3",
+      "bytes": 6433,
+      "original_artifact": "study-runs/dictabert-test-20261009-f49c3b5/manifest.json"
+    },
+    "human-review-test-20261009/review-data.json": {
+      "sha256": "1c48b97c8a8fbbbd86537dc42964fdfb6265473179121c13d6410377994ae705",
+      "bytes": 9304502,
+      "original_artifact": "human-review-test-20261009/review-data.json"
+    },
+    "human-review-dictabert-test-20261009/review-data.json": {
+      "sha256": "acaea220f1c2a6b0c0e3fbdd2e9a3742e70c9dff907761cabd46c0d077467789",
+      "bytes": 1351948,
+      "original_artifact": "human-review-dictabert-test-20261009/review-data.json"
+    },
+    "human-review-qwen14-test-20261009/review-data.json": {
+      "sha256": "1f32d180e52b9b7470a1482bc6ca37d7b4e45b83ca1b99c633adc574e30c8512",
+      "bytes": 3237847,
+      "original_artifact": "human-review-qwen14-test-20261009/review-data.json"
+    },
+    "encoder-test-inputs-20261009/test-legacy-first-occurrence.csv": {
+      "sha256": "bb81dc88da77368b50a0b532bcfba241d97da92b03697b1de9ac1a0c21204cb9",
+      "bytes": 209138,
+      "original_artifact": "encoder-test-inputs-20261009/test-legacy-first-occurrence.csv"
+    },
+    "encoder-test-inputs-20261009/legacy-first-occurrence-policy.json": {
+      "sha256": "4fe98dcf6138498a9f6fc93f9d07ade43921a93eb3d91aa9f1f39ae57b962ba8",
+      "bytes": 667,
+      "original_artifact": "encoder-test-inputs-20261009/legacy-first-occurrence-policy.json"
+    },
+    "colab-runs/evaluation-xai-qwen14-20261009-e9c8ef7/extracted/session.json": {
+      "sha256": "05531e189dd4a6a7f49de90455611e7003b9c5c94ca84fa91911e0b6c99ac5b6",
+      "bytes": 8357,
+      "original_artifact": "colab-runs/evaluation-xai-qwen14-20261009-e9c8ef7/extracted/session.json"
+    },
+    "colab-runs/evaluation-xai-qwen14-20261009-e9c8ef7/extracted/xai/full-test/manifest.json": {
+      "sha256": "89369aa0ad6632a17cef64b4e3b198f103363e1c2252372e4287233c7e013410",
+      "bytes": 916771,
+      "original_artifact": "colab-runs/evaluation-xai-qwen14-20261009-e9c8ef7/extracted/xai/full-test/manifest.json"
+    },
+    "colab-runs/evaluation-xai-qwen14-20261009-e9c8ef7/extracted/xai/dev-pilot/manifest.json": {
+      "sha256": "413b1e8d3f69f7a88681c2b73c4d10e206afa94820b0b9f2f0fdf324c56dff83",
+      "bytes": 29607,
+      "original_artifact": "colab-runs/evaluation-xai-qwen14-20261009-e9c8ef7/extracted/xai/dev-pilot/manifest.json"
+    },
+    "colab-runs/evaluation-xai-qwen14-20261009-e9c8ef7/extracted/qwen14/full-test/manifest.json": {
+      "sha256": "c522267d3270713f8ff8935f80662644b1d5e4abc3a2a320e68fa92455ab1b9d",
+      "bytes": 922380,
+      "original_artifact": "colab-runs/evaluation-xai-qwen14-20261009-e9c8ef7/extracted/qwen14/full-test/manifest.json"
+    },
+    "colab-runs/evaluation-xai-qwen14-20261009-e9c8ef7/extracted/qwen14/dev-pilot/manifest.json": {
+      "sha256": "108be0e296a8518f54e4a4330c31575808bd736f1c512253c481d099469b5a0f",
+      "bytes": 32906,
+      "original_artifact": "colab-runs/evaluation-xai-qwen14-20261009-e9c8ef7/extracted/qwen14/dev-pilot/manifest.json"
+    },
+    "colab-runs/evaluation-xai-qwen14-20261009-e9c8ef7/extracted/qwen14/full-test/attempts.jsonl": {
+      "sha256": "912b6a26d521da1a097d520e1572a0cfb367260c087490ff5471cbc7600f455e",
+      "bytes": 2046978,
+      "original_artifact": "colab-runs/evaluation-xai-qwen14-20261009-e9c8ef7/extracted/qwen14/full-test/attempts.jsonl"
+    },
+    "colab-runs/evaluation-xai-qwen14-20261009-e9c8ef7/extracted/qwen14/dev-pilot/attempts.jsonl": {
+      "sha256": "d6f524879f25e81c47e08052b930a1e132ed101c9ec1d02524d5aefdde61eb02",
+      "bytes": 50664,
+      "original_artifact": "colab-runs/evaluation-xai-qwen14-20261009-e9c8ef7/extracted/qwen14/dev-pilot/attempts.jsonl"
+    },
+    "colab-runs/evaluation-xai-qwen14-20261009-e9c8ef7/extracted/xai/full-test/attempts.jsonl": {
+      "sha256": "cc381ddc14728fe04b73f0480b9cd85a8c5d665a1bb239fbb82a6ed06c5e8b12",
+      "bytes": 1893706,
+      "original_artifact": "colab-runs/evaluation-xai-qwen14-20261009-e9c8ef7/extracted/xai/full-test/attempts.jsonl"
+    },
+    "colab-runs/evaluation-xai-qwen14-20261009-e9c8ef7/extracted/xai/dev-pilot/attempts.jsonl": {
+      "sha256": "b450d1947783d501938bf07dcec3d25f728a7401e715959927b8c845f394df15",
+      "bytes": 47033,
+      "original_artifact": "colab-runs/evaluation-xai-qwen14-20261009-e9c8ef7/extracted/xai/dev-pilot/attempts.jsonl"
+    },
+    "colab-runs/evaluation-xai-qwen14-20261009-e9c8ef7/extracted/xai/dev-pilot/attempts-000001.jsonl": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "original_artifact": "colab-runs/evaluation-xai-qwen14-20261009-e9c8ef7/extracted/xai/dev-pilot/attempts-000001.jsonl"
+    },
+    "human-review-xai-test-20261009/review-data.json": {
+      "sha256": "7e9a44a2fbf07f966fa004e108585ecdf5571cf42050a10921d47f2e242740e8",
+      "bytes": 3179986,
+      "original_artifact": "human-review-xai-test-20261009/review-data.json"
+    },
+    "collection-notebooks/evaluation-xai-qwen14-20261009-e9c8ef7/xai-full-executed.ipynb": {
+      "sha256": "875ae6612384000f02ca0a1cb810fb67bc781427fef63d52c1a6653ffca9da3f",
+      "bytes": 154470,
+      "original_artifact": "colab-runs/evaluation-xai-qwen14-20261009-e9c8ef7/xai-full-executed.ipynb"
+    }
+  }
+}

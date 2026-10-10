@@ -1,15 +1,20 @@
 # Paper: source, build and result updates
 
-The reviewed, compiled snapshot is [draft.pdf](draft.pdf), checked into Git so it
-can be opened without a local TeX build. It is a working draft, not a submission.
-The LaTeX files below remain the authoritative source.
+The previously tracked `draft.pdf` was removed on 9 October 2026. There is no
+current reviewed manuscript PDF delivered by that path. Build from the current
+LaTeX source and inspect the rendered output before treating it as a submission.
 
 `main.tex` and `sections/*.tex` are the single maintained manuscript. The previous
 Markdown version is preserved at `9a14416:paper/manuscript.md`; its current file is
-only a pointer. This draft describes verified development execution and its
-limitations, but contains no final-test results and is not ready for submission.
-The active deadline is **14 October 2026**, as supplied by Shaked; the course
-PDF's 30 September date is superseded.
+only a pointer. The draft now includes a test-results narrative, pending generation
+values and figures requiring reconciliation with the final evaluation. Human
+review is incomplete; descriptions of manual scoring must reflect its actual
+coverage and distinguish mechanical filters from human judgments.
+`overleaf_main.tex` is a parallel standalone copy added on 9 October; reconcile
+its changes before generating a synchronized export from the maintained source.
+Do not independently maintain two manuscripts.
+The official deadline is **14 October 2026**; the authors target **11 October 2026**.
+The course PDF's 30 September date is superseded.
 
 ## Build the readable draft
 
@@ -33,15 +38,19 @@ stay within eight pages, excluding references and appendix. Do not reduce fonts 
 margins to make room. Results and discussion should replace the short draft note, using the remaining
 space. There is no planned-display table in the manuscript.
 
-Build outputs under `build/` are ignored; `draft.pdf` is the explicitly published
-snapshot. After a successful build and visual review, refresh it with
-`cp paper/build/main.pdf paper/draft.pdf` from the repository root and commit it
-together with the source changes. With no `generated/current.tex`, the paper builds its
-explicit pending-results section. Building never loads a model, calls a service,
+Build outputs under `build/` are ignored. Select and document the submission PDF
+only after a successful build and visual review; do not restore an obsolete PDF
+as the current draft. The current source contains pending generation values and
+tables; building does not complete or validate them. Building never loads a model, calls a service,
 opens a research split or regenerates data. The existing multi-file ACL project is
 built with its own TeX toolchain; the source remains editable in a normal editor.
 
-## Select and export a run
+## Historical development exporter
+
+The procedure below describes the existing development exporter, not the pending
+full-test export. Extend it against identified saved test outputs before using it
+for the final tables and figures. Do not fill placeholders by copying numbers
+from unrelated runs.
 
 Install the project in an isolated environment using the root README. The small
 plot dependency is included in `requirements.txt`. See

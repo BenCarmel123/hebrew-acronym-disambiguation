@@ -126,12 +126,13 @@ class QwenStudyTests(unittest.TestCase):
 
     def test_changed_digest_or_failed_postcheck_retains_raw_answer(self):
         payload = {"response": "original answer", "model": self.model, "done": True}
-        for after in (dict(self.identity, digest="changed"), RuntimeError("inspection timed out")):
+        for after in (dict(self.identity, digest="changed"), RuntimeError("private-key-url-and-account-details")):
             with self.subTest(after=after), patch.object(self.backend, "ollama_model_identity", side_effect=[self.identity, after]), patch.object(self.backend.requests, "post", return_value=http(payload)):
                 result = self.backend.ollama_response("prompt", model=self.model, expected_digest=self.digest)
             self.assertEqual(result["response"], "original answer")
             self.assertEqual(result["identity_status"], "unverified")
             self.assertTrue(result["error"])
+            self.assertNotIn("private-key-url-and-account-details", repr(result))
 
     def test_timeout_http_and_missing_tag_fail_without_retry(self):
         with patch.object(self.backend.requests, "post", side_effect=self.backend.requests.Timeout("fixture")) as post:
