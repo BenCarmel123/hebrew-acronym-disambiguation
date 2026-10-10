@@ -357,3 +357,9 @@ test('table shortcuts change drafts, move rows, and require modified Enter for c
   assert.equal(ui.tableShortcutIntent(event('ArrowDown',{target:{tagName:'SELECT'}})),null);
   assert.deepEqual(ui.tableShortcutIntent(event('1',{target:{tagName:'SELECT'}})),{type:'label',label:'fits'});
 });
+
+test('focused completion counts confirmed decisions only, not drafts or source occurrences',()=>{
+  assert.equal(ui.focusComplete({focus:{selected_decisions:200},counts:{human_decisions:199,human_answers:300}}),false);
+  assert.equal(ui.focusComplete({focus:{selected_decisions:200},counts:{human_decisions:200}}),true);
+  assert.equal(ui.focusComplete({counts:{human_decisions:200}}),false);
+});

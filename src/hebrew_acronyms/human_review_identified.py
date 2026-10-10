@@ -130,6 +130,10 @@ class IdentifiedStore(MaskedStore):
 
     def validate(self, state):
         super().validate(state)
+        focus = self.plan.get('focus')
+        if focus and (not 1 <= focus['minutes'] <= 20 or not 1 <= focus['max_decisions'] <= 200
+                      or len(self.items) > focus['max_decisions'] or set(self.plan['queue']) != set(self.items)):
+            raise ValueError('Invalid focused review limits')
         if state['provenance'] != self.dataset['provenance']:
             raise ValueError('Changed source provenance')
         for i, reuse in state.get('historical_reuse', {}).items():
@@ -189,7 +193,7 @@ class IdentifiedStore(MaskedStore):
             for i in ids:
                 groups.setdefault(self.display_pair_key(i), []).append(i)
             table_queues[view] = [i for group in groups.values() for i in group]
-        result=super().snapshot(); result.update(queues=queues, table_queues=table_queues, manual_session=self.state.get('manual_session'),
+        result=super().snapshot(); result.update(queues=queues, table_queues=table_queues, manual_session=self.state.get('manual_session'), focus=self.plan.get('focus'),
             pending_reuse=sum(i not in self.state.get('historical_reuse', {}) for i in self.reuse_proposals),
             pending_drafts=[dict(batch_id=k, view=d['view'], saved_at=d['saved_at']) for k,d in self.read_drafts()['batches'].items() if d['status']=='unconfirmed'])
         return result
@@ -218,6 +222,8 @@ class IdentifiedStore(MaskedStore):
         if not isinstance(authorization, str) or not authorization.strip():
             raise ValueError('Explicit user authorization is required')
         with self.lock:
+            if self.plan.get('focus'):
+                raise ValueError('Focused rounds cannot be extended; preserve the bounded round')
             if not self.state.get('manual_session'):
                 raise ValueError('No original session to continue')
             if self.state['manual_session'].get('continuation'):
@@ -233,6 +239,8 @@ class IdentifiedStore(MaskedStore):
 
     def commit(self, candidate, action, item_id=None):
         if action in {'save', 'batch-save'} and not candidate.get('manual_session'):
+            if self.plan.get('focus'):
+                raise ValueError('Start the focused review explicitly before judging')
             if any(j.get('label') in LABELS for r in candidate['records'].values() for j in r['judgments'].values()):
                 start = datetime.now(timezone.utc)
                 candidate['manual_session'] = {'started_at':start.isoformat(),
@@ -245,9 +253,10 @@ class IdentifiedStore(MaskedStore):
             if self.continued():
                 return False
             session=self.state.get('manual_session')
-            if not session or datetime.now(timezone.utc) < datetime.fromisoformat(session['deadline']):
+            complete = bool(self.plan.get('focus') and self.counts()['human_decisions'] == len(self.items))
+            if not session or (not complete and datetime.now(timezone.utc) < datetime.fromisoformat(session['deadline'])):
                 return False
-            backup=self.path.parent/'verified-backup-60min'
+            backup=self.path.parent/('verified-backup-focus' if self.plan.get('focus') else 'verified-backup-60min')
             if not backup.exists():
                 backup.mkdir()
                 manifest={}
@@ -273,6 +282,16 @@ class IdentifiedStore(MaskedStore):
                     manifest=json.loads((backup/'sha256.json').read_text())
                     manifest[target.name]=signature
                     atomic_json(backup/'sha256.json',manifest)
+            if self.plan.get('focus'):
+                export_path = self.path.parent/'review-export.json'
+                if not export_path.exists():
+                    export_judgments(self.dataset, self.state, export_path)
+                    content = export_path.read_bytes(); (backup/export_path.name).write_bytes(content)
+                    manifest = json.loads((backup/'sha256.json').read_text())
+                    manifest[export_path.name] = hashlib.sha256(content).hexdigest()
+                    if hashlib.sha256((backup/export_path.name).read_bytes()).hexdigest() != manifest[export_path.name]:
+                        raise OSError('Export backup mismatch')
+                    atomic_json(backup/'sha256.json', manifest)
             return True
 
     def summary(self, masked=None):
@@ -289,8 +308,22 @@ class IdentifiedStore(MaskedStore):
         return result
 
     def transact(self,action,payload):
+        if self.plan.get('focus') and action == 'focus-start':
+            with self.lock:
+                if payload.get('revision') != self.state['revision']:
+                    raise ValueError('Reload the current review before starting')
+                if self.state.get('manual_session'):
+                    return self.snapshot()
+                start = datetime.now(timezone.utc)
+                candidate = copy.deepcopy(self.state)
+                candidate['manual_session'] = dict(started_at=start.isoformat(),
+                    deadline=(start+timedelta(minutes=self.plan['focus']['minutes'])).isoformat(),
+                    clock_basis='Explicit user start of bounded focused round; preparation excluded')
+                return self.commit(candidate, action)
+        if self.plan.get('focus') and not self.state.get('manual_session') and action in {'open','save','batch-open','batch-save'}:
+            raise ValueError('Start the focused review explicitly before opening judgments')
         if action in {'save','open','batch-open','batch-save'} and self.stop_if_due():
-            raise ValueError('הסתיימו 60 דקות התיוג. העבודה וגיבוי מאומת נשמרו; אפשר לפתוח סיכום.')
+            raise ValueError('חלון התיוג הסתיים. העבודה וגיבוי מאומת נשמרו; אפשר לפתוח סיכום.')
         if action in {'reuse-open','reuse-confirm','batch-draft','draft-restore'}:
             return self.transact_auxiliary(action,payload)
         if action.startswith('group-') or action=='restore':
@@ -316,7 +349,7 @@ class IdentifiedStore(MaskedStore):
             if payload.get('revision') != self.state['revision']:
                 raise ValueError('העבודה השתנתה. יש לטעון מחדש לפני אישור הטבלה.')
             if self.stop_if_due():
-                raise ValueError('הסתיימו 60 דקות התיוג; העבודה וגיבוי מאומת נשמרו.')
+                raise ValueError('חלון התיוג הסתיים; העבודה וגיבוי מאומת נשמרו.')
             candidate = copy.deepcopy(self.state)
             if action == 'batch-open':
                 ids = payload.get('item_ids', [])

@@ -15,6 +15,7 @@
   </header>
   <div id="saveStatus" role="status" aria-live="polite">טוען את העבודה השמורה…</div>
   <main inert>
+    <section id="focusStartPanel" hidden class="card"><h2>סבב ממוקד — עד 20 דקות ועד 200 החלטות</h2><p>Gemini ומקרים נבחרים מהמערכות הקודמות. תיוגים קודמים נשמרו בנפרד. חזרות שלא נבחרו נשארות לא נבדקו; אין העברת הכרעה בין משפטים.</p><p>השעון מתחיל רק בלחיצה. טיוטות אינן אישור, ולא תהיה הארכת זמן אוטומטית.</p><button id="focusStart" class="primary">התחלת 20 הדקות</button></section>
     <section id="reusePanel" hidden class="card"><h2>נבדקו בעבר — אישור שימוש חוזר</h2><p>אלה הכרעות היסטוריות באותו פריט, הקשר, יעד ותשובה. שימוש חוזר אינו שיפוט חדש ואינו מוכיח זהות ריצות. מקור: annotations.continuation-v1.json; השעות מוצגות לפי שעון ישראל. בחר רק קבוצות שאתה מאשר לשימוש חוזר; אפשר להמשיך לכיול בלי לאשר.</p><div id="reuseTable"></div><footer><button id="reuseSelectAll">בחירת כל ההצעות</button><button id="reuseConfirm">אישור שימוש חוזר בנבחרות</button><button id="reuseContinue">המשך לכיול</button></footer></section>
     <div id="reviewTools" hidden><button id="reuseOpen">נבדקו בעבר</button><label for="draftChoice">טיוטות שלא אושרו</label><select id="draftChoice"></select><button id="draftRestore">שחזור טיוטה</button></div>
     <p id="deadlineWarning" class="notice" role="alert" hidden></p>
