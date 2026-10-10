@@ -464,8 +464,9 @@ The [paper build/export guide](../paper/README.md),
 preserve the research context. The ID-named PDF in the repository is the submitted
 proposal. A manuscript PDF must be built from the current sources and visually
 checked; the previously tracked `paper/draft.pdf` was removed. The manuscript is a
-working draft: pending values and figures must be reconciled with the selected
-results before submission.
+working draft with tables and figures from the saved 381-item test results.
+Author contributions, personal AI reflections and links to the final published
+revision still require completion and author approval before submission.
 
 [Historical summaries](../results/all_arms_summary.md) and
 [training records](checkpoints.md) refer to earlier inputs and include unresolved
