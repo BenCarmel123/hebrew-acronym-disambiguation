@@ -103,6 +103,17 @@ class GeminiStudyTests(unittest.TestCase):
         self.assertEqual(result["status"], "incomplete_response")
         self.assertEqual(result["candidate_texts"], ["A", "B"])
 
+    def test_missing_model_version_preserves_answer_but_identity_is_unverified(self):
+        for version in (None, "", " "):
+            payload = self.payload()
+            payload["modelVersion"] = version
+            result, _ = self.call(payload)
+            self.assertEqual(result["response"], "A")
+            self.assertEqual(result["identity_status"], "unverified")
+        result, _ = self.call(self.payload())
+        self.assertEqual(result["identity_status"], "verified")
+        self.assertEqual(result["identity_verification"], "provider_reported_model_version")
+
     def test_timeout_and_exception_strings_never_leak_keys(self):
         for error in (self.backend.requests.Timeout(self.key), self.backend.requests.HTTPError("url?key=" + self.key),
                       RuntimeError({"secret": self.key})):
@@ -116,7 +127,7 @@ class GeminiStudyTests(unittest.TestCase):
             result = self.backend.gemini_response("prompt", model=self.model)
         self.assertEqual(result["http_status"], 429)
         self.assertNotIn(self.key, json.dumps(result))
-        response.json.assert_not_called()
+        response.json.assert_called_once()
         post.assert_called_once()
 
     def test_recursive_redaction_of_every_returned_field(self):

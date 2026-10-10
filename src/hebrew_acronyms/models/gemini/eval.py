@@ -19,6 +19,8 @@ import re
 
 import requests
 
+from hebrew_acronyms.models.common.errors import http_error_diagnostics
+
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 _BLOCKED_FINISH = {"SAFETY", "RECITATION", "BLOCKLIST", "PROHIBITED_CONTENT", "SPII", "IMAGE_SAFETY"}
 
@@ -86,12 +88,15 @@ def gemini_response(prompt, *, model, timeout=120, generation_config=None):
     secret = os.environ.get("GEMINI_API_KEY", "")
     result = {"response": "", "status": "service_error", "requested_model": model,
               "model_version": None, "finish_reason": None, "usage_metadata": None,
+              "identity_status": "unverified", "identity_verification": "provider_reported_model_version",
               "request_settings": {"generationConfig": config, "timeout_seconds": timeout, "max_attempts": 1},
               "settings_resolution": "Only requested settings are recorded; omitted provider defaults are not resolved by this API",
               "attempts": 0, "http_status": None, "prompt_block_reason": None,
+              "error_category": None, "provider_blocked": False, "retryable": False, "retry_after": None,
               "thought_parts_omitted": 0, "candidate_count": 0, "error": None}
     if not secret:
-        result["error"] = "GEMINI_API_KEY is not set in the environment"
+        result.update(error="GEMINI_API_KEY is not set in the environment",
+                      error_category="missing_credentials", provider_blocked=True)
         return result
     body = {"contents": [{"role": "user", "parts": [{"text": prompt}]}], "generationConfig": config}
     result["attempts"] = 1
@@ -101,24 +106,29 @@ def gemini_response(prompt, *, model, timeout=120, generation_config=None):
                                  json=body, timeout=timeout, allow_redirects=False)
         result["http_status"] = response.status_code
         if not 200 <= response.status_code < 300:
-            retry_after = getattr(response, "headers", {}).get("Retry-After")
-            result["retry_after"] = retry_after if isinstance(retry_after, str) else None
-            result["retryable"] = response.status_code in {408, 429, 500, 502, 503, 504}
+            result.update(http_error_diagnostics(response, provider="Gemini"))
             result["error"] = f"Gemini HTTP {response.status_code}; no retry attempted"
             return _redact(result, secret)
         payload = response.json()
     except (requests.Timeout, requests.ConnectionError):
         result["retryable"] = True
+        result["error_category"] = "connection"
         result["error"] = "Gemini request timed out or connection failed; no retry attempted"
         return _redact(result, secret)
     except Exception:
         # requests errors and JSON decoders may include URLs, bodies or headers.
         result["error"] = "Gemini request or response decoding failed; no retry attempted"
+        result["error_category"] = "request_error"
         return _redact(result, secret)
     if not isinstance(payload, dict):
         result["error"] = "Gemini returned an invalid response object"
+        result["error_category"] = "invalid_response"
         return _redact(result, secret)
     result["model_version"] = payload.get("modelVersion") if isinstance(payload.get("modelVersion"), str) else None
+    # The API may resolve an alias to a versioned name. This records the returned
+    # identity; it does not attest snapshot equality with the requested alias.
+    if result["model_version"] and result["model_version"].strip():
+        result["identity_status"] = "verified"
     result["usage_metadata"] = payload.get("usageMetadata") if isinstance(payload.get("usageMetadata"), dict) else None
     feedback = payload.get("promptFeedback")
     block_reason = feedback.get("blockReason") if isinstance(feedback, dict) else None

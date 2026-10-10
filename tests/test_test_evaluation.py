@@ -1,0 +1,391 @@
+"""Offline durability/identity checks, using only invented CSV inputs."""
+import csv
+from datetime import datetime, timedelta, timezone
+import json
+from pathlib import Path
+import tempfile
+import unittest
+from unittest.mock import Mock, patch
+
+from hebrew_acronyms import test_evaluation as runner
+from hebrew_acronyms.test_cohort import DOCUMENT_OVERLAP_IDS, SCORED_ITEMS
+
+
+class EvaluationTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+        self.source = self.root / "items.csv"
+        self.output = self.root / "run"
+        self.systems = [{"name": "mock", "provider": "fixture", "model": "mock-model", "settings": {}}]
+        self.rows = [{"item_id": "one", "acronym": 'אב"ג', "sentence": 'דוגמה אב"ג בהקשר',
+                      "gold_expansion": "ראשון", "candidates": "ראשון|שני"},
+                     {"item_id": "two", "acronym": 'דב"ג', "sentence": 'דוגמה דב"ג בהקשר',
+                      "gold_expansion": "ראשון", "candidates": "ראשון|שני"}]
+        self.write_rows()
+        self.response = {"status": "response_received", "response": "A", "usage_metadata": {"input_tokens": 10, "output_tokens": 2}}
+
+    def write_rows(self):
+        with self.source.open("w", encoding="utf-8-sig", newline="") as stream:
+            writer = csv.DictWriter(stream, fieldnames=self.rows[0])
+            writer.writeheader()
+            writer.writerows(self.rows)
+
+    def prepare(self, **kwargs):
+        return runner.prepare_evaluation(self.source, self.output, cohort="fixture", systems=self.systems,
+                                         code_revision="test-commit", **kwargs)
+
+    def run_saved(self, responder=None, **kwargs):
+        return runner.run_evaluation(self.output, code_revision="test-commit",
+                                     responders={"mock": responder or Mock(return_value=self.response)}, sleep=lambda _: None, **kwargs)
+
+    def test_completed_answers_never_retried_even_invalid(self):
+        manifest = self.prepare()
+        self.assertEqual(len(manifest["identity"]["requests"]), 4)
+        responder = Mock(return_value={**self.response, "response": "wrong answer"})
+        summary = self.run_saved(responder)
+        again = self.run_saved(responder)
+        self.assertEqual(responder.call_count, 4)
+        self.assertEqual(summary["n_completed"], 4)
+        self.assertEqual(again["n_calls"], 4)
+        self.assertEqual(again["usage"]["mock"]["input_tokens"], 40)
+        self.assertEqual(again["by_system_task"][1]["accuracy"], 0)
+        self.assertEqual(self.prepare()["run_id"], manifest["run_id"])
+
+    def test_disconnect_saves_earlier_response_and_does_not_resend_ambiguous(self):
+        self.prepare()
+        responder = Mock(side_effect=[self.response, KeyboardInterrupt()])
+        with self.assertRaises(KeyboardInterrupt):
+            self.run_saved(responder)
+        saved = runner.summarize_evaluation(self.output)
+        self.assertEqual((saved["n_completed"], saved["n_ambiguous"], saved["n_pending"]), (1, 1, 2))
+        resumed = Mock(return_value=self.response)
+        summary = self.run_saved(resumed)
+        self.assertEqual(resumed.call_count, 2)
+        self.assertEqual((summary["n_calls"], summary["n_completed"], summary["n_ambiguous"]), (4, 3, 1))
+        self.assertEqual(summary["usage"]["mock"]["attempts_without_usage"], 1)
+
+    def test_durable_start_visible_inside_request(self):
+        self.prepare()
+        def request(prompt):
+            saved = runner.summarize_evaluation(self.output)
+            self.assertEqual(saved["n_ambiguous"], 1)
+            self.assertGreater(saved["n_calls"], 0)
+            return self.response
+        self.run_saved(request)
+
+    def test_configuration_input_and_code_mismatches_stop_before_calls(self):
+        self.prepare()
+        with self.assertRaisesRegex(ValueError, "identity mismatch"):
+            self.prepare(seed=12)
+        with self.assertRaisesRegex(ValueError, "code identity"):
+            runner.run_evaluation(self.output, code_revision="wrong")
+        with patch.object(runner, "_code_hashes", return_value={"changed": "hash"}):
+            with self.assertRaisesRegex(ValueError, "code identity"):
+                self.run_saved()
+        self.rows[0]["sentence"] += " changed"
+        self.write_rows()
+        with self.assertRaisesRegex(ValueError, "input identity"):
+            self.run_saved()
+        with self.assertRaisesRegex(ValueError, "identity mismatch"):
+            self.prepare()
+
+    def test_truncated_finish_preserves_bytes_and_recovers_in_new_segment(self):
+        self.prepare()
+        self.run_saved(max_new_calls=1)
+        path = self.output / "attempts.jsonl"
+        lines = path.read_bytes().splitlines(keepends=True)
+        broken = lines[0] + lines[1][:25]
+        path.write_bytes(broken)
+        summary = self.run_saved()
+        self.assertEqual(path.read_bytes(), broken)
+        self.assertEqual(summary["n_ambiguous"], 1)
+        self.assertEqual(summary["n_calls"], 4)
+        self.assertEqual(len(summary["truncated_journal_tails"]), 1)
+        self.assertTrue((self.output / "attempts-000001.jsonl").exists())
+
+    def test_corrupt_terminated_journal_line_blocks_calls(self):
+        self.prepare()
+        (self.output / "attempts.jsonl").write_text('{"broken":\n')
+        responder = Mock(return_value=self.response)
+        with self.assertRaisesRegex(ValueError, "Invalid journal"):
+            self.run_saved(responder)
+        responder.assert_not_called()
+
+    def test_retries_bounded_across_resume_and_calls_include_errors(self):
+        self.prepare(max_attempts=2, max_calls=8)
+        responder = Mock(return_value={"status": "service_error", "response": "", "retryable": True})
+        first = self.run_saved(responder, max_new_calls=1)
+        self.assertEqual(first["n_calls"], 1)
+        summary = self.run_saved(responder)
+        self.assertEqual((summary["n_calls"], responder.call_count), (2, 2))
+        self.assertEqual(summary["n_pending"], 3)
+        self.assertEqual(summary["stop_reason"], "provider_paused")
+        self.run_saved(responder)
+        self.assertEqual(responder.call_count, 2)
+        self.assertEqual(summary["usage"]["mock"]["attempts_without_usage"], 2)
+
+    def add_healthy_provider(self):
+        self.systems.append({"name": "healthy", "provider": "qwen", "model": "qwen2.5:7b",
+                             "settings": {"timeout": 10, "expected_digest": "fixture-digest",
+                                          "options": {"num_predict": 20, "seed": 42, "temperature": 0}}})
+
+    def run_two_providers(self, blocked, healthy, **kwargs):
+        return runner.run_evaluation(self.output, code_revision="test-commit",
+                                     responders={"mock": blocked, "healthy": healthy}, **kwargs)
+
+    def test_account_block_survives_resume_and_healthy_provider_completes(self):
+        self.add_healthy_provider()
+        # A second model at the same provider must also respect the account block.
+        self.systems.append({"name": "sibling", "provider": "fixture", "model": "another-model", "settings": {}})
+        self.prepare()
+        blocked = Mock(return_value={"status": "service_error", "response": "", "retryable": False,
+                                     "provider_blocked": True, "error_category": "quota_exhausted"})
+        healthy = Mock(return_value=self.response)
+        sibling = Mock(return_value=self.response)
+        def execute():
+            return runner.run_evaluation(self.output, code_revision="test-commit",
+                                         responders={"mock": blocked, "healthy": healthy, "sibling": sibling})
+        summary = execute()
+        self.assertEqual((blocked.call_count, healthy.call_count), (1, 4))
+        sibling.assert_not_called()
+        self.assertEqual(summary["n_records"], 12)
+        self.assertEqual(summary["n_completed"], 4)
+        withheld = [record for record in summary["records"] if record["status"] == "not_run"]
+        self.assertEqual(len(withheld), 7)
+        self.assertTrue(all(record["not_run_reason"] == "provider_blocked" for record in withheld))
+        self.assertEqual(summary["n_pending"], 7)
+        execute()
+        self.assertEqual((blocked.call_count, healthy.call_count), (1, 4))
+        sibling.assert_not_called()
+
+    def test_long_retry_after_pauses_provider_and_resume_cannot_change_item(self):
+        self.add_healthy_provider()
+        self.prepare(max_attempts=1)
+        bad = Mock(return_value={"status": "service_error", "response": "", "retryable": True,
+                                "retry_after": 3600, "error_category": "rate_or_quota_unknown"})
+        healthy, sleeping = Mock(return_value=self.response), Mock()
+        before = datetime.now(timezone.utc)
+        summary = self.run_two_providers(bad, healthy, sleep=sleeping)
+        self.assertEqual((bad.call_count, healthy.call_count), (1, 4))
+        sleeping.assert_not_called()
+        state = summary["provider_states"]["fixture"]
+        self.assertFalse(state["blocked"])
+        self.assertGreaterEqual(datetime.fromisoformat(state["not_before_utc"]), before + timedelta(seconds=3600))
+        self.run_two_providers(bad, healthy, sleep=sleeping)
+        self.assertEqual((bad.call_count, healthy.call_count), (1, 4))
+        sleeping.assert_not_called()
+
+    def test_long_delay_before_retry_leaves_healthy_provider_available(self):
+        self.add_healthy_provider()
+        self.prepare(max_attempts=2)
+        bad = Mock(return_value={"status": "service_error", "response": "", "retryable": True,
+                                "retry_after": 1e300})
+        healthy, sleeping = Mock(return_value=self.response), Mock()
+        summary = self.run_two_providers(bad, healthy, sleep=sleeping)
+        self.assertEqual((bad.call_count, healthy.call_count), (1, 4))
+        self.assertTrue(summary["records"][0]["retry_pending"])
+        self.assertEqual(summary["provider_states"]["fixture"]["reason"], "retry_after")
+        self.run_two_providers(bad, healthy, sleep=sleeping)
+        self.assertEqual(bad.call_count, 1)
+        sleeping.assert_not_called()
+
+    def test_short_retry_after_wait_is_bounded_and_survives_interrupted_sleep(self):
+        self.prepare()
+        bad = Mock(return_value={"status": "service_error", "response": "", "retryable": True, "retry_after": 7})
+        with self.assertRaises(KeyboardInterrupt):
+            runner.run_evaluation(self.output, code_revision="test-commit", responders={"mock": bad},
+                                  sleep=Mock(side_effect=KeyboardInterrupt()))
+        self.assertEqual(bad.call_count, 1)
+        self.assertEqual(runner.summarize_evaluation(self.output)["n_ambiguous"], 0)
+        good, sleeping = Mock(return_value=self.response), Mock()
+        result = runner.run_evaluation(self.output, code_revision="test-commit", responders={"mock": good}, sleep=sleeping)
+        sleeping.assert_called_once()
+        self.assertTrue(0 < sleeping.call_args.args[0] <= 7)
+        self.assertEqual((result["n_calls"], result["n_completed"]), (5, 4))
+
+    def test_retry_exhaustion_cooldown_expires_without_resending_terminal_item(self):
+        self.prepare(max_attempts=1)
+        bad = Mock(return_value={"status": "service_error", "response": "", "retryable": True})
+        summary = self.run_saved(bad)
+        self.assertEqual(bad.call_count, 1)
+        self.run_saved(bad)
+        self.assertEqual(bad.call_count, 1)
+        after = datetime.fromisoformat(summary["provider_states"]["fixture"]["not_before_utc"]) + timedelta(seconds=1)
+        good = Mock(return_value=self.response)
+        with patch.object(runner, "datetime", wraps=datetime) as clock:
+            clock.now.return_value = after
+            result = self.run_saved(good)
+        self.assertEqual(good.call_count, 3)
+        self.assertEqual((result["n_calls"], result["n_completed"]), (4, 3))
+        self.assertEqual(result["records"][0]["status"], "service_error")
+
+    def test_runtime_ceiling_preserves_prior_spend_and_cannot_raise_saved_cap(self):
+        self.prepare(reserve_per_call_usd=.1, budget_usd=.3)
+        first = self.run_saved(max_new_calls=1)
+        self.assertAlmostEqual(first["charged_or_reserved_usd"], .1)
+        blocked = Mock(return_value=self.response)
+        no_room = self.run_saved(blocked, max_total_cost_usd=.1)
+        blocked.assert_not_called()
+        self.assertEqual(no_room["n_calls"], 1)
+        second = self.run_saved(max_total_cost_usd=.2)
+        self.assertEqual(second["n_calls"], 2)
+        self.assertAlmostEqual(second["charged_or_reserved_usd"], .2)
+        final = self.run_saved(max_total_cost_usd=99)
+        self.assertEqual(final["n_calls"], 3)
+        self.assertAlmostEqual(final["charged_or_reserved_usd"], .3)
+        self.assertEqual(final["effective_budget_usd"], .3)
+
+    def test_runtime_ceiling_rejects_invalid_values_and_accepts_zero(self):
+        self.prepare(reserve_per_call_usd=.1, budget_usd=1)
+        for value in (-1, float("nan"), float("inf"), True, "1"):
+            with self.subTest(value=value), self.assertRaisesRegex(ValueError, "finite and nonnegative"):
+                self.run_saved(max_total_cost_usd=value)
+        responder = Mock(return_value=self.response)
+        self.assertEqual(self.run_saved(responder, max_total_cost_usd=0)["n_calls"], 0)
+        responder.assert_not_called()
+
+    def test_nonretryable_and_incomplete_do_not_retry(self):
+        self.prepare(max_attempts=3)
+        responder = Mock(side_effect=[{"status": "service_error", "response": "", "retryable": False},
+                                      {"status": "incomplete_response", "response": "A", "retryable": True},
+                                      self.response, self.response])
+        result = self.run_saved(responder)
+        self.assertEqual(responder.call_count, 4)
+        self.assertEqual(result["n_incomplete"], 2)
+        self.assertEqual(result["n_pending"], 0)
+
+    def test_conservative_budget_reserve_counts_ambiguous_attempts(self):
+        self.prepare(reserve_per_call_usd=.1, budget_usd=.2)
+        with self.assertRaises(KeyboardInterrupt):
+            self.run_saved(Mock(side_effect=KeyboardInterrupt()))
+        summary = self.run_saved()
+        self.assertEqual(summary["n_calls"], 2)
+        self.assertEqual(summary["stop_reason"], "budget_reserve_limit")
+        self.assertAlmostEqual(summary["charged_or_reserved_usd"], .2)
+
+    def test_more_than_26_candidates_and_shuffle_independent_of_subset(self):
+        self.rows[1]["candidates"] = "|".join(f"candidate-{n}" for n in range(30))
+        self.rows[1]["gold_expansion"] = "candidate-29"
+        self.write_rows()
+        manifest = self.prepare()
+        selected = next(request for request in manifest["identity"]["requests"] if request["item_id"] == "two" and request["task"] == "select")
+        self.assertEqual(len(selected["shown_order"]), 30)
+        self.assertIn("AD.", selected["prompt"])
+        self.rows = self.rows[1:]
+        self.write_rows()
+        self.output = self.root / "subset"
+        other = self.prepare()
+        self.assertEqual(other["identity"]["requests"][1]["shown_order"], selected["shown_order"])
+        summary = self.run_saved(Mock(return_value={**self.response, "response": "AD"}))
+        self.assertTrue(summary["records"][1]["valid"])
+
+    def test_generation_prompt_has_no_candidate_list_or_gold_field(self):
+        manifest = self.prepare()
+        for request in manifest["identity"]["requests"]:
+            if request["task"] == "generate":
+                self.assertIsNone(request["shown_order"])
+                self.assertNotIn("ראשון", request["prompt"])
+                self.assertNotIn("שני", request["prompt"])
+
+    def test_full_cohort_all_rows_and_pilot_first_ten(self):
+        self.rows = [{**self.rows[0], "item_id": f"item-{n}"} for n in range(SCORED_ITEMS)]
+        self.write_rows()
+        real_system = [{"name": "gemini", "provider": "gemini", "model": "gemini-3.8-flash", "settings": {
+            "timeout": 120, "generation_config": {"maxOutputTokens": 128}}}]
+        full = runner.prepare_evaluation(self.source, self.output, cohort="full_test", systems=real_system, code_revision="a" * 40)
+        self.assertEqual(len(full["identity"]["rows"]), SCORED_ITEMS)
+        self.assertEqual(len(full["identity"]["requests"]), 2 * SCORED_ITEMS)
+        self.assertEqual(runner.summarize_evaluation(self.output)["n_pending"], 2 * SCORED_ITEMS)
+        pilot = runner.prepare_evaluation(self.source, self.root / "pilot", cohort="dev_pilot", systems=real_system, code_revision="a" * 40)
+        self.assertEqual([row["item_id"] for row in pilot["identity"]["rows"]], [f"item-{n}" for n in range(10)])
+        with self.assertRaisesRegex(ValueError, "fixture"):
+            runner.run_evaluation(self.output, code_revision="a" * 40, responders={})
+        self.rows.pop()
+        self.write_rows()
+        with self.assertRaisesRegex(ValueError, "without document overlap"):
+            runner.prepare_evaluation(self.source, self.root / "wrong", cohort="full_test", systems=real_system, code_revision="a" * 40)
+        # A full test may not contain an item that shares a document with training.
+        self.rows.append({**self.rows[0], "item_id": sorted(DOCUMENT_OVERLAP_IDS)[0]})
+        self.write_rows()
+        with self.assertRaisesRegex(ValueError, "without document overlap"):
+            runner.prepare_evaluation(self.source, self.root / "overlap", cohort="full_test", systems=real_system, code_revision="a" * 40)
+
+    def test_unknown_usage_cost_not_silently_zero(self):
+        self.prepare()
+        summary = self.run_saved()
+        estimate = runner.estimate_cost(summary, {"mock": {"input": 1, "output": 2}})
+        self.assertAlmostEqual(estimate["pilot_usd"], .000056)
+        self.assertAlmostEqual(estimate["projected_full_usd"], .000056 * SCORED_ITEMS / 2)
+        summary["usage"]["mock"]["attempts_without_usage"] = 1
+        with self.assertRaisesRegex(ValueError, "unknown billed usage"):
+            runner.estimate_cost(summary, {"mock": {"input": 1, "output": 2}})
+
+    def test_incomplete_pilot_cannot_underestimate_cost(self):
+        self.prepare()
+        summary = self.run_saved(max_new_calls=1)
+        with self.assertRaisesRegex(ValueError, "Complete all pilot"):
+            runner.estimate_cost(summary, {"mock": {"input": 1, "output": 2}})
+
+    def test_actual_usage_releases_unused_reserve(self):
+        self.prepare(reserve_per_call_usd={"mock": .1}, budget_usd=.11,
+                     rates_usd_per_million={"mock": {"input": 1, "output": 2}})
+        summary = self.run_saved()
+        self.assertEqual(summary["n_completed"], 4)
+        self.assertAlmostEqual(summary["charged_or_reserved_usd"], .000056)
+        self.assertEqual(summary["reserved_usd"], 0)
+
+    def test_unknown_truncated_start_blocks_resume(self):
+        self.prepare()
+        self.run_saved(max_new_calls=1)
+        with (self.output / "attempts.jsonl").open("ab") as stream:
+            stream.write(b'{"event":"started"')
+        responder = Mock(return_value=self.response)
+        with self.assertRaisesRegex(ValueError, "no identifiable"):
+            self.run_saved(responder)
+        responder.assert_not_called()
+
+    def test_completed_pilot_with_unknown_retry_uses_saved_reserve(self):
+        self.prepare(reserve_per_call_usd={"mock": .02}, budget_usd=1,
+                     rates_usd_per_million={"mock": {"input": 1, "output": 2}})
+        responder = Mock(side_effect=[
+            {"status": "service_error", "response": "", "retryable": True, "http_status": 503},
+            self.response, self.response, self.response, self.response,
+        ])
+        summary = self.run_saved(responder)
+        self.assertEqual((summary["n_completed"], summary["n_calls"]), (4, 5))
+        self.assertEqual(summary["unknown_usage_reserve_usd"], {"mock": .02})
+        estimate = runner.estimate_cost(summary, {"mock": {"input": 1, "output": 2}})
+        self.assertAlmostEqual(estimate["measured_pilot_usd"], .000056)
+        self.assertAlmostEqual(estimate["unknown_usage_reserve_usd"], .02)
+        self.assertAlmostEqual(estimate["pilot_usd"], .020056)
+        self.assertAlmostEqual(estimate["projected_full_usd"], .020056 * SCORED_ITEMS / 2)
+        self.assertEqual(estimate["by_system"]["mock"]["unknown_usage_attempts"], 1)
+        # Completion and identity checks still hold even with sufficient reserves.
+        summary["n_identity_unverified"] = 1
+        with self.assertRaisesRegex(ValueError, "Complete all pilot"):
+            runner.estimate_cost(summary, {"mock": {"input": 1, "output": 2}})
+
+    def test_provider_usage_conventions_include_gemini_thinking(self):
+        self.assertEqual(runner._usage({"usage_metadata": {"promptTokenCount": 12, "candidatesTokenCount": 3, "thoughtsTokenCount": 8}}, "gemini"),
+                         {"input_tokens": 12, "output_tokens": 3, "thinking_tokens": 8, "cached_input_tokens": 0})
+        self.assertEqual(runner._usage({"usage_metadata": {"prompt_tokens": 12, "completion_tokens": 3}}, "openai")["input_tokens"], 12)
+        self.assertEqual(runner._usage({"usage_metadata": {"input_tokens": 12, "output_tokens": 3, "cache_read_input_tokens": 4}}, "anthropic")["input_tokens"], 16)
+
+    def test_existing_outputs_and_invalid_inputs_rejected(self):
+        self.output.mkdir()
+        old = self.output / "old.txt"
+        old.write_text("preserve")
+        with self.assertRaisesRegex(ValueError, "nonempty"):
+            self.prepare()
+        self.assertEqual(old.read_text(), "preserve")
+        self.output = self.root / "another"
+        self.rows[0]["gold_expansion"] = "missing"
+        self.write_rows()
+        with self.assertRaisesRegex(ValueError, "gold outside"):
+            self.prepare()
+
+
+if __name__ == "__main__":
+    unittest.main()

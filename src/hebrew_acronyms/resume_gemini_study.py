@@ -1,7 +1,6 @@
 """Resume Gemini against the exact prompts in an identified saved Qwen dev run."""
 from copy import deepcopy
 from datetime import datetime, timezone
-from email.utils import parsedate_to_datetime
 import argparse
 import hashlib
 import json
@@ -11,21 +10,13 @@ import time
 
 from hebrew_acronyms import experimental_study as study
 from hebrew_acronyms.models.gemini.eval import gemini_response
+from hebrew_acronyms.models.common.errors import retry_after_seconds
 
 
 def retry_delay(value, attempt):
     """Respect delta-seconds and HTTP-date Retry-After, with bounded backoff otherwise."""
-    if value is not None:
-        try:
-            seconds = float(value)
-            if math.isfinite(seconds):
-                return max(0.0, seconds)
-        except (ValueError, TypeError):
-            try:
-                return max(0.0, (parsedate_to_datetime(value) - datetime.now(timezone.utc)).total_seconds())
-            except (ValueError, TypeError, OverflowError):
-                pass
-    return min(60, 5 * 2 ** (attempt - 1))
+    seconds = retry_after_seconds(value)
+    return seconds if seconds is not None else min(60, 5 * 2 ** (attempt - 1))
 
 
 def prepare(source_path, source_run_id, root, output_root, run_id):
@@ -66,6 +57,23 @@ def run(artifact, *, request=gemini_response, sleep=time.sleep, tasks=("select",
     settings = artifact['settings']
     load_dotenv(Path(settings['root']) / '.env', override=False, interpolate=False)
     study.validate_artifact(artifact, expected_run_id=artifact['run_id'])
+    # A block applies to the provider, including tasks not selected this session.
+    # Retain it across resumes; restoring account access requires a new identified
+    # run rather than deleting evidence or silently sending more requests.
+    saved_responses = [response
+                       for record in artifact['records'] if record['system'] == 'gemini'
+                       for response in [record.get('backend_metadata', {}), *record.get('attempt_history', [])]
+                       if isinstance(response, dict)]
+    if any(response.get('provider_blocked') is True for response in saved_responses):
+        return artifact
+    not_before = max((value for response in saved_responses
+                      if type(value := response.get('retry_not_before_unix')) in {int, float}
+                      and math.isfinite(value)), default=0)
+    remaining_wait = max(0, not_before - time.time())
+    if remaining_wait > 60:
+        return artifact
+    if remaining_wait:
+        sleep(remaining_wait)
     records = [r for task in tasks for r in artifact['records']
                if r['system'] == 'gemini' and r['task'] == task]
     attempted = {task: 0 for task in tasks}
@@ -82,14 +90,35 @@ def run(artifact, *, request=gemini_response, sleep=time.sleep, tasks=("select",
             response = request(record['prompt'], model=settings['gemini_model'],
                                timeout=settings['request_timeout'],
                                generation_config=settings['gemini_generation_config'])
+            delay = None
+            if (response.get('status') == 'service_error' and response.get('retryable')
+                    and response.get('provider_blocked') is not True):
+                delay = retry_delay(response.get('retry_after'), attempt)
+                response = {**response, 'retry_not_before_unix': time.time() + delay}
             study._record_response(artifact, record, 'gemini', response)
             record.setdefault('attempt_history', []).append(deepcopy(response))
             study.save_study(artifact)
-            if response.get('status') != 'service_error' or not response.get('retryable') or attempt == 3:
+            if response.get('provider_blocked') is True:
+                artifact.setdefault('execution_events', []).append({
+                    'event': 'provider_blocked', 'at_utc': datetime.now(timezone.utc).isoformat(),
+                    'note': 'Provider stopped; unattempted records retained. Inspect account before a new identified run.'})
+                study.save_study(artifact)
+                return artifact
+            if delay is None:
                 break
-            delay = retry_delay(response.get('retry_after'), attempt)
-            print(json.dumps({'retry': record['item_id'], 'attempt': attempt, 'delay_seconds': delay}), flush=True)
+            # The deadline is persisted with the response before waiting, even
+            # after the final attempt, so another item/task cannot bypass it.
+            if delay > 60:
+                artifact.setdefault('execution_events', []).append({
+                    'event': 'retry_wait_limit', 'at_utc': datetime.now(timezone.utc).isoformat(),
+                    'note': 'Provider cooldown saved; resume after the deadline. No wait longer than 60 seconds.'})
+                study.save_study(artifact)
+                return artifact
+            if attempt < 3:
+                print(json.dumps({'retry': record['item_id'], 'attempt': attempt, 'delay_seconds': delay}), flush=True)
             sleep(delay)
+            if attempt == 3:
+                break
         counts = {task: sum(r['status'] != 'not_run' for r in records if r['task'] == task)
                   for task in ('select', 'generate')}
         print(json.dumps({'progress': counts, 'last_status': record['status']}, ensure_ascii=False), flush=True)

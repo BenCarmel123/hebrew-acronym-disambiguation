@@ -36,7 +36,7 @@ class SharedStudyEvaluationTests(unittest.TestCase):
         for response in ("a", "b", "A or B", "Answer: A", "AA", "", " ", "C", "A.", "א", None):
             with self.subTest(response=response):
                 self.assertIsNone(parse(response, 2))
-        self.assertIsNone(parse("A", 0));self.assertIsNone(parse("A", 27))
+        self.assertIsNone(parse("A", 0));self.assertEqual(parse("A", 27), 0)
 
     def test_imbalanced_types_known_micro_macro_with_failures_and_unrun(self):
         encoder = self.eval.summarize_selection(self.rows, self.records, "dictabert")

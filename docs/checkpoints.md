@@ -2,7 +2,7 @@
 
 Use the [main study notebook](../notebooks/experimental_study.ipynb) for checkpoint
 inspection and dev prediction. Local installation and service setup are in the
-[README](../README.md#local-setup). The [training appendix](../notebooks/train_dictabert.ipynb)
+[README](../README.md#install-and-check). The [training appendix](../notebooks/train_dictabert.ipynb)
 remains separate; checkpoint loading does not train the model.
 
 Each checkpoint consists of a weights file and its original `<checkpoint>.json`, which records:
@@ -90,3 +90,41 @@ The recorded first run's dev losses were 0.42/0.53/0.54 and train losses
 Earlier claims that pooling made no difference, that seed 42 guaranteed repeatability,
 or that a 4.5-point observed range defined a general noise floor are not established
 by these records and are not adopted as current findings.
+
+## Identified test inference
+
+`test_encoder_inputs.qualify_test` retains strict target qualification by default.
+The explicitly selected `legacy_first_occurrence` policy instead uses the existing
+`models.common.pairs.find_span`: first quote-normalized acronym occurrence, with
+attached letters outside the marked span. Shaked authorized this deterministic
+choice on 2026-10-09 after the unresolved target positions were reported. It is
+not a human annotation and does not establish the provenance of the historical
+`results/dictabertx/test_details.csv` predictions.
+
+`test_encoder_inference.run_encoder_test` verifies a one-to-one, ordered mapping
+to all original test rows, preserving every source field. It loads the approved
+local checkpoint with the existing strict Colab loader, validates three predictions,
+and then records all test selection predictions incrementally. It does not train,
+download weights, or perform generation. Exact candidate accuracy retains all
+test items in the denominator; raw scores, failures, checkpoint reconstruction and
+source identities are saved together. An existing run directory is never overwritten.
+
+
+## Retrieving the identified test checkpoint
+
+Saved-result analysis requires no checkpoint. To reproduce inference separately,
+request the existing `dictabert-crossenc-study_v1-newtrain-seed43-20261003.pt`
+artifact from the project authors through their authorized storage channel. No
+public weight download is included or implied by this repository. Verify SHA-256
+`23bbff0324a7ce4d9d4a24a9ebfb87a4f6ac296bf1f1ce1bd25126c09260267f`
+before using the existing Colab state-dictionary loader; the filename does not
+verify the historical training seed.
+
+The fresh inference used `dicta-il/dictabert` snapshot
+`8884c6db002aba4002ee638fe4070c92e9ffbbf1`. Its tokenizer/configuration hashes,
+strict-load evidence and unresolved training fields are retained in
+[saved checkpoint reconstruction](../saved-results/study-runs/dictabert-test-20261009-f49c3b5/checkpoint-reconstruction.json).
+Use the separately supplied, hash-matched local snapshot and checkpoint with the
+[training/inference appendix](../notebooks/train_dictabert.ipynb); do not substitute
+unidentified weights. Original absolute paths in this evidence document collection
+provenance only and are not analysis dependencies.

@@ -1,0 +1,10 @@
+{
+  "new_run_id": "dictabert-test-20261009-f49c3b5",
+  "historical_path": "results/dictabertx/test_details.csv",
+  "historical_sha256": "951a92d1c1c2f47c9f495c05c6bf123f96ac49bccc9bdf836b2260d0e169c908",
+  "predictions_sha256": "51050d90e9067c50077f14cea660c3a4ceee761044f514665ad1066cd80187b8",
+  "same_ids": 395,
+  "identical_selected_candidates": 395,
+  "different_item_ids": [],
+  "interpretation": "Agreement verifies reproduction of the saved choices with the approved checkpoint under the recorded new procedure; it does not recover the original execution lineage."
+}
