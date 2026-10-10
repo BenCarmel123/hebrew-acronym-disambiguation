@@ -77,6 +77,17 @@ class StagedEvaluationTests(unittest.TestCase):
         self.assertEqual(self.full(qwen14, max_new_calls=1)["n_calls"], 1)
         self.assertEqual(staged.session_summary(self.output)["systems"]["qwen"]["full_test"]["status"], "not_run")
 
+    def test_dictalm_runs_as_a_separate_ollama_system(self):
+        dictalm = {"name": "dictalm", "provider": "qwen", "model": "dictalm-fixture",
+                   "settings": {"options": {"temperature": 0, "seed": 42, "num_predict": 512},
+                                "expected_digest": "fixture-digest", "timeout": 120}}
+        self.call.return_value = {"status": "response_received", "response": "A", "identity_status": "verified",
+            "usage_metadata": {"input_tokens": 10, "output_tokens": 5}, "response_metadata": {}}
+        self.assertEqual(self.pilot(dictalm)["summary"]["n_completed"], 20)
+        summary = staged.session_summary(self.output)
+        self.assertEqual(summary["systems"]["dictalm"]["dev_pilot"]["status"], "complete")
+        self.assertEqual(summary["systems"]["qwen"]["dev_pilot"]["status"], "not_run")
+
     def test_system_switch_preserves_spend_prompts_order_and_reports_absent(self):
         first = self.pilot()
         second = self.pilot(self.anthropic)

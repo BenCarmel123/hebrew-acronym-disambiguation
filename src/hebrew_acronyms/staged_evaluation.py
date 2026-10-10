@@ -13,7 +13,9 @@ import re
 
 from hebrew_acronyms import test_evaluation as evaluation
 
-SYSTEM_NAMES = ("qwen", "gemini", "openai", "anthropic", "qwen14", "xai")
+SYSTEM_NAMES = ("qwen", "gemini", "openai", "anthropic", "qwen14", "xai", "dictalm")
+# Systems served by the local Ollama adapter under their own names.
+OLLAMA_SYSTEMS = ("qwen", "qwen14", "dictalm")
 
 
 def prepare_session(output_dir, dev_path, test_path, *, code_revision,
@@ -77,7 +79,7 @@ def _directory(root, name, cohort):
 def _prepare(root, session, system, cohort, metadata):
     identity = session["identity"]
     name = system["name"]
-    if name not in SYSTEM_NAMES or system["provider"] != ("qwen" if name == "qwen14" else name):
+    if name not in SYSTEM_NAMES or system["provider"] != ("qwen" if name in OLLAMA_SYSTEMS else name):
         raise ValueError("Preserve the approved system/provider names")
     return evaluation.prepare_evaluation(
         identity["sources"][cohort]["path"], _directory(root, name, cohort),

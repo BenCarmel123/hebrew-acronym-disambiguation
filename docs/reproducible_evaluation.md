@@ -461,3 +461,19 @@ resource limitation, not authorization to purchase compute or substitute a model
 Comparison accepts the two explicitly identified collector implementations, while
 checking identical test inputs, prompts, candidate orders and scoring sources.
 Model configurations and collection revisions remain separate in the output.
+
+## Local DictaLM run
+
+`dictalm` is a further Ollama system, run on the same prompts, candidate orders and
+scoring as `qwen` and `qwen14`. It uses temperature 0, seed 42 and 512 output tokens.
+The model tag and quantization are chosen by the researcher and recorded with the
+server-reported digest and chat template; check that the template matches the
+model's published instruction format before reading any result. Local runs need no
+account and cost nothing, so all prices are zero.
+
+```
+python -m hebrew_acronyms.run_local_ollama_study pilot --output-dir RUN --code-revision SHA --model TAG
+python -m hebrew_acronyms.run_local_ollama_study full  --output-dir RUN --code-revision SHA --model TAG --pilot-identity ID
+```
+
+The staged workflow is fixed to the 395-item test set it was audited on.
