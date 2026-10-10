@@ -23,6 +23,7 @@
   function renderPartition(counts){
     if(counts.source_answers===undefined)return '';
     const rows=[['human_answers','נשפטו בידי אדם, כולל ״לא בטוח״'],['exacttrim_answers','סוננו: התאמה מלאה לאחר הסרת רווחים בקצוות'],['technical_answers','סוננו: התאמה לאחר נרמול טכני מצומצם'],['missing_answers','אין תשובה / כשל טכני מתועד'],['pending_answers','תשובות שממתינות לבדיקה']];
+    if(counts.reused_answers!==undefined){rows[0][1]='שיפוטים חדשים, כולל ״לא בטוח״';rows.splice(1,0,['reused_answers','הכרעות היסטוריות שאושרו לשימוש חוזר — לא שיפוטים חדשים']);}
     const sum=rows.reduce((n,[key])=>n+Number(counts[key]||0),0),decisions=Number(counts.pending_decisions||0);
     return `<section class="card"><h3>תשובות המקור והעבודה שנותרה</h3><table><tbody><tr><th>תשובות המקור</th><td>${Number(counts.source_answers)}</td></tr>${rows.map(([key,label])=>`<tr><td>${label}</td><td>${Number(counts[key]||0)}</td></tr>`).join('')}<tr><th>סכום הקבוצות הראשיות</th><td>${sum}</td></tr></tbody></table><p><strong>${decisions}</strong> הכרעות אנושיות נדרשות כעת.</p><p class="small">מופעים זהים באותו משפט חוסכים ${Number(counts.duplicate_savings||0)} הצגות נוספות; החיסכון אינו מופחת שוב מספירת המקור. ${Number(counts.foreign_pending_answers||0)} מהממתינות מכילות אותיות משפה אחרת — תכונה חופפת, לא קבוצה שמפחיתים שוב.</p><p class="small">אומדן גס: ${Math.ceil(decisions/2)}–${Math.ceil(decisions*1.5)} דקות, בהנחת חצי דקה עד דקה וחצי להכרעה. הסינון המכני אינו שיפוט אנושי, והבדיקה המורחבת אינה מדגם אקראי.</p></section>`;
   }
@@ -101,7 +102,7 @@
 
   const $=id=>document.getElementById(id);
   let state,currentItem,dirty=false,timer=null,pending=Promise.resolve(),lastError=null,view='all',routeIds=[],currentPosition=-1,editVersion=0,lockCount=0,activeAnswerId=null;
-  let tableMode=false,batchItems=[],batchId=null,batchDirty=false,skipped=new Set();
+  let tableMode=false,batchItems=[],batchId=null,batchDirty=false,skipped=new Set(),draftEdits=new Set(),deadlineHandled=false;
   async function request(path,payload){
     const response=await fetch(path,payload?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}:{});
     const result=await response.json();
@@ -125,7 +126,7 @@
     return operation;
   }
   function run(task,blocking=true){locked(task,blocking).catch(showError);}
-  function showScreen(name){for(const id of ['reviewScreen','detailsScreen','summaryScreen','startupError'])$(id).hidden=id!==name;}
+  function showScreen(name){for(const id of ['reviewScreen','detailsScreen','summaryScreen','startupError','reusePanel'])$(id).hidden=id!==name;}
   function updateProgress(){
     const counts=state.counts||{},total=counts.total_items??state.queue.length;
     $('progress').textContent=isContinuation(state)?`${counts.pending_answers||0} תשובות ממתינות`:`${counts.complete_items||0} מתוך ${total} משפטים הושלמו`;
@@ -133,7 +134,7 @@
     $('exposureNotice').hidden=!(state.revealed||state.exposed||state.prior_exposure);
     $('exposureNotice').textContent=isContinuation(state)?'החשיפות הקודמות נשמרו; הזהויות והניקוד מוסתרים כעת.':state.revealed||state.exposed?'התוצאות כבר נחשפו. שינויים חדשים יתועדו לאחר חשיפה; תמונת המצב שלפניה נשמרת.':'העבודה והחשיפות מהפרוטוקול הקודם נשמרו. אין לראות בשיפוטים הקודמים שיפוט חדש ללא חשיפה.';
     $('reviewer').textContent=`מתייג/ת: ${state.reviewer||'לא זמין'}`; if(state.manual_session){const minutes=Math.max(0,Math.ceil((Date.parse(state.manual_session.deadline)-Date.now())/60000));$('reviewer').textContent+=` · נותרו עד ${minutes} דקות`;}
-    if(state.protocol_version==='identified-test-review-v1'){$('progress').textContent=`${queueIds(state,view).length} שורות בתור שנבחר`;$('countDetail').textContent=`${counts.human_decisions||0} הכרעות נשמרו · ${counts.human_answers||0} מתוך ${counts.source_answers} תשובות מכוסות`;for(const [value,label] of Object.entries({calibration:'כיול — תור מגוון',prioritized:'יצירה — כל השליליים',hebrew:'יצירה — ללא אותיות זרות (תור מקוצר)',positives:'ביקורת חיוביים',selection:'בחירה — חשדות ופענוח'})){if(!$('queueView').querySelector(`option[value="${value}"]`)){const option=document.createElement('option');option.value=value;option.textContent=label;$('queueView').appendChild(option);}}$('exposureNotice').textContent='הייחוס מוצג; החשיפה ההיסטורית אינה ידועה. אין העברת שיפוטים ישנים.';$('filteredButton').textContent='עיון בכשלים הטכניים';}
+    if(state.protocol_version==='identified-test-review-v1'){$('progress').textContent=`${queueIds(state,view).length} שורות בתור שנבחר`;$('countDetail').textContent=`${counts.human_decisions||0} הכרעות חדשות (${counts.human_answers||0} תשובות) · ${counts.reused_groups||0} קבוצות משומשות (${counts.reused_answers||0} תשובות)`;for(const [value,label] of Object.entries({calibration:'כיול — תור מגוון',prioritized:'יצירה — כל השליליים',hebrew:'יצירה — ללא אותיות זרות (תור מקוצר)',positives:'ביקורת חיוביים',selection:'בחירה — חשדות ופענוח'})){if(!$('queueView').querySelector(`option[value="${value}"]`)){const option=document.createElement('option');option.value=value;option.textContent=label;$('queueView').appendChild(option);}}$('exposureNotice').textContent='הייחוס מוצג; שימוש חוזר מאושר נשמר בנפרד עם המקור והחשיפה ההיסטוריים.';$('filteredButton').textContent='עיון בכשלים הטכניים';}
     $('queueView').value=view;
     $('queueHint').textContent={all:'כל תשובה שטרם נשפטה ולא סוננה נמצאת כאן. ״לא בטוח״ נמצא בתור נפרד.',foreign:'אותיות משפה אחרת הן סימון מכני בלבד; אין כאן שיפוט או תגית ג׳יבריש אוטומטיים.',unsure:'שיפוטים קיימים שסומנו ״לא בטוח״. חזרה אליהם היא בחירה נפרדת.',suspicions:'מקרים עם חשד לייחוס או למשפט נשארים נגישים גם כאשר תשובה סוננה.',hebrew:'תור יצירה ללא אותיות זרות. האחרות נדחו בלבד ונשארו ללא שיפוט.',calibration:'כיול מגוון: כעשר דקות. אפשר לעבור לתור המקוצר אחרי הכיול.',prioritized:'כל השליליים האוטומטיים ביצירה, כולל תשובות עם אותיות זרות.',positives:'ביקורת חיוביים ותוספות: ברירת המחדל בטבלה אינה ראיה לשגיאה.',selection:'בדיקת פירוש ופענוח; אפשר לעבור לכרטיס בודד ולפתוח פרטים.',filtered:'עיון בלבד בכשלים הטכניים; הם נשארים במכנים.'}[view];
     $('queueView').title=$('queueHint').textContent;$('queueHint').hidden=false;
@@ -188,36 +189,37 @@
     state=result.state;currentItem=result.item;currentPosition=routeIds.indexOf(id);dirty=false;lastError=null;$('saveNext').disabled=false;$('detailsButton').disabled=false;renderItem();
     status('העבודה השמורה נטענה · שינויים נשמרים אוטומטית בדיסק');
   }
-  async function switchView(nextView){if(batchDirty&&!window.confirm('השינויים בטבלה טרם אושרו. לעבור בלי לשמור אותם?')){$('queueView').value=view;return;}await flush();batchDirty=false;skipped.clear();view=nextView;routeIds=queueIds(state,view).slice();if(tableMode&&view!=='filtered')await openBatch();else{tableMode=false;setTableVisibility();await openItem(routeIds[0]);}}
+  async function switchView(nextView){await saveBatchDraft();await flush();batchDirty=false;skipped.clear();view=nextView;routeIds=queueIds(state,view).slice();if(tableMode&&view!=='filtered')await openBatch();else{tableMode=false;setTableVisibility();await openItem(routeIds[0]);}}
   function setTableVisibility(){
     $('batchPanel').hidden=!tableMode;
     for(const element of [$('itemView'),document.querySelector('.navigation'),$('reviewScreen').querySelector(':scope > footer')])element.hidden=tableMode;
     $('tableToggle').textContent=tableMode?'מעבר לכרטיס בודד':'תצוגת טבלה';
     document.querySelector('.guidance').textContent=tableMode?'טבלה מרוכזת · עד 20 הקשרים בכל קבוצה · ברירות המחדל אינן תיוג עד לאישור שלך':'שפוט לפי ההקשר · 1 מתאימה · 2 לא מתאימה · 3 לא בטוח · Enter שמירה והבא';
   }
-  async function openBatch(){
-    setTableVisibility();currentItem=null;batchDirty=false;
-    const ids=queueIds(state,view).filter(id=>!skipped.has(id)).slice(0,20);
+  async function openBatch(restored=null){
+    setTableVisibility();currentItem=null;batchDirty=false;draftEdits=new Set(restored?.draft?.edited_item_ids||[]);
+    const ids=restored?restored.items.map(i=>i.id):queueIds(state,view).filter(id=>!skipped.has(id)).slice(0,20);
     if(!ids.length){batchItems=[];$('batchTable').innerHTML='<p>אין שורות נוספות בתור הזה. שורות שדילגת עליהן נשארות ללא תיוג; בחירה חוזרת בתור מציגה אותן.</p>';$('batchConfirm').disabled=true;$('batchSkip').disabled=true;updateProgress();showScreen('reviewScreen');return;}
-    const result=await request('/api/short/batch-open',{revision:state.revision,view,item_ids:ids});
+    const result=restored||await request('/api/short/batch-open',{revision:state.revision,view,item_ids:ids});
     state=result.state;batchItems=result.items;batchId=result.batch_id;
     $('batchTable').innerHTML='<table class="review-table"><thead><tr><th># / קיצור</th><th>המשפט המלא</th><th>ייחוס</th><th>תשובת המערכת המלאה</th><th>הכרעה מוצעת</th></tr></thead><tbody>'+batchItems.map((item,index)=>{
-      const existing=Object.values(state.records[item.id]?.judgments||{})[0]?.label||'not_fits';
+      const existing=restored?.draft?restored.draft.labels[item.id]:(Object.values(state.records[item.id]?.judgments||{})[0]?.label||'not_fits');
       return `<tr><td>${index+1}<br><strong>${esc(item.acronym)}</strong><br><small>${esc(item.task_label)} · ${item.answers[0].occurrence_count} תשובות</small></td><td dir="auto">${esc(item.sentence)}</td><td dir="auto">${esc(item.gold)}</td><td dir="auto">${esc(item.answers[0].text)}</td><td><select data-batch-item="${esc(item.id)}" aria-label="הכרעה בשורה ${index+1}">${Object.entries({...LABELS,'':'לא קראתי — דילוג'}).map(([value,label])=>`<option value="${value}" ${value===existing?'selected':''}>${label}</option>`).join('')}</select></td></tr>`;
     }).join('')+'</tbody></table>';
-    $('batchTable').querySelectorAll('select').forEach(select=>select.onchange=()=>{batchDirty=true;select.closest('tr').classList.add('modified');status('השינוי בטבלה טרם אושר · יש לאשר את השורות שקראת');});
-    $('batchConfirm').disabled=false;$('batchSkip').disabled=false;$('batchConfirm').textContent=`קראתי — אישור עד ${batchItems.length} שורות והמשך`;
-    updateProgress();showScreen('reviewScreen');status(`${batchItems.length} שורות מוצגות · ברירות המחדל טרם אושרו ואין להן שיפוט אנושי`);
+    $('batchTable').querySelectorAll('select').forEach(select=>select.onchange=()=>{batchDirty=true;draftEdits.add(select.dataset.batchItem);select.closest('tr').classList.add('modified');cacheDraft();status('שומר טיוטה בלבד — אין כאן אישור שיפוטים');run(saveBatchDraft,false);});
+    $('batchTable').inert=Boolean(restored?.read_only);$('batchConfirm').disabled=Boolean(restored?.read_only);$('batchSkip').disabled=Boolean(restored?.read_only);$('batchConfirm').textContent=`קראתי — אישור עד ${batchItems.length} שורות והמשך`;
+    updateProgress();showScreen('reviewScreen');updateDraftChoices();status(restored?'טיוטה שוחזרה — אינה שיפוט מאושר'+(restored.read_only?' · הזמן הסתיים: עיון בלבד':''):`${batchItems.length} שורות מוצגות · ברירות המחדל טרם אושרו ואין להן שיפוט אנושי`);
   }
-  $('tableToggle').onclick=()=>run(async()=>{if(batchDirty&&!window.confirm('לעבור בלי לשמור את השינויים בטבלה?'))return;await flush();batchDirty=false;tableMode=!tableMode;setTableVisibility();if(tableMode)await openBatch();else{routeIds=queueIds(state,view).slice();await openItem(routeIds[0]);}});
+  $('tableToggle').onclick=()=>run(async()=>{await saveBatchDraft();await flush();batchDirty=false;tableMode=!tableMode;setTableVisibility();if(tableMode)await openBatch();else{routeIds=queueIds(state,view).slice();await openItem(routeIds[0]);}});
   $('batchConfirm').onclick=()=>run(async()=>{
+    await saveBatchDraft();
     const labels=Object.fromEntries([...$('batchTable').querySelectorAll('select')].map(el=>[el.dataset.batchItem,el.value]));
     const result=await request('/api/short/batch-save',{revision:state.revision,view,batch_id:batchId,confirmed:true,labels});
-    state=result.state;const count=Object.values(labels).filter(Boolean).length;for(const item of batchItems)skipped.add(item.id);batchDirty=false;
+    state=result.state;localStorage.removeItem(draftKey());draftEdits.clear();const count=Object.values(labels).filter(Boolean).length;for(const item of batchItems)skipped.add(item.id);batchDirty=false;
     await openBatch();status(`נשמרו בדיסק ${count} הכרעות שאישרת · הקבוצה הבאה עדיין לא מתויגת`);window.scrollTo({top:0});
   });
-  $('batchSkip').onclick=()=>run(async()=>{if(batchDirty&&!window.confirm('לדלג בלי לשמור את השינויים בטבלה?'))return;for(const item of batchItems)skipped.add(item.id);batchDirty=false;await openBatch();window.scrollTo({top:0});});
-  $('batchSummary').onclick=()=>run(async()=>{if(batchDirty&&!window.confirm('השינויים בטבלה לא אושרו. לפתוח סיכום בלי לשמור אותם?'))return;batchDirty=false;await openSummary();});
+  $('batchSkip').onclick=()=>run(async()=>{await saveBatchDraft();for(const item of batchItems)skipped.add(item.id);batchDirty=false;await openBatch();window.scrollTo({top:0});});
+  $('batchSummary').onclick=()=>run(async()=>{await saveBatchDraft();batchDirty=false;await openSummary();});
   function renderDetails(details){$('detailsView').innerHTML=renderMaskedDetails(details);}
   function renderSummary(summary,explicitFull=false){
     const full=canShowFull(state,summary,explicitFull);
@@ -228,17 +230,72 @@
     $('fullDownloads').hidden=!Boolean(state.revealed||state.exposed);
   }
   async function openSummary(){
-    await flush();status('מכין סיכום…');
+    await saveBatchDraft();await flush();status('מכין סיכום…');
     const result=await request('/api/short/summary',{revision:state.revision});
     state=result.state;renderSummary(result.summary);updateProgress();showScreen('summaryScreen');lastError=null;
-    status('כל השינויים נשמרו · הסיכום מוכן');window.scrollTo({top:0});
+    status('הסיכום מוכן · הכרעות מאושרות וטיוטות נשמרות בנפרד');window.scrollTo({top:0});
   }
   async function download(path,name){await flush();const link=document.createElement('a');link.href=path;link.download=name;document.body.appendChild(link);link.click();link.remove();}
-  setInterval(()=>{if(state?.manual_session){const remaining=Math.max(0,Math.ceil((Date.parse(state.manual_session.deadline)-Date.now())/60000));$('reviewer').textContent=`מתייג/ת: ${state.reviewer} · נותרו עד ${remaining} דקות`;$('queueHint').hidden=false;$('queueHint').textContent=remaining>50?'שלב כיול (10 דקות): שיפוטים מגוונים ובדיקת שמירה וחידוש.':remaining>10?'שלב התור המתועדף: בחרו יצירה — ללא אותיות זרות.':'10 הדקות האחרונות: עברו לביקורת חיוביים וללא בטוח; אין צורך לסיים תור.';}if(state?.manual_session && Date.now()>=Date.parse(state.manual_session.deadline)){$('saveNext').disabled=true;$('itemView').inert=true;$('batchTable').inert=true;$('batchConfirm').disabled=true;$('batchSkip').disabled=true;status('הסתיימו 60 דקות התיוג · העבודה נשמרה ונוצר גיבוי מאומת · אפשר לפתוח סיכום');}},1000);
+  function draftKey(){return `identified-unconfirmed-draft:${state.plan_id}`;}
+  function draftPayload(){return {batch_id:batchId,view,edited_item_ids:[...draftEdits],labels:Object.fromEntries([...$('batchTable').querySelectorAll('select')].map(el=>[el.dataset.batchItem,el.value]))};}
+  function cacheDraft(){localStorage.setItem(draftKey(),JSON.stringify(draftPayload()));}
+  function updateDraftChoices(){
+    $('draftChoice').innerHTML=(state.pending_drafts||[]).map(d=>`<option value="${esc(d.batch_id)}">${esc(d.saved_at)} · ${esc(d.view)}</option>`).join('');
+    $('draftRestore').disabled=!(state.pending_drafts||[]).length;
+    $('reuseOpen').textContent=`נבדקו בעבר (${state.pending_reuse||0} ממתינות לאישור)`;
+  }
+  async function saveBatchDraft(){
+    if(!batchDirty||!batchId)return;
+    const payload=draftPayload();cacheDraft();
+    const result=await request('/api/short/batch-draft',payload);
+    if(JSON.stringify(draftPayload())===JSON.stringify(payload)){batchDirty=false;localStorage.removeItem(draftKey());}
+    state.pending_drafts=[...(state.pending_drafts||[]).filter(d=>d.batch_id!==payload.batch_id),{batch_id:payload.batch_id,view:payload.view,saved_at:result.draft.saved_at}];
+    updateDraftChoices();status('טיוטה נשמרה בנפרד בדיסק — לא נוספו שיפוטים מאושרים');
+  }
+  $('draftRestore').onclick=()=>run(async()=>{
+    const id=$('draftChoice').value;await saveBatchDraft();
+    const restored=await request('/api/short/draft-restore',{revision:state.revision,batch_id:id});
+    view=restored.draft.view;tableMode=true;await openBatch(restored);
+  });
+  async function openReuse(){
+    await saveBatchDraft();await flush();
+    const result=await request('/api/short/reuse-open',{revision:state.revision});state=result.state;
+    $('reuseTable').innerHTML='<table class="review-table"><thead><tr><th>אישור</th><th>הקשר</th><th>ייחוס</th><th>תשובה והכרעה היסטורית</th><th>מקור ועיתוי</th></tr></thead><tbody>'+result.items.map(item=>`<tr><td><input type="checkbox" data-reuse-item="${esc(item.id)}" aria-label="שימוש חוזר ${esc(item.id)}" ${item.reused?'disabled checked':''}>${item.reused?'אושר לשימוש חוזר':''}</td><td>${esc(item.sentence)}</td><td>${esc(item.gold)}</td><td>${esc(item.answers[0].text)}<br><strong>נבדקו בעבר: ${esc(LABELS[item.historical_label])}</strong><br>${item.answers[0].occurrence_count} תשובות חדשות מקושרות</td><td>${item.historical_sources.map(p=>`${esc(p.annotator)} · <span dir="ltr" title="${esc(p.label_updated_at)}">${esc(new Date(p.label_updated_at).toLocaleString('he-IL',{timeZone:'Asia/Jerusalem'}))}</span><br><span dir="ltr">${esc(p.answer_id)}</span><br><span dir="ltr">${esc(p.origin)}</span><br>חשיפה: ${esc(PHASES[p.exposure_evidence?.status]||p.label_phase||'לא ידוע')}`).join('<hr>')}</td></tr>`).join('')+'</tbody></table>';
+    updateProgress();updateDraftChoices();showScreen('reusePanel');status('ההכרעות ומקורותיהן מוצגים לאישור שימוש חוזר בלבד · שעון התיוג לא מופעל באישור זה');
+  }
+  $('reuseOpen').onclick=()=>run(openReuse);
+  $('reuseSelectAll').onclick=()=>{$('reuseTable').querySelectorAll('input:not(:disabled)').forEach(el=>el.checked=true);};
+  $('reuseConfirm').onclick=()=>run(async()=>{
+    const ids=[...$('reuseTable').querySelectorAll('input:checked:not(:disabled)')].map(el=>el.dataset.reuseItem);
+    if(!ids.length){status('בחר קבוצות לאישור שימוש חוזר');return;}
+    const result=await request('/api/short/reuse-confirm',{revision:state.revision,confirmed:true,item_ids:ids});state=result.state;
+    await openReuse();status(`אושר שימוש חוזר ב־${ids.length} קבוצות היסטוריות · לא נוצרו שיפוטים חדשים`);
+  });
+  $('reuseContinue').onclick=()=>run(async()=>{view='calibration';tableMode=true;await openBatch();});
+  async function expireTable(){
+    $('saveNext').disabled=true;$('itemView').inert=true;$('batchTable').inert=true;$('batchConfirm').disabled=true;$('batchSkip').disabled=true;
+    try{await saveBatchDraft();status('הסתיימו 60 דקות: אין אישור נוסף. ההכרעות המאושרות גובו; טיוטות נשמרו בנפרד לשחזור ולעיון בלבד.');}
+    catch(error){status('הזמן הסתיים. הטיוטה לא אושרה; שמירתה בדיסק לא אומתה. העותק המקומי בדפדפן נשמר — העתק הטיוטה בדפדפן יישלח שוב בעת רענון, בלי לאשר אותו.',true);}
+  }
+  setInterval(()=>{
+    if(!state?.manual_session)return;
+    const seconds=Math.max(0,Math.ceil((Date.parse(state.manual_session.deadline)-Date.now())/1000));
+    const remaining=Math.ceil(seconds/60);$('reviewer').textContent=`מתייג/ת: ${state.reviewer} · נותרו עד ${remaining} דקות`;
+    $('queueHint').hidden=false;$('queueHint').textContent=remaining>50?'שלב כיול (10 דקות): שיפוטים מגוונים ובדיקת שמירה וחידוש.':remaining>10?'שלב התור המתועדף: בחרו יצירה — ללא אותיות זרות.':'10 הדקות האחרונות: עברו לביקורת חיוביים וללא בטוח; אין צורך לסיים תור.';
+    if(seconds<=120){$('deadlineWarning').hidden=false;$('deadlineWarning').textContent=seconds?`נותרו ${seconds} שניות. אשר רק שורות שכבר קראת. טיוטה שלא אושרה תישמר בנפרד; לא יהיה אישור אוטומטי או זמן נוסף.`:'החלון הסתיים. טיוטות אינן שיפוטים מאושרים; השחזור זמין לעיון בלבד.';}
+    if(!seconds&&!deadlineHandled){deadlineHandled=true;run(expireTable,false);}
+  },1000);
   async function init(){
     try{
       const [initial,session]=await Promise.all([request('/api/short/state'),request('/api/session')]);
-      state=initial;$('qaBanner').hidden=!session.qa;if(state.protocol_version==='identified-test-review-v1'){$('tableToggle').hidden=false;tableMode=true;view='hebrew';routeIds=queueIds(state,view).slice();updateProgress();if(state.manual_session&&Date.now()>=Date.parse(state.manual_session.deadline))await openSummary();else await openBatch();return;}view='all';routeIds=queueIds(state,view).slice();updateProgress();const next=firstIncomplete(state);if(isContinuation(state)||next||!state.queue.length)await openItem(next);else await openSummary();
+      state=initial;$('qaBanner').hidden=!session.qa;if(state.protocol_version==='identified-test-review-v1'){
+        $('tableToggle').hidden=false;$('reviewTools').hidden=false;tableMode=true;view='calibration';updateProgress();updateDraftChoices();
+        const cached=localStorage.getItem(draftKey());
+        if(cached){try{await request('/api/short/batch-draft',JSON.parse(cached));state=await request('/api/short/state');updateDraftChoices();}catch(error){status('טיוטה מקומית נשמרה בדפדפן אך לא ניתן לקשרה לקבוצה הפעילה; אין למחוק אותה.',true);}}
+        if(state.manual_session&&Date.now()>=Date.parse(state.manual_session.deadline))await openSummary();
+        else if(state.pending_reuse&&!state.manual_session)await openReuse();
+        else if(state.pending_drafts?.length){const restored=await request('/api/short/draft-restore',{revision:state.revision,batch_id:state.pending_drafts.at(-1).batch_id});view=restored.draft.view;await openBatch(restored);}
+        else await openBatch();return;}view='all';routeIds=queueIds(state,view).slice();updateProgress();const next=firstIncomplete(state);if(isContinuation(state)||next||!state.queue.length)await openItem(next);else await openSummary();
     }catch(error){showError(error);if(!currentItem)showScreen('startupError');}
   }
   $('previous').onclick=()=>run(()=>openItem(routeIds[currentPosition-1]));

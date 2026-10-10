@@ -253,6 +253,9 @@ class MaskedStore:
         event = {'time': now(), 'action': action, 'item_id': item_id, 'revision': candidate['revision'],
                  'protocol_version': self.protocol, 'record': candidate['records'].get(item_id),
                  'reveal_event': candidate['reveal_events'][-1:] if action == 'reveal' else []}
+        if action.startswith('reuse-'):
+            event['historical_reuse'] = copy.deepcopy(candidate.get('historical_reuse', {}))
+            event['historical_reuse_exposures'] = copy.deepcopy(candidate.get('historical_reuse_exposures', []))
         if action in {'batch-open', 'batch-save'}:
             event['batch'] = copy.deepcopy(candidate['active_batch'])
             event['records'] = {key: copy.deepcopy(candidate['records'][key]) for key in candidate['active_batch']['item_ids']}

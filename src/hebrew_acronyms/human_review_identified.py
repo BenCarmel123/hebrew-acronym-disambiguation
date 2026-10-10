@@ -1,6 +1,6 @@
 """Bind the existing compact reviewer to immutable collected test responses.
 
-No historical judgments are imported. Exact response groups are confined to one
+Historical reuse requires separate explicit confirmation and provenance. Exact response groups are confined to one
 item/context/task, retaining every original answer and candidate mapping.
 """
 from collections import Counter
@@ -109,6 +109,12 @@ class IdentifiedStore(MaskedStore):
         self.lock=threading.RLock(); self.items={i['id']:i for i in dataset['items']}
         self.answers={i: {a['id']:a for a in item['answers']} for i,item in self.items.items()}
         self._view='all'
+        self.reuse_proposals = {}
+        report = self.path.parent/'coordinator-review.json'
+        if report.exists():
+            from .human_review_reuse import verified_reuse_proposals
+            self.reuse_proposals = verified_reuse_proposals(report, report.parent.parent.parent, dataset)
+        self.draft_path = self.path.with_suffix('.drafts.json')
         if self.path.exists():
             self.state=json.loads(self.path.read_text()); self.validate(self.state); return
         # Empty predecessor is explicit: this source has no inherited judgments.
@@ -126,6 +132,10 @@ class IdentifiedStore(MaskedStore):
         super().validate(state)
         if state['provenance'] != self.dataset['provenance']:
             raise ValueError('Changed source provenance')
+        for i, reuse in state.get('historical_reuse', {}).items():
+            if (reuse.get('proposal') != self.reuse_proposals.get(i) or not reuse.get('confirmed_at')
+                    or reuse.get('kind') != 'explicit_historical_reuse_not_new_judgment'):
+                raise ValueError('Historical reuse provenance changed')
         if self.dataset['source_identity'] != digest([self.dataset['provenance'], self.dataset['items']]):
             raise ValueError('Changed response group content')
 
@@ -143,7 +153,7 @@ class IdentifiedStore(MaskedStore):
             item=self.items[i]; a=item['answers'][0]
             r=self.state['records'].get(i,{}); j=r.get('judgments',{}).get(a['id'],{})
             if a['technical_failure']: result['filtered'].append(i)
-            elif j.get('label') not in LABELS:
+            elif j.get('label') not in LABELS and i not in self.state.get('historical_reuse', {}):
                 result['all'].append(i)
                 for view in ('calibration','prioritized','positives','selection'):
                     if i in self.plan[view]: result[view].append(i)
@@ -155,22 +165,26 @@ class IdentifiedStore(MaskedStore):
 
     def counts(self, records=None):
         records=self.state['records'] if records is None else records
-        total=human=missing=unsure=decisions=pending_groups=0
+        total=human=missing=unsure=decisions=pending_groups=reused_answers=reused_groups=0
         for i,item in self.items.items():
             n=len(item['occurrences']); total+=n; a=item['answers'][0]
             label=records.get(i,{}).get('judgments',{}).get(a['id'],{}).get('label')
             if label in LABELS: human+=n; decisions+=1; unsure+=n*(label=='unsure')
+            elif i in self.state.get('historical_reuse', {}): reused_answers+=n; reused_groups+=1
             elif a['technical_failure']: missing+=n
             else: pending_groups+=1
         return {'total_items':len(self.items),'total_answers':total,'source_answers':total,
                 'human_answers':human,'judged_answers':human,'human_decisions':decisions,
                 'complete_items':decisions,'reviewed_items':decisions,'partial_items':0,
-                'missing_answers':missing,'pending_answers':total-human-missing,
-                'pending_decisions':pending_groups,'duplicate_savings':total-human-missing-pending_groups,
+                'missing_answers':missing,'pending_answers':total-human-missing-reused_answers,
+                'reused_answers':reused_answers,'reused_groups':reused_groups,'covered_answers':human+reused_answers,
+                'pending_decisions':pending_groups,'duplicate_savings':total-human-missing-reused_answers-pending_groups,
                 'exacttrim_answers':0,'technical_answers':0,'unsure_answers':unsure}
 
     def snapshot(self):
-        result=super().snapshot(); result.update(queues=self.queues(), manual_session=self.state.get('manual_session'))
+        result=super().snapshot(); result.update(queues=self.queues(), manual_session=self.state.get('manual_session'),
+            pending_reuse=sum(i not in self.state.get('historical_reuse', {}) for i in self.reuse_proposals),
+            pending_drafts=[dict(batch_id=k, view=d['view'], saved_at=d['saved_at']) for k,d in self.read_drafts()['batches'].items() if d['status']=='unconfirmed'])
         return result
 
     def public_item(self,item_id,include_all=False):
@@ -212,6 +226,16 @@ class IdentifiedStore(MaskedStore):
                     manifest[history.name]=hashlib.sha256(content).hexdigest()
                     if hashlib.sha256((backup/history.name).read_bytes()).hexdigest()!=manifest[history.name]: raise OSError('History backup mismatch')
                 atomic_json(backup/'sha256.json',manifest)
+            if self.draft_path.exists():
+                content=self.draft_path.read_bytes()
+                target=backup/self.draft_path.name
+                if not target.exists() or target.read_bytes()!=content:
+                    target.write_bytes(content)
+                    signature=hashlib.sha256(content).hexdigest()
+                    if hashlib.sha256(target.read_bytes()).hexdigest()!=signature: raise OSError('Draft backup mismatch')
+                    manifest=json.loads((backup/'sha256.json').read_text())
+                    manifest[target.name]=signature
+                    atomic_json(backup/'sha256.json',manifest)
             return True
 
     def summary(self, masked=None):
@@ -221,6 +245,8 @@ class IdentifiedStore(MaskedStore):
             for judgment in record['judgments'].values():
                 for tag in judgment.get('tags', []):
                     tags[tag] += len(self.items[item_id]['occurrences'])
+        result['incomplete_ids'] = [i for i in result['incomplete_ids'] if i not in self.state.get('historical_reuse',{})]
+        result['historical_reuse_count'] = len(self.state.get('historical_reuse',{}))
         result['tag_counts'] = dict(tags)
         result['tag_count_unit'] = 'answer_occurrences'
         return result
@@ -228,10 +254,14 @@ class IdentifiedStore(MaskedStore):
     def transact(self,action,payload):
         if action in {'save','open','batch-open','batch-save'} and self.stop_if_due():
             raise ValueError('הסתיימו 60 דקות התיוג. העבודה וגיבוי מאומת נשמרו; אפשר לפתוח סיכום.')
+        if action in {'reuse-open','reuse-confirm','batch-draft','draft-restore'}:
+            return self.transact_auxiliary(action,payload)
         if action.startswith('group-') or action=='restore':
             raise ValueError('Cross-context transfer and technical-failure relabeling are disabled')
         self._view=payload.get('view','all')
         if self._view not in self.queues(): raise ValueError('Unknown queue')
+        if action=='save' and payload.get('item_id') in self.state.get('historical_reuse',{}):
+            raise ValueError('This response uses an explicitly confirmed historical judgment')
         if action=='save' and self.items[payload['item_id']]['answers'][0]['technical_failure']:
             raise ValueError('Technical failures stay separate')
         if action in {'batch-open','batch-save'}:
@@ -291,8 +321,89 @@ class IdentifiedStore(MaskedStore):
                     r['judgments'][aid] = j
                     r.update(updated_at=now(), edit_phase=self.phase(i))
             state = self.commit(candidate, action)
+            if action == 'batch-save':
+                self.close_draft(candidate['active_batch']['id'])
+                state = self.snapshot()
             return dict(state=state, batch_id=candidate['active_batch']['id'],
                         items=[self.public_item(i) for i in ids] if action == 'batch-open' else [])
+
+    def read_drafts(self):
+        if not self.draft_path.exists():
+            return dict(source_identity=self.dataset['source_identity'], batches={})
+        drafts=json.loads(self.draft_path.read_text())
+        if drafts['source_identity'] != self.dataset['source_identity']:
+            raise ValueError('Draft response source changed')
+        return drafts
+
+    def close_draft(self, batch_id):
+        drafts=self.read_drafts()
+        if batch_id in drafts['batches']:
+            drafts['batches'][batch_id]['status']='confirmed_batch'
+            atomic_json(self.draft_path,drafts)
+
+    def transact_auxiliary(self, action, payload):
+        with self.lock:
+            if action == 'batch-draft':
+                batch=self.state.get('active_batch', {})
+                if payload.get('batch_id') != batch.get('id') or batch.get('confirmed_at'):
+                    raise ValueError('Draft must refer to the active, unconfirmed batch')
+                labels=payload.get('labels', {})
+                edited=payload.get('edited_item_ids', [])
+                if (not isinstance(labels,dict) or set(labels)!=set(batch['item_ids'])
+                        or any(v not in LABELS | {''} for v in labels.values())
+                        or not isinstance(edited,list) or not set(edited).issubset(labels)):
+                    raise ValueError('Draft rows differ from displayed batch')
+                drafts=self.read_drafts()
+                drafts['batches'][batch['id']]=dict(batch_id=batch['id'], item_ids=batch['item_ids'],
+                    view=batch['view'], labels=copy.deepcopy(labels), edited_item_ids=edited,
+                    status='unconfirmed', saved_at=now(), proposed_default='not_fits',
+                    received_after_deadline=bool(self.state.get('manual_session') and
+                        datetime.now(timezone.utc)>=datetime.fromisoformat(self.state['manual_session']['deadline'])),
+                    bindings={i:[a['binding'] for a in self.items[i]['occurrences']] for i in batch['item_ids']})
+                atomic_json(self.draft_path,drafts)
+                self.stop_if_due()
+                return dict(saved=True, confirmed=False, draft=drafts['batches'][batch['id']])
+            if action == 'draft-restore':
+                draft=self.read_drafts()['batches'][payload['batch_id']]
+                if draft['status']!='unconfirmed': raise ValueError('This batch is already confirmed')
+                expired=self.stop_if_due()
+                if not expired:
+                    if payload.get('revision')!=self.state['revision']: raise ValueError('State changed; reload')
+                    # Do not restore over newer confirmed decisions or historical reuse.
+                    if any(self.completion(self.state['records'].get(i,{}))['judged_answers'] or
+                           i in self.state.get('historical_reuse',{}) for i in draft['item_ids']):
+                        raise ValueError('Some draft rows were subsequently reviewed')
+                    candidate=copy.deepcopy(self.state)
+                    candidate['active_batch']=dict(id=draft['batch_id'],item_ids=draft['item_ids'],view=draft['view'],opened_at=now())
+                    self.commit(candidate,'batch-open')
+                return dict(state=self.snapshot(), batch_id=draft['batch_id'], draft=copy.deepcopy(draft),
+                            items=[self.public_item(i) for i in draft['item_ids']], read_only=expired)
+            if payload.get('revision')!=self.state['revision']: raise ValueError('State changed; reload')
+            candidate=copy.deepcopy(self.state)
+            if action=='reuse-open':
+                candidate.setdefault('historical_reuse_exposures',[]).append(dict(at=now(),group_ids=list(self.reuse_proposals)))
+                state=self.commit(candidate,action)
+                items=[]
+                for i,p in self.reuse_proposals.items():
+                    item=self.public_item(i)
+                    item.update(historical_label=p['label'], reused=i in candidate.get('historical_reuse',{}),
+                        historical_sources=[dict(answer_id=x['answer']['id'],source='annotations.continuation-v1.json',
+                            **{k:x['judgment'].get(k) for k in ('origin','label_updated_at','annotator','label_phase','exposure_evidence')})
+                            for x in p['historical_sources']])
+                    items.append(item)
+                return dict(state=state,items=items)
+            if self.stop_if_due(): raise ValueError('The review window ended; reuse cannot be confirmed now')
+            ids=payload.get('item_ids',[])
+            if (payload.get('confirmed') is not True or not candidate.get('historical_reuse_exposures') or
+                    not ids or len(set(ids))!=len(ids) or any(i not in self.reuse_proposals for i in ids)):
+                raise ValueError('Explicit confirmation of displayed historical proposals is required')
+            reused=candidate.setdefault('historical_reuse',{})
+            for i in ids:
+                if i in reused or self.completion(candidate['records'].get(i,{}))['judged_answers']:
+                    raise ValueError('A judgment or reuse decision already exists')
+                reused[i]=dict(proposal=copy.deepcopy(self.reuse_proposals[i]), confirmed_at=now(),
+                    confirmed_by=self.state['reviewer'],kind='explicit_historical_reuse_not_new_judgment')
+            return dict(state=self.commit(candidate,action))
 
 
 def coverage_rows(dataset, state):
@@ -342,6 +453,8 @@ def export_judgments(dataset, state, output):
     result={'protocol_version':PROTOCOL,'dataset_id':dataset['dataset_id'],'plan_id':dataset['short_plan']['plan_id'],
             'source_files':[{'path':'/'.join(Path(f['path']).parts[-2:]),'sha256':f['sha256'],'bytes':f['bytes']} for f in dataset['provenance']['files']],
             'cohort_sha256':dataset['provenance']['cohort_sha256'], 'manual_session':state.get('manual_session'),
+            'historical_reuse':copy.deepcopy(state.get('historical_reuse',{})),
+            'coverage_scope':'New confirmed judgments only; historical reuse is separate',
             'annotation_sha256':digest(state),'reviewer':state['reviewer'],'decisions':decisions,
             'coverage':coverage_rows(dataset,state),'limitations':IdentifiedStore.limitations}
     atomic_json(Path(output),result)

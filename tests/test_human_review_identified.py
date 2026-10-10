@@ -118,6 +118,98 @@ class IdentifiedReviewTests(unittest.TestCase):
         finally:
             server.shutdown(); thread.join(); server.server_close()
 
+    def test_unconfirmed_draft_survives_deadline_and_restart(self):
+        from hebrew_acronyms.human_review_server import atomic_json
+        ids=self.store.queues()['all']
+        opened=self.store.transact('batch-open',dict(revision=0,item_ids=ids))
+        labels={ids[0]:'fits',ids[1]:'unsure'}
+        self.store.transact('batch-draft',dict(batch_id=opened['batch_id'],labels=labels,edited_item_ids=ids))
+        self.assertNotIn('manual_session',self.store.state)
+        self.assertEqual(self.store.counts()['human_decisions'],0)
+        records=copy.deepcopy(self.store.state['records'])
+        self.store.state['manual_session']={'started_at':'1999-12-31T23:00:00+00:00','deadline':'2000-01-01T00:00:00+00:00'}
+        atomic_json(self.store.path,self.store.state)
+        self.assertTrue(self.store.stop_if_due())
+        # A delayed persistence request after expiry still cannot approve labels.
+        self.store.transact('batch-draft',dict(batch_id=opened['batch_id'],labels=labels,edited_item_ids=ids))
+        resumed=IdentifiedStore(self.bundle,self.store.path)
+        restored=resumed.transact('draft-restore',dict(batch_id=opened['batch_id']))
+        self.assertTrue(restored['read_only'])
+        self.assertEqual(restored['draft']['labels'],labels)
+        self.assertTrue(restored['draft']['received_after_deadline'])
+        self.assertEqual(resumed.state['records'],records)
+        self.assertEqual(resumed.counts()['human_decisions'],0)
+        self.assertEqual(sum(r['reviewed'] for r in coverage_rows(self.bundle,resumed.state)),0)
+        with self.assertRaises(ValueError):
+            resumed.transact('batch-save',dict(revision=resumed.state['revision'],batch_id=opened['batch_id'],confirmed=True,labels=labels))
+        manifest=json.loads((self.root/'verified-backup-60min/sha256.json').read_text())
+        for name,expected in manifest.items():
+            self.assertEqual(hashlib.sha256((self.root/'verified-backup-60min'/name).read_bytes()).hexdigest(),expected)
+        self.assertIn('annotations.drafts.json',manifest)
+        from hebrew_acronyms.human_review_identified import export_judgments
+        self.assertEqual(export_judgments(self.bundle,resumed.state,self.root/'export.json')['decisions'],[])
+
+    def test_draft_confirmation_resumes_without_duplicates(self):
+        ids=self.store.queues()['all'];opened=self.store.transact('batch-open',dict(revision=0,item_ids=ids))
+        labels={i:'unsure' for i in ids}
+        self.store.transact('batch-draft',dict(batch_id=opened['batch_id'],labels=labels,edited_item_ids=ids))
+        restored=self.store.transact('draft-restore',dict(revision=1,batch_id=opened['batch_id']))
+        self.assertFalse(restored['read_only'])
+        self.store.transact('batch-save',dict(revision=2,batch_id=opened['batch_id'],labels=labels,confirmed=True))
+        resumed=IdentifiedStore(self.bundle,self.store.path)
+        self.assertEqual(resumed.queues()['all'],[])
+        self.assertEqual(resumed.snapshot()['pending_drafts'],[])
+        self.assertEqual(resumed.counts()['human_decisions'],2)
+        with self.assertRaises(ValueError): resumed.transact('draft-restore',dict(batch_id=opened['batch_id']))
+
+    def test_historical_reuse_requires_confirmation_and_preserves_sources(self):
+        from hebrew_acronyms.human_review_reuse import verified_reuse_proposals
+        from hebrew_acronyms.human_review_identified import export_judgments
+        session=self.root/'artifacts'/'review';session.mkdir(parents=True)
+        item=next(i for i in self.bundle['items'] if len(i['occurrences'])==2)
+        old_item=dict(id=item['original_item_id'],sentence=item['sentence'],acronym=item['acronym'],gold=item['gold'],
+                      answers=[dict(id='old-answer',task='generation',raw=item['answers'][0]['raw'])])
+        judgment=dict(label='fits',origin='old-protocol',label_updated_at='2020-01-01T00:00:00+00:00',
+                      annotator='QA_NOT_HUMAN',exposure_evidence={'status':'after_reveal'})
+        data={'source_identity':'old-source','items':[old_item]}
+        annotations={'records':{old_item['id']:{'judgments':{'old-answer':judgment},'exposure':{'old':'preserved'}}}}
+        sources={'review-data-continuation-v1.json':data,'annotations.continuation-v1.json':annotations,'review-data-381.json':self.bundle}
+        hashes={}
+        for name,content in sources.items():
+            path=self.root/name;path.write_text(json.dumps(content));hashes[name]=hashlib.sha256(path.read_bytes()).hexdigest()
+        match=dict(group_id=item['id'],original_item_id=old_item['id'],new_bindings=[a['binding'] for a in item['occurrences']],
+                   previous_judgments=[dict(answer_id='old-answer',**{k:judgment[k] for k in ['label','origin','label_updated_at','annotator']})])
+        report=dict(source_sha256=hashes,historical_exact_context_response_matches=[match],match_count=1,new_answer_occurrences=2)
+        path=session/'coordinator-review.json';path.write_text(json.dumps(report))
+        store=IdentifiedStore(self.bundle,session/'annotations.json')
+        before=copy.deepcopy(store.state['records'])
+        payload=dict(revision=0,item_ids=[item['id']],confirmed=True)
+        with self.assertRaises(ValueError): store.transact('reuse-confirm',payload)
+        store.transact('reuse-open',dict(revision=0))
+        self.assertEqual(store.counts()['reused_answers'],0)
+        store.transact('reuse-confirm',dict(payload,revision=1))
+        resumed=IdentifiedStore(self.bundle,store.path)
+        self.assertEqual(resumed.counts()['human_decisions'],0)
+        self.assertEqual(resumed.counts()['human_answers'],0)
+        self.assertEqual(resumed.counts()['reused_answers'],2)
+        self.assertEqual(resumed.state['records'],before)
+        self.assertNotIn('manual_session',resumed.state)
+        self.assertNotIn(item['id'],resumed.queues()['all'])
+        reuse=resumed.state['historical_reuse'][item['id']]
+        self.assertEqual(reuse['proposal']['historical_sources'][0]['judgment'],judgment)
+        exported=export_judgments(self.bundle,resumed.state,self.root/'export.json')
+        self.assertEqual(exported['decisions'],[])
+        self.assertEqual(exported['historical_reuse'][item['id']],reuse)
+        for name,h in hashes.items(): self.assertEqual(hashlib.sha256((self.root/name).read_bytes()).hexdigest(),h)
+        # Include every matching historical answer: contradictory evidence blocks reuse.
+        data['items'][0]['answers'].append(dict(old_item['answers'][0],id='contradiction'))
+        annotations['records'][old_item['id']]['judgments']['contradiction']=dict(judgment,label='not_fits')
+        for name,content in list(sources.items())[:2]:
+            (self.root/name).write_text(json.dumps(content));report['source_sha256'][name]=hashlib.sha256((self.root/name).read_bytes()).hexdigest()
+        report['historical_exact_context_response_matches'][0]['previous_judgments'].append(dict(match['previous_judgments'][0],answer_id='contradiction',label='not_fits'))
+        path.write_text(json.dumps(report))
+        with self.assertRaisesRegex(ValueError,'Conflicting'): verified_reuse_proposals(path,self.root,self.bundle)
+
     def test_signed_backup_restore_and_reveal(self):
         i=self.store.queues()['all'][0]
         opened=self.store.transact('open',dict(revision=0,item_id=i));token=opened['item']['answers'][0]['id']

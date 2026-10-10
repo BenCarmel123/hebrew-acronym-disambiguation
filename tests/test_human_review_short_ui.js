@@ -305,3 +305,10 @@ test('compact rows share sentence context and preserve original response whitesp
   assert.ok(!html.includes('tag-help'));
   assert.ok(html.includes('ייחוס (עשוי להיות שגוי)'));
 });
+
+
+test('historical reuse is a separate partition, never a new judgment',()=>{
+  const html=ui.renderPartition({source_answers:10,human_answers:2,reused_answers:3,pending_answers:4,missing_answers:1});
+  assert.match(html,/הכרעות היסטוריות שאושרו לשימוש חוזר/);
+  assert.match(html,/סכום הקבוצות הראשיות<\/th><td>10<\/td>/);
+});
