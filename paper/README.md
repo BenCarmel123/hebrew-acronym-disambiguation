@@ -1,20 +1,78 @@
 # Paper: source, build and result updates
 
-The previously tracked `draft.pdf` was removed on 9 October 2026. There is no
-current reviewed manuscript PDF delivered by that path. Build from the current
-LaTeX source and inspect the rendered output before treating it as a submission.
+`main.tex` and `sections/*.tex` are the sole maintained manuscript and build source.
+`overleaf_main.tex` is an **archived reference**, not a second editable draft or a
+current Overleaf export. Its manuscript body is Ben's version at
+`4d2dc738914fa67970f18ee897b3deb7ff19f4f2`; only an archival header was added.
+Before editing, the expanded sections were compared with that version: all body
+content matched after removing comments/whitespace and normalizing figure paths.
+The remaining differences are the existing preamble and build-path adaptations.
+No structural split was needed. For Overleaf, import the maintained multi-file
+project with XeLaTeX and select `main.tex`; do not compile the archived copy.
+The old `manuscript.md` is a pointer, not another source.
 
-`main.tex` and `sections/*.tex` are the single maintained manuscript. The previous
-Markdown version is preserved at `9a14416:paper/manuscript.md`; its current file is
-only a pointer. The draft now includes a test-results narrative, pending generation
-values and figures requiring reconciliation with the final evaluation. Human
-review is incomplete; descriptions of manual scoring must reflect its actual
-coverage and distinguish mechanical filters from human judgments.
-`overleaf_main.tex` is a parallel standalone copy added on 9 October; reconcile
-its changes before generating a synchronized export from the maintained source.
-Do not independently maintain two manuscripts.
-The official deadline is **14 October 2026**; the authors target **11 October 2026**.
-The course PDF's 30 September date is superseded.
+The 10 October results draft uses the identified exports in
+[`results/submission-20261010`](../results/submission-20261010/README.md), preserving
+the six-LLM automatic comparison, the encoder/baselines and a separate DictaLM table.
+It is a review draft, not a submission approval. The submission date confirmed by
+Shaked is **14 October 2026**; the course PDF's earlier date is superseded.
+
+## Result sources and review evidence
+
+The manuscript tables and the existing `make_result_figures.py` use the current
+saved exports; they do not rerun models or change scoring:
+
+- `automatic_metrics.csv`: six LLMs under the common automatic rule within each
+  task, plus the identified trained encoder; all denominators are 381.
+- `baselines.csv`, `similarity_metric.csv` and `similarity_source.json`: reference
+  points and the 245/381 pretrained similarity result, including missing provenance.
+- `dictalm_reported_metrics.csv`, `dictalm_ben_cross_tab.csv` and
+  `dictalm_ben_judgments.csv`: four separate measures and Ben's bound labels.
+- `metric_coverage.csv`: technical failures, format validity and automatic matches.
+- `response_review_bindings.csv` and `dictalm_responses_381.csv`: stored example
+  answers and decisions. Table 9 uses Knesset items `kn-0002` and `kn4-0048`.
+  Their document titles are `13_ptm_532014.docx` and `13_ptm_532211.docx`,
+  respectively, in the saved test manifest.
+- Source breakdowns retain the existing Knesset/Wikipedia/authored grouping and
+  automatic rules. Displayed values were checked against saved per-item outcomes;
+  no new labels or scoring rules were introduced.
+
+Regenerate the two figures from the repository root with
+`python3 paper/make_result_figures.py` in an environment with Matplotlib. This reads
+only the existing identified CSV exports; the historical development exporter below
+is a separate, inactive path and does not supply this draft's test results.
+
+The intake baseline `a634a63d1cdcdfb33e0c7cec281b8f78272b10a5` built successfully
+before editing (8 PDF pages, main content through page 7), but `make check` reported
+three existing overfull boxes: the task equation, source table and empty example
+table. These were corrected locally while editing those same passages. The reviewed
+build is `build/main.pdf`; outputs and local comparison artifacts remain ignored.
+The final build check verifies the unchanged ACL styles, references, glyphs, box
+warnings and eight-page body limit. Visual inspection additionally covers Hebrew,
+all tables, both figures and references. The final reviewed PDF has 9 pages:
+8 pages of main content and a separate references page.
+
+To review the focused manuscript changes against Ben, run from the repository root:
+
+```bash
+git diff 4d2dc738914fa67970f18ee897b3deb7ff19f4f2 -- paper/
+```
+
+The main editorial changes separate metrics, retain two qualified conclusions,
+correct saved-run input/decoding/training descriptions, and replace the empty
+example table with existing evidence. Ben's introductory motivation, data account,
+model architecture and most related-work wording are preserved. Only a small
+consistency correction was made to the related-work description of our own task.
+No broad literature review was performed. The newly added template caveat was
+checked against the publisher's
+[GGUF instruction-format documentation](https://huggingface.co/dicta-il/dictalm2.0-instruct-GGUF#instruction-format)
+on 10 October 2026. The cited DictaBERT and DictaLM primary records were also checked;
+no causal claim about Hebrew pretraining is inferred from them.
+
+Author contributions and personal AI reflections remain for the authors. Full
+abstract/introduction editing and independent scientific review are later work.
+The sections below preserve earlier development provenance; they do not supersede
+the identified test sources and current presentation described above.
 
 ## Build the readable draft
 
@@ -35,22 +93,18 @@ The PDF is `paper/build/main.pdf`. The check verifies ACL file hashes, missing
 references/glyphs, overfull boxes and the last page of main text or a labeled main-content table/figure. Inspect
 the rendered PDF as well, especially Hebrew and any new figure/table. The body must
 stay within eight pages, excluding references and appendix. Do not reduce fonts or
-margins to make room. Results and discussion should replace the short draft note, using the remaining
-space. There is no planned-display table in the manuscript.
+margins to make room. The results draft includes populated tables and saved examples.
 
 Build outputs under `build/` are ignored. Select and document the submission PDF
 only after a successful build and visual review; do not restore an obsolete PDF
-as the current draft. The current source contains pending generation values and
-tables; building does not complete or validate them. Building never loads a model, calls a service,
+as the current draft. Building alone does not validate scientific claims. Building never loads a model, calls a service,
 opens a research split or regenerates data. The existing multi-file ACL project is
 built with its own TeX toolchain; the source remains editable in a normal editor.
 
 ## Historical development exporter
 
-The procedure below describes the existing development exporter, not the pending
-full-test export. Extend it against identified saved test outputs before using it
-for the final tables and figures. Do not fill placeholders by copying numbers
-from unrelated runs.
+The procedure below describes the historical development exporter. It is not the
+source of the current test tables or figures; use the identified exports above.
 
 Install the project in an isolated environment using the root README. The small
 plot dependency is included in `requirements.txt`. See
@@ -217,8 +271,8 @@ labels lack independent verification in preparation. Codex assisted code, checks
 literature checking, the exporter and manuscript, with assistant reviews during
 earlier drafting. Software checks and PDF inspection are distinct from subsequent
 real model runs. Author contributions and personal reflections must be written
-or confirmed by the authors. This revision uses saved evidence and train/dev only;
-it does not inspect test or run models.
+or confirmed by the authors. That earlier development revision used saved evidence and train/dev only. The
+10 October draft uses saved test results as described above, without model execution.
 
 ## Offline verification
 
