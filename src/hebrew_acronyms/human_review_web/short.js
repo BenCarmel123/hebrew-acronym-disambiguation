@@ -56,6 +56,15 @@
     const label={'1':'fits','2':'not_fits','3':'unsure'}[event.key];
     return label&&activeId?{type:'label',answerId:activeId,label}:null;
   }
+  function tableShortcutIntent(event){
+    const target=event.target||{},tag=String(target.tagName||'').toUpperCase();
+    if(event.repeat||event.altKey||event.shiftKey||target.isContentEditable||tag==='INPUT'||tag==='TEXTAREA')return null;
+    if(event.key==='Enter'&&(event.ctrlKey||event.metaKey))return {type:'confirm'};
+    if(event.ctrlKey||event.metaKey)return null;
+    if(tag!=='SELECT'&&['ArrowDown','ArrowUp'].includes(event.key))return {type:'move',delta:event.key==='ArrowDown'?1:-1};
+    const labels={'1':'fits','2':'not_fits','3':'unsure','0':''};
+    return Object.hasOwn(labels,event.key)?{type:'label',label:labels[event.key]}:null;
+  }
   function nextActiveAnswer(ids,labels,currentId){
     const index=ids.indexOf(currentId),ordered=[...ids.slice(index+1),...ids.slice(0,index)];
     return ordered.find(id=>!Object.hasOwn(LABELS,labels[id]))||currentId||ids[0];
@@ -112,10 +121,10 @@
     return '<table class="review-table"><thead><tr><th># / קיצור</th><th>המשפט המלא</th><th>ייחוס</th><th>תשובת המערכת המלאה</th><th>הכרעה מוצעת</th></tr></thead>'+batchPairGroups(items).map(group=>'<tbody>'+group.map((item,index)=>{
       rowNumber++;
       const shared=index===0?`<td rowspan="${group.length}" dir="auto">${esc(item.gold)}</td><td rowspan="${group.length}"><div dir="auto">${esc(item.answers[0].text)}</div>${group.length>1?`<p class="small">אותו צמד ב־${group.length} משפטים. סרוק כל הקשר לפני אישור.</p><div class="pair-actions">${Object.entries(LABELS).map(([value,label])=>`<button type="button" data-pair-label="${value}">${esc(label)} בכולם</button>`).join('')}</div><p class="small">אפשר לשנות חריג בכל שורה. הכפתורים משנים טיוטה בלבד.</p>`:''}</td>`:'';
-      return `<tr><td>${rowNumber}<br><strong>${esc(item.acronym)}</strong><br><small>${esc(item.task_label)} · ${item.answers[0].occurrence_count} תשובות</small></td><td dir="auto">${esc(item.sentence)}</td>${shared}<td><select data-batch-item="${esc(item.id)}" aria-label="הכרעה בשורה ${rowNumber}">${Object.entries({...LABELS,'':'לא קראתי — דילוג'}).map(([value,label])=>`<option value="${value}" ${value===labels[item.id]?'selected':''}>${label}</option>`).join('')}</select></td></tr>`;
+      return `<tr data-batch-row="${rowNumber-1}" tabindex="0" aria-label="שורה ${rowNumber}"><td>${rowNumber}<br><strong>${esc(item.acronym)}</strong><br><small>${esc(item.task_label)} · ${item.answers[0].occurrence_count} תשובות</small></td><td dir="auto">${esc(item.sentence)}</td>${shared}<td><select data-batch-item="${esc(item.id)}" aria-label="הכרעה בשורה ${rowNumber}">${Object.entries({...LABELS,'':'לא קראתי — דילוג'}).map(([value,label])=>`<option value="${value}" ${value===labels[item.id]?'selected':''}>${label}</option>`).join('')}</select></td></tr>`;
     }).join('')+'</tbody>').join('')+'</table>';
   }
-  const api={continuedSession,tableQueueIds,batchPairGroups,renderBatchTable,shortcutIntent,nextActiveAnswer,canShowFull,isContinuation,queueIds,nextQueueId,editableAnswer,renderFilteredAnswer,renderPartition,judgmentPhaseText,TAGS,TAG_HELP,PHASES,tagsText,renderMaskedDetails,renderSummaryContent,fullCasesTable,LABELS,esc,labelOf,savedLabels,firstIncomplete,progressFor,highlightedSentence,renderMainAnswer,renderMain,renderCase};
+  const api={tableShortcutIntent,continuedSession,tableQueueIds,batchPairGroups,renderBatchTable,shortcutIntent,nextActiveAnswer,canShowFull,isContinuation,queueIds,nextQueueId,editableAnswer,renderFilteredAnswer,renderPartition,judgmentPhaseText,TAGS,TAG_HELP,PHASES,tagsText,renderMaskedDetails,renderSummaryContent,fullCasesTable,LABELS,esc,labelOf,savedLabels,firstIncomplete,progressFor,highlightedSentence,renderMainAnswer,renderMain,renderCase};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   root.ShortReview=api;
   if(typeof document==='undefined')return;
@@ -123,6 +132,7 @@
   const $=id=>document.getElementById(id);
   let state,currentItem,dirty=false,timer=null,pending=Promise.resolve(),lastError=null,view='all',routeIds=[],currentPosition=-1,editVersion=0,lockCount=0,activeAnswerId=null;
   let tableMode=false,batchItems=[],batchId=null,batchDirty=false,skipped=new Set(),draftEdits=new Set(),deadlineHandled=false;
+  let activeBatchRow=0;
   async function request(path,payload){
     const response=await fetch(path,payload?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}:{});
     const result=await response.json();
@@ -214,7 +224,13 @@
     $('batchPanel').hidden=!tableMode;
     for(const element of [$('itemView'),document.querySelector('.navigation'),$('reviewScreen').querySelector(':scope > footer')])element.hidden=tableMode;
     $('tableToggle').textContent=tableMode?'מעבר לכרטיס בודד':'תצוגת טבלה';
-    document.querySelector('.guidance').textContent=tableMode?'טבלה מרוכזת · עד 20 הקשרים בכל קבוצה · ברירות המחדל אינן תיוג עד לאישור שלך':'שפוט לפי ההקשר · 1 מתאימה · 2 לא מתאימה · 3 לא בטוח · Enter שמירה והבא';
+    document.querySelector('.guidance').textContent=tableMode?'1 מתאימה · 2 לא מתאימה · 3 לא בטוח · 0 לא קראתי · ↑↓ מעבר · Ctrl/⌘+Enter אישור המסך. מספר משנה טיוטה ומתקדם שורה.':'שפוט לפי ההקשר · 1 מתאימה · 2 לא מתאימה · 3 לא בטוח · Enter שמירה והבא';
+  }
+  function setActiveBatchRow(index,focus=false){
+    const rows=[...$('batchTable').querySelectorAll('[data-batch-row]')];
+    activeBatchRow=Math.max(0,Math.min(index,rows.length-1));
+    rows.forEach((row,n)=>row.classList.toggle('active-batch-row',n===activeBatchRow));
+    if(focus&&rows[activeBatchRow]){rows[activeBatchRow].focus({preventScroll:true});rows[activeBatchRow].scrollIntoView({block:'nearest'});}
   }
   async function openBatch(restored=null){
     setTableVisibility();currentItem=null;batchDirty=false;draftEdits=new Set(restored?.draft?.edited_item_ids||[]);
@@ -224,6 +240,11 @@
     state=result.state;batchItems=result.items;batchId=result.batch_id;
     const labels=Object.fromEntries(batchItems.map(item=>[item.id,restored?.draft?restored.draft.labels[item.id]:(Object.values(state.records[item.id]?.judgments||{})[0]?.label||'not_fits')]));
     $('batchTable').innerHTML=renderBatchTable(batchItems,labels);
+    $('batchTable').querySelectorAll('[data-batch-row]').forEach((row,index)=>{
+      row.addEventListener('focusin',()=>setActiveBatchRow(index));
+      row.addEventListener('click',event=>setActiveBatchRow(index,!event.target.closest('select,button,a')));
+    });
+    setActiveBatchRow(0);
     function changed(selects){
       batchDirty=true;
       for(const select of selects){draftEdits.add(select.dataset.batchItem);select.closest('tr').classList.add('modified');}
@@ -342,7 +363,19 @@
   $('exportFullSummary').onclick=()=>run(()=>download('/api/short/full-summary.md','short-review-full-summary.md'));
   $('retryLoad').onclick=()=>run(init);
   window.addEventListener('keydown',event=>{
-    if(tableMode||$('reviewScreen').hidden||document.querySelector('main').inert)return;
+    if($('reviewScreen').hidden||document.querySelector('main').inert)return;
+    if(tableMode){
+      if($('batchTable').inert||$('batchConfirm').disabled)return;
+      const target=event.target;
+      if(target?.closest?.('select')&&!target.closest('#batchTable'))return;
+      const intent=tableShortcutIntent(event);if(!intent)return;
+      event.preventDefault();
+      if(intent.type==='confirm'){$('batchConfirm').onclick();return;}
+      if(intent.type==='move'){setActiveBatchRow(activeBatchRow+intent.delta,true);return;}
+      const select=$('batchTable').querySelectorAll('[data-batch-row]')[activeBatchRow]?.querySelector('select');
+      if(select){select.value=intent.label;select.dispatchEvent(new Event('change',{bubbles:true}));setActiveBatchRow(activeBatchRow+1,true);}
+      return;
+    }
     const intent=shortcutIntent(event,activeAnswerId);if(!intent)return;
     if(intent.type==='next'){if($('saveNext').disabled)return;event.preventDefault();$('saveNext').onclick();return;}
     const rows=[...$('itemView').querySelectorAll('[data-row-answer]')],row=rows.find(row=>row.dataset.rowAnswer===intent.answerId);

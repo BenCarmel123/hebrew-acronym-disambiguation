@@ -341,3 +341,19 @@ test('server-verified selection pairs group visually and continuation retains or
   assert.deepEqual(ui.tableQueueIds(state,'all'),['one','three','different']);
   assert.deepEqual(state.queues.all,['one','different','three']);
 });
+
+test('table shortcuts change drafts, move rows, and require modified Enter for confirmation',()=>{
+  const event=(key,extra={})=>({key,target:{tagName:'TR'},...extra});
+  assert.deepEqual(ui.tableShortcutIntent(event('1')),{type:'label',label:'fits'});
+  assert.deepEqual(ui.tableShortcutIntent(event('2')),{type:'label',label:'not_fits'});
+  assert.deepEqual(ui.tableShortcutIntent(event('3')),{type:'label',label:'unsure'});
+  assert.deepEqual(ui.tableShortcutIntent(event('0')),{type:'label',label:''});
+  assert.deepEqual(ui.tableShortcutIntent(event('ArrowDown')),{type:'move',delta:1});
+  assert.deepEqual(ui.tableShortcutIntent(event('ArrowUp')),{type:'move',delta:-1});
+  assert.equal(ui.tableShortcutIntent(event('Enter')),null);
+  assert.deepEqual(ui.tableShortcutIntent(event('Enter',{metaKey:true})),{type:'confirm'});
+  assert.deepEqual(ui.tableShortcutIntent(event('Enter',{ctrlKey:true})),{type:'confirm'});
+  for(const extra of [{repeat:true},{altKey:true},{shiftKey:true},{ctrlKey:true},{target:{tagName:'INPUT'}},{target:{tagName:'TEXTAREA'}},{target:{isContentEditable:true}}])assert.equal(ui.tableShortcutIntent(event('1',extra)),null);
+  assert.equal(ui.tableShortcutIntent(event('ArrowDown',{target:{tagName:'SELECT'}})),null);
+  assert.deepEqual(ui.tableShortcutIntent(event('1',{target:{tagName:'SELECT'}})),{type:'label',label:'fits'});
+});

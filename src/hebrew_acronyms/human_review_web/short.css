@@ -14,3 +14,5 @@ header,main,#saveStatus{max-width:1220px}header{padding-top:12px;padding-bottom:
 #reuseTable .review-table{font-size:13px;line-height:1.4}#reuseTable th:first-child{width:5%}#reuseTable th:nth-child(2){width:30%}#reuseTable th:nth-child(3){width:13%}#reuseTable th:nth-child(4){width:24%}#reuseTable th:nth-child(5){width:28%}#reuseTable td:last-child{font-size:12px}#reusePanel footer{position:sticky;bottom:0;background:#f6f8f3;z-index:2}
 
 .review-table tbody+tbody{border-top:2px solid #aebbb2}.pair-actions{display:flex;gap:5px;flex-wrap:wrap;margin:8px 0}.pair-actions button{font-size:12px;padding:6px 8px}.review-table td[rowspan]{background:#f5f8f3}
+
+.review-table tr.active-batch-row{outline:2px solid #3f7860;outline-offset:-2px}.review-table tr.active-batch-row>td:first-child{box-shadow:inset -4px 0 #3f7860;background:#e8f1eb}
