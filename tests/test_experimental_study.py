@@ -8,13 +8,17 @@ import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
-from tests.run_experimental_study import ROOT, guard, predictions, legacy_artifact
+from tests.run_experimental_study import ROOT, disable_guard, enable_guard, predictions, legacy_artifact
 
 
 class StudyTests(unittest.TestCase):
     @classmethod
+    def tearDownClass(cls):
+        disable_guard()
+
+    @classmethod
     def setUpClass(cls):
-        sys.addaudithook(guard)
+        enable_guard()
         from hebrew_acronyms import experimental_study
         cls.study = experimental_study
 
@@ -163,7 +167,9 @@ class StudyTests(unittest.TestCase):
                 self.study.check_readiness(**arguments)
             Path(str(checkpoint)+".json").write_text("{}")
             self.study.check_readiness(**arguments)
-            for output in (ROOT / "outputs", ROOT.parent / "hebrew-acronym-disambiguation" / "ignored-output"):
+            # Another Git working tree, created here instead of assuming a sibling checkout.
+            (folder / "other-checkout" / ".git").mkdir(parents=True)
+            for output in (ROOT / "outputs", folder / "other-checkout" / "ignored-output"):
                 with self.subTest(output=output), self.assertRaises(ValueError):
                     self.study.check_readiness(**dict(arguments, output_dir=output))
             with self.assertRaises(ValueError):

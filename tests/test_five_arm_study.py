@@ -8,13 +8,17 @@ import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
-from tests.run_experimental_study import guard, predictions, response as qwen_reply
+from tests.run_experimental_study import disable_guard, enable_guard, predictions, response as qwen_reply
 
 
 class FiveArmStudyTests(unittest.TestCase):
     @classmethod
+    def tearDownClass(cls):
+        disable_guard()
+
+    @classmethod
     def setUpClass(cls):
-        sys.addaudithook(guard)
+        enable_guard()
         from hebrew_acronyms import experimental_study
         cls.study = experimental_study
 

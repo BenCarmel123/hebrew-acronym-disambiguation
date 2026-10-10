@@ -6,7 +6,7 @@ import sys
 import unittest
 from unittest.mock import Mock, patch
 
-from tests.run_experimental_study import guard
+from tests.run_experimental_study import disable_guard, enable_guard
 
 
 def http(payload):
@@ -15,8 +15,12 @@ def http(payload):
 
 class QwenStudyTests(unittest.TestCase):
     @classmethod
+    def tearDownClass(cls):
+        disable_guard()
+
+    @classmethod
     def setUpClass(cls):
-        sys.addaudithook(guard)
+        enable_guard()
         from hebrew_acronyms.models.qwen import eval
         cls.backend = eval
 

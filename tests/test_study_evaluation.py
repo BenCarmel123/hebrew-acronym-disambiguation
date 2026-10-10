@@ -3,13 +3,17 @@ from copy import deepcopy
 import sys
 import unittest
 
-from tests.run_experimental_study import guard
+from tests.run_experimental_study import disable_guard, enable_guard
 
 
 class SharedStudyEvaluationTests(unittest.TestCase):
     @classmethod
+    def tearDownClass(cls):
+        disable_guard()
+
+    @classmethod
     def setUpClass(cls):
-        sys.addaudithook(guard)
+        enable_guard()
         from hebrew_acronyms.models.common import eval
         cls.eval = eval
 
