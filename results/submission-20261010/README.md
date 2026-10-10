@@ -78,5 +78,9 @@ is required for these exports. Qwen14B generation has 10/381 (2.6%) technical fa
 (9 incomplete responses and 1 service error), distinct from 47 format-valid answers
 and 44 automatic matches. All 381 remain in each score denominator.
 
-The paper's result placement still requires Shaked's decision. These exports do not
-edit `paper/` or change the main score to a lenient diagnostic.
+Shaked has selected a separate supplementary paper table for the four DictaLM
+measurements, without a common ranking. Ben's annotations are already ingested as
+a separate layer; neither annotation intake nor local accounting blocks this
+presentation. The template limitation remains. This documentation correction does
+not constitute a new notebook run or revise the historical execution receipt,
+saved outputs, score denominators or automatic scoring.
