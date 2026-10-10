@@ -6,6 +6,46 @@ to Drive, runs the fixed development pilot separately for each selected system,
 and gates each 381-item test on successful operation and a combined 100 ILS budget.
 This guide does not claim a live Colab run has passed. Offline tests establish software contracts, not model performance.
 
+## Reproduce the saved test analysis
+
+To read the results, open the committed outputs in
+[experimental_study.ipynb](../notebooks/experimental_study.ipynb). Accounts, collection,
+training and model downloads in later sections are separate workflows.
+
+For a portable replay, prepare a fresh archive from the intended local commit.
+Use a new directory outside the research checkout; do not copy weights or environments.
+From the repository root:
+
+```bash
+ANALYSIS_REVISION=$(git rev-parse HEAD)
+ORIGINAL_CHECKOUT=$(pwd)
+ANALYSIS_DIR=$(mktemp -d /tmp/hebrew-acronym-analysis-XXXXXXXX)
+git archive "$ANALYSIS_REVISION" data docs notebooks results saved-results src tests pyproject.toml requirements.txt README.md | tar -x -C "$ANALYSIS_DIR"
+python3.13 -m venv "$ANALYSIS_DIR/.venv"
+"$ANALYSIS_DIR/.venv/bin/python" -m pip install -e "$ANALYSIS_DIR" nbformat nbclient nbconvert ipykernel
+"$ANALYSIS_DIR/.venv/bin/python" -m pip check
+"$ANALYSIS_DIR/.venv/bin/python" "$ANALYSIS_DIR/tests/run_saved_analysis.py" \
+  --root "$ANALYSIS_DIR" --blocked-root "$ORIGINAL_CHECKOUT" \
+  --revision "$ANALYSIS_REVISION" --receipt "$ANALYSIS_DIR/new-execution.json"
+"$ANALYSIS_DIR/.venv/bin/python" -m jupyter nbconvert --to html \
+  "$ANALYSIS_DIR/notebooks/experimental_study.ipynb"
+```
+
+Installation may use the network; notebook execution uses a fresh kernel with Python
+I/O guards blocking network calls, model-weight reads, child processes and reads from
+the original checkout. Add `--blocked-root /path/to/another/research-checkout` for any
+other research copy. The runner probes the guards and records package versions,
+source hashes and execution counts. These are Python audit hooks, not an OS sandbox.
+It uses an empty model cache, leaves the development appendix disabled, and preserves
+real outputs in the portable notebook. The archive excludes `paper/`; no paper build
+is needed. The [export index](../results/submission-20261010/README.md) identifies the
+numerical CSV/JSON outputs to compare with the selected commit.
+
+Keep the new receipt alongside the resulting outputs. Do not overwrite
+`results/submission-20261010/analysis_environment.json`, which records a historical
+execution. Rendering HTML does not itself verify layout: inspect the tables, Hebrew,
+plots and section links before accepting a replay.
+
 ## Accounts and keys
 
 Create keys only for the approved providers. Keep the values in Colab Secrets;
@@ -244,10 +284,11 @@ This development workflow uses its own settings and saved-run format. Its
 `enable_*` switches and resume command below do not replace the Colab test
 runner's per-system pilot checks or shared session budget.
 
-From this checkout, create an isolated environment and open the main notebook:
+For separately authorized development work, use Appendix A of the main notebook.
+Reuse the [basic setup](../README.md#install-and-check), or create an isolated environment:
 
 ```bash
-python3.12 -m venv .venv
+python3.13 -m venv .venv
 .venv/bin/python -m pip install -e . jupyterlab ipykernel
 .venv/bin/python -m pip check
 .venv/bin/python -m jupyter lab notebooks/experimental_study.ipynb
@@ -279,8 +320,9 @@ live services still need the manual validation below.
 
 ### Configure and run the development study
 
-The [main notebook](../notebooks/experimental_study.ipynb) follows inputs → encoder →
-LLMs → results. Its centralized settings include:
+The [main notebook](../notebooks/experimental_study.ipynb) defaults to saved test
+analysis. Only **Appendix A**, enabled with `RUN_DEVELOPMENT_APPENDIX=True`, follows
+inputs → encoder → LLMs → development results. Its settings include:
 
 | Setting | Value or required input |
 |---|---|
@@ -290,7 +332,7 @@ LLMs → results. Its centralized settings include:
 | `snapshot_path` | A content-identical local base-model/tokenizer snapshot if relocated; otherwise `None`. |
 | `device` | `"cpu"` by default; set a supported `"mps"` or `"cuda"` explicitly if needed. |
 | `enable_encoder`, `enable_qwen`, `enable_gemini` | Independent switches, initially `False`. |
-| `output_root` | `<project>/artifacts/study-runs`; each run creates a fresh directory outside Git. |
+| `output_root` | `<repository>/experiments/runs`; each run creates a fresh directory outside Git. |
 | `saved_run`, `saved_run_id` | Exact result JSON path and run ID for reload. |
 
 For manifest-bound encoder prediction or saved-prediction reuse, the study compares the complete
@@ -408,7 +450,7 @@ billing or access block stops immediately and persists across resume; after acco
 repair, use a new identified run. Other transient failures can resume after service
 recovery; existing terminal failure records are preserved.
 
-The notebook's final comparison cell accepts `(study.json path, original run ID)`
+The disabled development appendix's final comparison cell accepts `(study.json path, original run ID)`
 entries for independently saved runs. It checks complete input identity and prompt
 agreement, retains original arm run IDs, and displays all 62 items without model or
 network calls. Selection includes service/format failures in its denominator; generation
@@ -511,8 +553,10 @@ Accounting includes the local diagnostic in the carried prior exactly once:
 21.6620734 ILS plus 1.465605 ILS for the new session. The comparison checks the
 diagnostic journal and receipt, its reported usage against collection rates, and
 the chronological prior chain. It rejects duplicate diagnostics and inconsistent
-prior amounts. The separate [Gemini review add-on](../saved-results/human-review-gemini381-20261010/README.md)
-is inactive until the existing labeling window and verified export/backup are complete.
+prior amounts. The [Gemini review add-on](../saved-results/human-review-gemini381-20261010/README.md)
+is historical collection tooling. The closed review windows are analyzed from the
+[final immutable exports](../saved-results/human-review-final-20261010/README.md);
+no active labeling window is needed to reproduce them.
 
 The compact human-review route is a partial diagnostic review of these 381 items.
 It binds decisions to exact collected answers, groups only identical responses in
@@ -520,7 +564,8 @@ the same item/context/task, and preserves all answer occurrences and failures.
 A portable `human-review-381-20261010/review-export.json`, when present in saved
 results, is validated against the original review bundles and cohort before its
 coverage is displayed. It does not replace automatic scores or justify a
-benchmark-wide human accuracy estimate. No historical labels are transferred.
+benchmark-wide human accuracy estimate. Only explicitly approved historical reuse is included, with exact response bindings;
+labels are not transferred to different answers.
 The optional table interface proposes `not_fits` and requires explicit human
 confirmation for each displayed batch of up to 20 contexts. Exceptions and
 `unsure` can be selected; unread rows are skipped. Merely opening a table creates
