@@ -35,7 +35,7 @@ def embed(tok, model, texts: list[str], device: str) -> torch.Tensor:
 @torch.no_grad()
 def evaluate(rows: list[dict], tok, model, device: str) -> dict:
     correct = total = 0
-    for r in tqdm(rows, desc="dictabert (untrained) eval", unit="item"):
+    for r in tqdm(rows, desc="dictabert similarity eval", unit="item"):
         cands = [c.strip() for c in r["candidates"].split("|") if c.strip()]
         gold = r["gold_expansion"].strip()
         span = find_span(r["sentence"], r["acronym"])
@@ -71,7 +71,7 @@ def main() -> None:
     res = evaluate(rows, tok, model, device)
     print(f"{a.items}\n")
     print(f"  items scored          {res['n_items']}")
-    print(f"  zero-shot accuracy    {res['accuracy']:.3f}   untrained DictaBERT, "
+    print(f"  zero-shot accuracy    {res['accuracy']:.3f}   pretrained DictaBERT without task adaptation, "
           f"[CLS] cosine similarity")
 
 

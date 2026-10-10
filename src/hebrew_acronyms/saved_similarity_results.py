@@ -1,4 +1,4 @@
-"""Bind the historical untrained similarity predictions to the scored cohort.
+"""Bind the historical pretrained similarity predictions to the scored cohort.
 
 This reads the existing CSV; it neither runs DictaBERT nor reconstructs missing
 collection metadata. The CSV has no sentence snapshot or identified run manifest.

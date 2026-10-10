@@ -28,7 +28,7 @@ class StudyTests(unittest.TestCase):
         self.origin = {"weights_sha256": "a" * 64, "manifest_sha256": "b" * 64}
         self.artifact = legacy_artifact(self.rows, "run-one", self.settings, {"fixture": True})
 
-    def test_all_notebook_cells_preview_mocked_run_reload_and_saved_encoder(self):
+    def test_development_workflow_preview_mocked_run_reload_and_saved_encoder(self):
         result = subprocess.run([sys.executable, "-B", "-m", "tests.run_experimental_study"],
                                 cwd=ROOT, capture_output=True, text=True, timeout=60)
         self.assertEqual(result.returncode, 0, result.stderr + result.stdout[-3000:])

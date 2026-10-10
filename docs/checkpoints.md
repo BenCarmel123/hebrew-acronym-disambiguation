@@ -1,7 +1,9 @@
 # Checkpoints
 
-Use the [main study notebook](../notebooks/experimental_study.ipynb) for checkpoint
-inspection and dev prediction. Local installation and service setup are in the
+Use the [main study notebook](../notebooks/experimental_study.ipynb) to inspect saved
+test results and the [optional training example](../notebooks/train_dictabert.ipynb)
+for package-backed checkpoint loading. The former dev prediction workflow remains
+in Git at `5c6980e:notebooks/experimental_study.ipynb`. Local installation and service setup are in the
 [README](../README.md#install-and-check). The [training appendix](../notebooks/train_dictabert.ipynb)
 remains separate; checkpoint loading does not train the model.
 
@@ -19,13 +21,13 @@ snapshot whose complete local file hashes match the recorded source; the origina
 JSON remains unchanged. Missing sidecars, weight-only legacy files and incompatible
 artifacts are rejected. Loading restores inference weights, not optimizer state.
 
-In the main study, `train_path` and `input_path` identify the qualified train and full
+In the historical development workflow, `train_path` and `input_path` identify the qualified train and full
 dev files. Before prediction, their independently computed `input_identity` values
 are compared with the manifest's `inputs` and passed to `load_finetuned` as
 `expected_inputs`. The same comparison precedes reuse of saved encoder predictions.
 A three-item validation run therefore checks the full 62-item dev identity, not the
 three-item subset. Reloading an existing study result uses its saved contents and
-does not reread train/dev files. The notebook's compact checkpoint summary reports
+does not reread train/dev files. The historical appendix's compact checkpoint summary reports
 training settings, selected epoch, input counts and match status; full metadata is
 retained in the result file.
 
