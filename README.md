@@ -67,7 +67,6 @@ sources and are not silently pooled with the identified collection.
 | [run_test_eval_colab.ipynb](notebooks/run_test_eval_colab.ipynb) | Reproducible pilot and test execution from an identified package. |
 | [experimental_study.ipynb](notebooks/experimental_study.ipynb) | Methods, development experiments and saved-result analysis. |
 | [train_dictabert.ipynb](notebooks/train_dictabert.ipynb) | Explicit package-backed encoder training and inference. |
-| [train_dictalm_lora_colab.ipynb](notebooks/train_dictalm_lora_colab.ipynb) | LoRA fine-tuning of DictaLM for candidate selection in Colab; source in [dictalm_lora/](src/hebrew_acronyms/models/dictalm_lora/). |
 | [tests/](tests/) | Engineering checks with invented inputs and mocked services. |
 | [results/](results/) | Historical predictions and summaries, preserved with their provenance. |
 | [paper/](paper/README.md) | Working LaTeX manuscript, bibliography and build/export instructions. |
@@ -103,35 +102,6 @@ Run the focused evaluation checks without live API calls:
 ```bash
 .venv/bin/python -B -m unittest tests.test_test_eval_notebook tests.test_test_evaluation tests.test_staged_evaluation tests.test_provider_adapters -v
 ```
-
-## DictaLM LoRA selection training
-
-[LoRA](https://arxiv.org/abs/2106.09685) (low-rank adaptation) freezes a pretrained
-model and trains small added matrices in its attention layers. The
-[DictaLM LoRA code](src/hebrew_acronyms/models/dictalm_lora/) trains a DictaLM causal
-language model on candidate selection only. Each training item becomes the exact
-selection prompt of the LLM arms, with candidates in a seeded shuffled order, and
-the answer is the reference candidate's letter. Only the answer letter and the end
-token contribute to the loss. The seed is set before adapter initialization, and the
-adapter is saved only when the development loss strictly improves. Evaluation reuses
-the shared selection evaluator; without `--adapter` it scores the untrained model
-through the same inference code.
-
-```bash
-python -m hebrew_acronyms.models.dictalm_lora.training --model-id MODEL \
-  --train data/study_v1/encoder_inputs/train.csv \
-  --dev data/study_v1/encoder_inputs/dev.csv --output-dir RUN_DIR
-python -m hebrew_acronyms.models.dictalm_lora.eval --model-id MODEL \
-  --adapter RUN_DIR/adapter --test data/splits/test_items.csv --output details.csv
-```
-
-The model ID, revision and the defaults in
-[LoraTrainingConfig](src/hebrew_acronyms/models/dictalm_lora/training.py) are
-engineering choices for a first run, not an approved protocol. A 7B model needs a
-CUDA GPU; `--load-in-4bit` additionally needs `bitsandbytes`, which the
-[Colab notebook](notebooks/train_dictalm_lora_colab.ipynb) installs. Real-data training
-and test evaluation require explicit authorization. The tiny CPU tests in
-`tests/test_dictalm_lora.py` check the code, not model performance.
 
 For data preparation and additional checks, see [data processing](docs/data_processing.md),
 [local pipelines](docs/pipelines.md) and the execution guide's offline checks.
