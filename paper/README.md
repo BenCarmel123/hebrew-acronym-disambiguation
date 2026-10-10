@@ -1,9 +1,9 @@
 # Paper source, evidence and build
 
 `main.tex` and `sections/*.tex` are the sole maintained manuscript source.
-`overleaf_main.tex` is an archived reference to Ben's manuscript at
-`4d2dc738914fa67970f18ee897b3deb7ff19f4f2`; do not edit or compile it as the current
-paper. For Overleaf, import the multi-file project, select `main.tex` and XeLaTeX.
+Ben's original manuscript is retained in Git at
+`4d2dc738914fa67970f18ee897b3deb7ff19f4f2:paper/overleaf_main.tex`.
+The duplicate source has been removed from the active tree. For Overleaf, import the multi-file project, select `main.tex` and XeLaTeX.
 The old `manuscript.md` is a pointer, not another manuscript.
 
 The 10 October draft uses the saved **381-item test results**, retains two qualified
@@ -116,8 +116,8 @@ It is inactive for the current test paper: no `generated/current.tex` is present
 and the test tables are maintained in the sections against the identified exports.
 Do not use dev exports as test measurements. Historical development provenance is
 retained in [results/dev-2026-10-03](../results/dev-2026-10-03/README.md) and the
-checkpoint documentation. The optional development cells do not contribute test
-observations or replace the main analysis notebook.
+checkpoint documentation. The historical development cells remain in Git at `5c6980e` and do not
+contribute test observations.
 
 ## Reviewing the manuscript changes
 

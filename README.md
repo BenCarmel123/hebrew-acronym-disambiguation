@@ -97,8 +97,7 @@ or rerunning inference. Its missing run manifest and sentence snapshot limit pro
 | [run_test_eval_colab.ipynb](notebooks/run_test_eval_colab.ipynb) | Pilot/test collection; separate from reading or reproducing saved analysis. |
 | [experimental_study.ipynb](notebooks/experimental_study.ipynb) | Primary saved-test analysis; optional dev appendix disabled by default. |
 | [train_dictabert.ipynb](notebooks/train_dictabert.ipynb) | Explicit package-backed encoder training and inference. |
-| [train_dictabert_colab.ipynb](notebooks/train_dictabert_colab.ipynb) | Historical Colab training route and checkpoint configuration source. |
-| [run_qwen_scale_colab.ipynb](notebooks/run_qwen_scale_colab.ipynb) | Optional scale-collection route; existence does not establish completed runs. |
+| [train_dictabert_colab.ipynb](notebooks/historical/train_dictabert_colab.ipynb) | Historical Colab training route and checkpoint configuration source. |
 | [tests/](tests/) | Engineering checks with invented inputs and mocked services. |
 | [results/](results/) | Historical predictions and summaries, preserved with their provenance. |
 | [paper/](paper/README.md) | Working LaTeX manuscript, bibliography and build/export instructions. |

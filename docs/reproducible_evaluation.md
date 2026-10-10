@@ -473,11 +473,10 @@ revision still require completion and author approval before submission.
 score discrepancies. Keep them distinct from the saved test CSVs and new runs.
 Earlier work also exists in `ShakedSchnarch/nlp-hw-team`; its checkpoints and
 implementation are not interchangeable with this repository. Historical
-[Colab training](../notebooks/train_dictabert_colab.ipynb) sets its seed after model
+[Colab training](../notebooks/historical/train_dictabert_colab.ipynb) sets its seed after model
 initialization; it does not establish the original checkpoint's training seed.
-The [Qwen scale notebook](../notebooks/run_qwen_scale_colab.ipynb) is an optional
-32B/72B experiment with substantial GPU requirements, separate from the default
-test entry point; its existence is not evidence that those runs completed.
+The removed 32B/72B Qwen route is outside the paper experiments; its historical
+location is documented in [the notebook archive index](../notebooks/historical/README.md).
 
 ## Additional collection systems
 
