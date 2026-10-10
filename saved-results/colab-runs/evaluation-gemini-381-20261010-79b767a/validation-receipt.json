@@ -1,0 +1,240 @@
+{
+  "validated_at_utc": "2026-10-10T11:21:30.610502+00:00",
+  "collection_revision": "79b767a3f04bfadc9536d505b11f73ac70a99b5c",
+  "archive_sha256": "27912fda32207e74077cc890ff809428a6499a5a2a078a7616f26bba0dd3e98f",
+  "all_112_archive_file_hashes_verified": true,
+  "session_identity_and_code_hashes_verified": true,
+  "inputs_verified_against_identified_archive": true,
+  "checks": {
+    "dev-pilot": {
+      "saved_summary_matches_journals": true,
+      "saved_runtime_effective_budget_usd": 19.58448165,
+      "saved_runtime_stop_reason": null,
+      "run_id": "53354d3c8aba4381b4d469af6358e92d",
+      "identity_sha256": "6bddf30d08496d95b8c331bebfe72584be53c9aedba37fc610cd7a04f375f464",
+      "coverage": [
+        {
+          "system": "gemini",
+          "task": "generate",
+          "n_items": 10,
+          "n_completed": 10,
+          "status_counts": {
+            "response_received": 10
+          },
+          "accuracy": 0.8,
+          "score": "historical_quote_normalized_gold_substring",
+          "n_valid": 9
+        },
+        {
+          "system": "gemini",
+          "task": "select",
+          "n_items": 10,
+          "n_completed": 10,
+          "status_counts": {
+            "response_received": 10
+          },
+          "accuracy": 0.9,
+          "score": "strict_candidate_label_v1",
+          "n_valid": 10
+        }
+      ],
+      "usage": {
+        "gemini": {
+          "input_tokens": 2260,
+          "output_tokens": 82,
+          "thinking_tokens": 1938,
+          "cached_input_tokens": 0,
+          "attempts_with_usage": 19,
+          "attempts_without_usage": 1
+        }
+      },
+      "unknown_usage_reserve_usd": {
+        "gemini": 0.005577
+      },
+      "timings_seconds": {
+        "gemini": 53.07116295300011
+      }
+    },
+    "full-test": {
+      "saved_summary_matches_journals": true,
+      "saved_runtime_effective_budget_usd": 19.56963465,
+      "saved_runtime_stop_reason": null,
+      "run_id": "6658d323657f4df3aced950bfe6abb07",
+      "identity_sha256": "db82b3faa00a5de170020445e99a21b87f6967d096189d389b8075b042ddd170",
+      "coverage": [
+        {
+          "system": "gemini",
+          "task": "generate",
+          "n_items": 381,
+          "n_completed": 379,
+          "status_counts": {
+            "response_received": 379,
+            "incomplete_response": 2
+          },
+          "accuracy": 0.5433070866141733,
+          "score": "historical_quote_normalized_gold_substring",
+          "n_valid": 214
+        },
+        {
+          "system": "gemini",
+          "task": "select",
+          "n_items": 381,
+          "n_completed": 381,
+          "status_counts": {
+            "response_received": 381
+          },
+          "accuracy": 0.937007874015748,
+          "score": "strict_candidate_label_v1",
+          "n_valid": 381
+        }
+      ],
+      "usage": {
+        "gemini": {
+          "input_tokens": 100541,
+          "output_tokens": 4020,
+          "thinking_tokens": 57722,
+          "cached_input_tokens": 0,
+          "attempts_with_usage": 754,
+          "attempts_without_usage": 8
+        }
+      },
+      "unknown_usage_reserve_usd": {
+        "gemini": 0.044616
+      },
+      "timings_seconds": {
+        "gemini": 1654.1372663629968
+      }
+    }
+  },
+  "session_summary": {
+    "charged_or_reserved_usd": 0.36640125,
+    "remaining_usd": 19.218080399999998,
+    "systems": {
+      "anthropic": {
+        "dev_pilot": {
+          "n_calls": 0,
+          "reason": "No saved pilot",
+          "status": "not_run"
+        },
+        "full_test": {
+          "n_calls": 0,
+          "reason": "No eligible inspected pilot/full run",
+          "status": "not_run"
+        }
+      },
+      "dictalm": {
+        "dev_pilot": {
+          "n_calls": 0,
+          "reason": "No saved pilot",
+          "status": "not_run"
+        },
+        "full_test": {
+          "n_calls": 0,
+          "reason": "No eligible inspected pilot/full run",
+          "status": "not_run"
+        }
+      },
+      "gemini": {
+        "dev_pilot": {
+          "charged_or_reserved_usd": 0.014847,
+          "n_ambiguous": 0,
+          "n_calls": 20,
+          "n_completed": 20,
+          "n_records": 20,
+          "provider_states": {},
+          "status": "complete"
+        },
+        "full_test": {
+          "charged_or_reserved_usd": 0.35155425,
+          "n_ambiguous": 0,
+          "n_calls": 762,
+          "n_completed": 760,
+          "n_records": 762,
+          "provider_states": {},
+          "status": "incomplete"
+        }
+      },
+      "openai": {
+        "dev_pilot": {
+          "n_calls": 0,
+          "reason": "No saved pilot",
+          "status": "not_run"
+        },
+        "full_test": {
+          "n_calls": 0,
+          "reason": "No eligible inspected pilot/full run",
+          "status": "not_run"
+        }
+      },
+      "qwen": {
+        "dev_pilot": {
+          "n_calls": 0,
+          "reason": "No saved pilot",
+          "status": "not_run"
+        },
+        "full_test": {
+          "n_calls": 0,
+          "reason": "No eligible inspected pilot/full run",
+          "status": "not_run"
+        }
+      },
+      "qwen14": {
+        "dev_pilot": {
+          "n_calls": 0,
+          "reason": "No saved pilot",
+          "status": "not_run"
+        },
+        "full_test": {
+          "n_calls": 0,
+          "reason": "No eligible inspected pilot/full run",
+          "status": "not_run"
+        }
+      },
+      "xai": {
+        "dev_pilot": {
+          "n_calls": 0,
+          "reason": "No saved pilot",
+          "status": "not_run"
+        },
+        "full_test": {
+          "n_calls": 0,
+          "reason": "No eligible inspected pilot/full run",
+          "status": "not_run"
+        }
+      }
+    },
+    "total_accounted_ils": 23.1276784
+  },
+  "accounting_rebuilt_without_duplication": true,
+  "local_session_summary_limitation": "Original runner requires absolute Colab input paths; no manifest was changed. Source hashes and accounting were independently checked offline.",
+  "failures": [
+    {
+      "item_id": "manual-0005",
+      "task": "generate",
+      "status": "incomplete_response",
+      "finish_reason": "MAX_TOKENS"
+    },
+    {
+      "item_id": "manual-0028",
+      "task": "generate",
+      "status": "incomplete_response",
+      "finish_reason": "MAX_TOKENS"
+    }
+  ],
+  "human_review": "not performed for this run; active annotator untouched",
+  "test_collection_exhausted": true,
+  "repo_source_modified": false,
+  "executed_notebook": {
+    "file": "run_test_eval_gemini381_79b767a-executed.ipynb",
+    "sha256": "9f883c3992c09fcd69ee1c33d8f4d43be8ca47bfe239a43adcfc650f00b6e205",
+    "code_cells_compile": true,
+    "saved_error_outputs": 0,
+    "credential_pattern_scan": "no matches",
+    "unexecuted_code_cells": [
+      17
+    ]
+  },
+  "runtime_disconnected": true,
+  "runtime_disconnect_verified_at_utc": "2026-10-10T11:24:38.573451+00:00",
+  "runtime_disconnect_evidence": "User confirmed disconnect; Colab displays Reconnect / Click to connect."
+}

@@ -271,6 +271,352 @@
       "sha256": "875ae6612384000f02ca0a1cb810fb67bc781427fef63d52c1a6653ffca9da3f",
       "bytes": 154470,
       "original_artifact": "colab-runs/evaluation-xai-qwen14-20261009-e9c8ef7/xai-full-executed.ipynb"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/session.json": {
+      "sha256": "f805d6173e61b8906f4e20289e17221ed75390074fe7a2006cb0ee21834527d1",
+      "bytes": 8998,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/session.json"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/validation-receipt.json": {
+      "sha256": "4d87192f5a547c8f30f6cd88d735c21cb0084085a7c553ec29d3f6be69720577",
+      "bytes": 7002,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/validation-receipt.json"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/dev-pilot/manifest.json": {
+      "sha256": "e42051bd5d41404e620133c6abaccdd32405dc31a7bec03c2515431ad4488fc8",
+      "bytes": 30314,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/dev-pilot/manifest.json"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/manifest.json": {
+      "sha256": "99a1730b1b181f32e5d34e5b944c468fa5928c7d7c96c41561fbfd9b21d78b06",
+      "bytes": 885993,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/manifest.json"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/dev-pilot/attempts-000001.jsonl": {
+      "sha256": "0260cc4da1f37ba2979aa691c0c6fac888196d66029663161d12f6e4e443855f",
+      "bytes": 2456,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/dev-pilot/attempts-000001.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/dev-pilot/attempts-000002.jsonl": {
+      "sha256": "2f6525a945753884aad25e731b929cca01f187fe134a3fdf7db269cf3d153271",
+      "bytes": 2443,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/dev-pilot/attempts-000002.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/dev-pilot/attempts-000003.jsonl": {
+      "sha256": "cc3e9999b903992fd1f810fa538563cff08cb20badead3c08a50cfdcc84b0dfb",
+      "bytes": 2527,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/dev-pilot/attempts-000003.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/dev-pilot/attempts-000004.jsonl": {
+      "sha256": "34ea0e0edc7e10dcab7fc23166cb882566a8f0b60c21a77b3ed5b6db4f4b6b14",
+      "bytes": 2401,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/dev-pilot/attempts-000004.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/dev-pilot/attempts-000005.jsonl": {
+      "sha256": "1e8839cb1cc32b3a8242c8bdf9e51912fa5edd361e4ddb3420a3276311077dc0",
+      "bytes": 2477,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/dev-pilot/attempts-000005.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/dev-pilot/attempts-000006.jsonl": {
+      "sha256": "ecdc8f83eaf62691dd4a3c43b1202729a5890798277e3ff93da3e50b22dc7000",
+      "bytes": 2267,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/dev-pilot/attempts-000006.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/dev-pilot/attempts-000007.jsonl": {
+      "sha256": "4266791a0b9b135f9c2ba1711b409688de75b71421b7d64c41e5a7dc194a4c28",
+      "bytes": 2374,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/dev-pilot/attempts-000007.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/dev-pilot/attempts-000008.jsonl": {
+      "sha256": "8b0d1c419b8d8bad395c33a38bb8563e4513aab49853290fd0575eefb4ee6468",
+      "bytes": 2274,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/dev-pilot/attempts-000008.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/dev-pilot/attempts-000009.jsonl": {
+      "sha256": "a22da39fd1cbcfa7403d52a3b7dfa4cc1331b82f8d164a8624798b60000df62b",
+      "bytes": 2382,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/dev-pilot/attempts-000009.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/dev-pilot/attempts-000010.jsonl": {
+      "sha256": "598e361d3a86e92949ac426db870268b89a8de68a4e814de7621793677380330",
+      "bytes": 2347,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/dev-pilot/attempts-000010.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/dev-pilot/attempts-000011.jsonl": {
+      "sha256": "478511cc193ded3d98fea9f8ee64ae8688f2f5b1d594152510304c1f6a430d22",
+      "bytes": 2451,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/dev-pilot/attempts-000011.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/dev-pilot/attempts-000012.jsonl": {
+      "sha256": "6b74e622be4423ad0433bdd13d0b04f4dd5f368c7abecea4f7fd1d0d9058e461",
+      "bytes": 2341,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/dev-pilot/attempts-000012.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/dev-pilot/attempts-000013.jsonl": {
+      "sha256": "0cb000f1564bb566abf513a19682d369833281f7365c26067758c8c95a1218d2",
+      "bytes": 2472,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/dev-pilot/attempts-000013.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/dev-pilot/attempts-000014.jsonl": {
+      "sha256": "58bd6a5e9e8aeaf10c14b5cff10e16bbcd16c529465986fce9e5a19ef3ab0db5",
+      "bytes": 2395,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/dev-pilot/attempts-000014.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/dev-pilot/attempts-000015.jsonl": {
+      "sha256": "a3ffa64f5ad45be7b4b2b647a54764a3ff6d97a7611ac2f7bcd424b27548c611",
+      "bytes": 2503,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/dev-pilot/attempts-000015.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/dev-pilot/attempts-000016.jsonl": {
+      "sha256": "4207ffc7b2112151e068babaca7267db65b43da778b9d75884437ffdb14816ba",
+      "bytes": 2383,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/dev-pilot/attempts-000016.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/dev-pilot/attempts-000017.jsonl": {
+      "sha256": "f830c079e7f08ad9ec161a6ce35527ab44b8ab5459f82a134236308d6372e09b",
+      "bytes": 2490,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/dev-pilot/attempts-000017.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/dev-pilot/attempts-000018.jsonl": {
+      "sha256": "bf9bb0547d174e5b73cdd6cd5e3d22367bf6762e6be524857b70986dedcd62d9",
+      "bytes": 2311,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/dev-pilot/attempts-000018.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/dev-pilot/attempts-000019.jsonl": {
+      "sha256": "c4bf7d357cefe94ae0cdf5f19b1de21ac640c1c7ab668d827257f0054a35641d",
+      "bytes": 2425,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/dev-pilot/attempts-000019.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/dev-pilot/attempts.jsonl": {
+      "sha256": "f0c89aece16b4d0ece8537c75c6f839ddbaff28b401d87d06af77eda3ee774fe",
+      "bytes": 2344,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/dev-pilot/attempts.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000001.jsonl": {
+      "sha256": "fdc2641c445e510ac90bbaf0401afb55e5a58525d2d1db99858b79a191b004f6",
+      "bytes": 48694,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000001.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000002.jsonl": {
+      "sha256": "f3033430083d32990fd067537efb3bedd3a1bf04cd46a2f9914032b0bde46396",
+      "bytes": 48598,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000002.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000003.jsonl": {
+      "sha256": "717adcee5a58184683d4ce48f00da10276e536ba061de9a6b27c5a9804d2fa8b",
+      "bytes": 48264,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000003.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000004.jsonl": {
+      "sha256": "f7c986baa50f07acfad88dd9857f8b3652b7c0a00b29d17fdb0bab9d5ddb0dc3",
+      "bytes": 48143,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000004.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000005.jsonl": {
+      "sha256": "b8f50c87bdae37925139181d98b2b39dc5ad8cf9879e831358b0d47f3a9c5c25",
+      "bytes": 48534,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000005.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000006.jsonl": {
+      "sha256": "93e177e70e996b4cf3d09dbed383f939af5de27375445ec8645cc214d09cd84c",
+      "bytes": 49152,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000006.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000007.jsonl": {
+      "sha256": "f749e377f6d8739ca553926842f069975bc5b76311893db13c77e6796364eb4f",
+      "bytes": 49358,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000007.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000008.jsonl": {
+      "sha256": "aeea1808ab38b71aab03616928dd75dee482613554e5c7f70ff870aa9e89eb15",
+      "bytes": 48189,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000008.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000009.jsonl": {
+      "sha256": "10ad898c553644c2a463538b76a0ce8acdbdcbf24af1daf77f0fd221b9220e92",
+      "bytes": 49553,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000009.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000010.jsonl": {
+      "sha256": "a6b1431b5738672dcbeb853a9e589da16de03a3a0c3b26f790cda1ca79408cfe",
+      "bytes": 49082,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000010.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000011.jsonl": {
+      "sha256": "f0fe59b29aada724812588e40b04c8da9c4b83e91b26d81780c500d924788b52",
+      "bytes": 49676,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000011.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000012.jsonl": {
+      "sha256": "00e55eff1f0a921f96d5651b8f126c4d1435b742983fbdf398f5931a6a3bcd3d",
+      "bytes": 51163,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000012.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000013.jsonl": {
+      "sha256": "aba2b133eddb19c0d8c6ed25a5f7d46a81c0df3370670ded69b092f3b16da303",
+      "bytes": 48987,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000013.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000014.jsonl": {
+      "sha256": "7caae46e4db8847e1fd7fd05b50a38867f2e2c43d0906ed57c9aba846a0b4a95",
+      "bytes": 49401,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000014.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000015.jsonl": {
+      "sha256": "7b4ccd80aed8bd7a6ee944e85fc0a4d098a59b83dd58b213bb984e722a966405",
+      "bytes": 48509,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000015.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000016.jsonl": {
+      "sha256": "42a3cd3a3705a0b6ca2518c41a138b4385e4389de2310f9d13983553f6b78e33",
+      "bytes": 49286,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000016.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000017.jsonl": {
+      "sha256": "909705f8507728573560180bb4f0a4b8814325d87569991f5ea7fc1873753eea",
+      "bytes": 48955,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000017.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000018.jsonl": {
+      "sha256": "ffcaa96488c3b3593c542d06261965adb5fdd7c57eaaa321088aae71b48713a0",
+      "bytes": 48976,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000018.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000019.jsonl": {
+      "sha256": "3fd8d8c36aa963af9e33c4c8988d1684415cfa10f6011bc1bac5a446c60d850f",
+      "bytes": 48986,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000019.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000020.jsonl": {
+      "sha256": "dced68e1beff1d64429e5053a46b5a73804fdd65094b8a808ee7b5e822191832",
+      "bytes": 49438,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000020.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000021.jsonl": {
+      "sha256": "8f22b2ec018931daade28a98b077cc91c75294cddeee93f0435f9365ce87fcaf",
+      "bytes": 49575,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000021.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000022.jsonl": {
+      "sha256": "d67794ca2286f0c3c178525a4dce2e67b4a57b4df96183a723b29f3166c0844c",
+      "bytes": 49322,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000022.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000023.jsonl": {
+      "sha256": "e10b01cb48caf4f0539948dd4c9faad11952600a3def1c845c56ff0f3ca44e28",
+      "bytes": 48140,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000023.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000024.jsonl": {
+      "sha256": "d0ad1e229b05842c78d4519d4bddf2d8973e25f2e0ea85ecfb398b853050c710",
+      "bytes": 49061,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000024.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000025.jsonl": {
+      "sha256": "a853ed13e2944587efd701385807a2c80fa091e92312076a667f5521f602ee8b",
+      "bytes": 48584,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000025.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000026.jsonl": {
+      "sha256": "634d377419ca09cc5a041ffd4024d5368c81330033d0d347623e4aaeec6ba734",
+      "bytes": 48364,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000026.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000027.jsonl": {
+      "sha256": "f8da2e71f102a294bf3862daf6dffec52385242b4ba2d1c570d688654ee08053",
+      "bytes": 48784,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000027.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000028.jsonl": {
+      "sha256": "84d806e555aaa3440351db0008c6a4e960d642d8f8233bb3c803b4ba0fef47a4",
+      "bytes": 48760,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000028.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000029.jsonl": {
+      "sha256": "42ad2f48961e4a7372d130250d7c1ed6ef61f6911d13b71901c58c3d8e1c026b",
+      "bytes": 48183,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000029.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000030.jsonl": {
+      "sha256": "a133fe0dfaa8824e9c56278143cc46920666cf969b9cd55448d884bcfdd316cd",
+      "bytes": 48934,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000030.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000031.jsonl": {
+      "sha256": "066115654bdbbe441176d1f44bb46ca84a95b80715aa5b685ea39f9d005542bb",
+      "bytes": 48209,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000031.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000032.jsonl": {
+      "sha256": "c05d992d56af89374a8fb66556dd98b683f95ea87a316164a615eeeb45ce3598",
+      "bytes": 47718,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000032.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000033.jsonl": {
+      "sha256": "2fcdfd658d8cf6dc4c044f68773082e511b5c375709c77c1648a26e2a2497250",
+      "bytes": 47461,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000033.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000034.jsonl": {
+      "sha256": "b4e9dd9d4e4b7871ca682caafe280250c77d5200a80495794516dd3a3209d538",
+      "bytes": 47192,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000034.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000035.jsonl": {
+      "sha256": "0b17427556433ef3895671adf14cc0ff356ecf2265c0ef93d5965e5cbf6db866",
+      "bytes": 47030,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000035.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000036.jsonl": {
+      "sha256": "1fb03ae50851a0a00a748ecf96c6a1a3d6c5fc55e93dace36f5691a962e2bdcd",
+      "bytes": 47024,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000036.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000037.jsonl": {
+      "sha256": "2b741948adc40e12eeeb08a7f4eb4577b840bacb78eba06ba29c55fe2a59600b",
+      "bytes": 47496,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000037.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000038.jsonl": {
+      "sha256": "63ecf568df14ca726d00082c6a1be9d4e47fe5e3e9ba68cf4795b44efc36ab70",
+      "bytes": 4816,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts-000038.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts.jsonl": {
+      "sha256": "647401d4ec15b58538153aae46aa0f3208abd353a624441d74416dfa1e880f59",
+      "bytes": 49275,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts.jsonl"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/dev-pilot/summary.json": {
+      "sha256": "233f4de55ff9cd65aa1649511082be2b015516180bb95624eb5229038e28f395",
+      "bytes": 37283,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/dev-pilot/summary.json"
+    },
+    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/summary.json": {
+      "sha256": "c955aa223eba277e8a4b909b6923f55206c288ce12f1c35f3d53ee403a29a539",
+      "bytes": 1437909,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/summary.json"
+    },
+    "gemini-diagnostic-20261010-after-billing/receipt.json": {
+      "sha256": "e9de33e09adc215fa5443c19a0b28a7746ce2098f6002e60e1e281257616f18c",
+      "bytes": 745,
+      "original_artifact": "gemini-diagnostic-20261010-after-billing/receipt.json"
+    },
+    "gemini-diagnostic-20261010-after-billing/diagnostic.jsonl": {
+      "sha256": "208e223cf01dbbfab86d7bd94f85cf4079144c1d2747f521863822064f061d2a",
+      "bytes": 3833,
+      "original_artifact": "gemini-diagnostic-20261010-after-billing/diagnostic.jsonl"
+    },
+    "collection-notebooks/evaluation-gemini-381-20261010-79b767a/run_test_eval_gemini381_79b767a-executed.ipynb": {
+      "sha256": "9f883c3992c09fcd69ee1c33d8f4d43be8ca47bfe239a43adcfc650f00b6e205",
+      "bytes": 159597,
+      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/run_test_eval_gemini381_79b767a-executed.ipynb"
+    },
+    "human-review-gemini381-20261010/review-data.json": {
+      "sha256": "b54f9761e58fb77d1df304c3fe96694deadd50159de93d99af635314906b6f69",
+      "bytes": 2963968,
+      "derived_from": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test",
+      "run_id": "6658d323657f4df3aced950bfe6abb07"
     }
   }
 }

@@ -26,7 +26,14 @@ The main notebook recomputes the unchanged task-specific automatic scores from
 these responses and retains every test item, failure and incomplete answer.
 Technical pilots are development evidence and are excluded from test scores.
 Historical results under the repository's `results/` directory remain distinct.
-Gemini has no test run in this release. Human review remains unfinished.
+Gemini collection is finished on 381 items in each task, with two truncated
+generation responses retained. Its 20-answer pilot is separate. The original
+collector status `incomplete` is preserved. The local two-call diagnostic is
+accounted once before the new session: 21.6620734 ILS carried prior plus
+1.465605 ILS new expenditure and allowances equals 23.1276784 ILS.
+These are usage-based estimates and uncertainty allowances, not invoices.
+Human review remains unfinished; the [Gemini add-on](human-review-gemini381-20261010/README.md)
+has no human judgments and is not installed in the active annotator.
 
 To repeat collection, use the identified collector revision in each manifest and
 [the collection guide](../docs/reproducible_evaluation.md). To obtain the authorized

@@ -1,0 +1,21 @@
+{
+  "diagnostic_only": true,
+  "no_full_test_started": true,
+  "source_revision": "a319f9dfb42b40eb26089204d8f407796f6b6914",
+  "calls": 2,
+  "estimated_usd": 0.0001875,
+  "estimated_ils_allowance": 0.00075,
+  "prior_accounted_ils": 21.6613234,
+  "updated_accounted_ils": 21.6620734,
+  "uncertain_cost_reserve_usd": 0,
+  "hashes": {
+    "diagnose.py": "c8fdd9736e87dce67152dd7a596084f846a8587928c8a7c4bbf6a2295da86c64",
+    "diagnostic.jsonl": "208e223cf01dbbfab86d7bd94f85cf4079144c1d2747f521863822064f061d2a"
+  },
+  "limitations": [
+    "Two measurements only",
+    "Local macOS versus historical Colab runtime; not a causal billing experiment",
+    "Token cost estimate, not settled billing",
+    "No original session or pilot mutated"
+  ]
+}
