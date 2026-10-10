@@ -1,0 +1,183 @@
+{
+  "comparison_status": "held_for_protocol_review",
+  "run_id": "c6cc64b4017547d884540a16af02a066",
+  "protocol_concern": "Saved template ends with [/INST] without the publisher-required following newline; causal effect unknown; tokenized request not logged.",
+  "publisher_format_url": "https://huggingface.co/dicta-il/dictalm2.0-instruct-GGUF#instruction-format",
+  "publisher_format_inspected_date": "2026-10-10",
+  "accounting_concern": "Independent zero-cost local session records zero prior; cannot append to the paid chronology without an explicit accounting decision.",
+  "session_identity": "be83bb814f3780167bd5d6144f9d2f83bb5669488115aea2f48cc1d7310d98a7",
+  "model_identity": {
+    "details": {
+      "families": [
+        "llama"
+      ],
+      "family": "llama",
+      "format": "gguf",
+      "parameter_size": "7.25B",
+      "parent_model": "",
+      "quantization_level": "Q4_K_M"
+    },
+    "digest": "2ec04b12dad1823bdc36d8317c8515346dd2cebef40ca9e4300a8ea319acabc0",
+    "model": "hf.co/dicta-il/dictalm2.0-instruct-GGUF:Q4_K_M",
+    "model_info": {
+      "general.architecture": "llama",
+      "general.file_type": 15,
+      "general.parameter_count": 7251169280,
+      "general.quantization_version": 2,
+      "llama.attention.head_count": 32,
+      "llama.attention.head_count_kv": 8,
+      "llama.attention.layer_norm_rms_epsilon": 1e-05,
+      "llama.block_count": 32,
+      "llama.context_length": 32768,
+      "llama.embedding_length": 4096,
+      "llama.feed_forward_length": 14336,
+      "llama.rope.dimension_count": 128,
+      "llama.rope.freq_base": 10000,
+      "llama.vocab_size": 33152,
+      "tokenizer.ggml.add_bos_token": true,
+      "tokenizer.ggml.add_eos_token": false,
+      "tokenizer.ggml.bos_token_id": 1,
+      "tokenizer.ggml.eos_token_id": 2,
+      "tokenizer.ggml.model": "llama",
+      "tokenizer.ggml.scores": null,
+      "tokenizer.ggml.token_type": null,
+      "tokenizer.ggml.tokens": null,
+      "tokenizer.ggml.unknown_token_id": 0
+    },
+    "model_parameters": "stop                           \"[INST]\"\nstop                           \"[/INST]\"",
+    "options": {
+      "num_predict": 512,
+      "seed": 42,
+      "temperature": 0
+    },
+    "server_version": "0.33.3",
+    "template": "[INST] {{ if .System }}{{ .System }} {{ end }}{{ .Prompt }} [/INST]"
+  },
+  "source_revision": "22f59faf2d6c9673e68788c40adbc7e41d31da0d",
+  "sources": [
+    {
+      "path": "local-runs/dictalm-20261010/dictalm/dev-pilot/attempts.jsonl",
+      "sha256": "44409582712541731db6310f31e2044269655b43fe6b93c21cc149402bd29188",
+      "bytes": 52418
+    },
+    {
+      "path": "local-runs/dictalm-20261010/dictalm/dev-pilot/manifest.json",
+      "sha256": "64c3e23b238c0c157f80cd447f42dec0fc38334bc2b497e0861bf77d7a712f69",
+      "bytes": 31242
+    },
+    {
+      "path": "local-runs/dictalm-20261010/dictalm/dev-pilot/summary.json",
+      "sha256": "0976394c8d08917c501b9975a6d4b41836dabb5114326d13ace36629692113e5",
+      "bytes": 39454
+    },
+    {
+      "path": "local-runs/dictalm-20261010/dictalm/full-test/attempts.jsonl",
+      "sha256": "d1f1eb0041a91d03c955b163758a4a6d2c774e71a6b3c50ee72e29885d07ebe3",
+      "bytes": 2094434
+    },
+    {
+      "path": "local-runs/dictalm-20261010/dictalm/full-test/manifest.json",
+      "sha256": "aba266f2f766e56bd259b8632ea0a816fed67acd4f2435d4582e7efe12f7de5b",
+      "bytes": 921486
+    },
+    {
+      "path": "local-runs/dictalm-20261010/dictalm/full-test/summary.json",
+      "sha256": "c03f468f17925d27e17b1930410657510eb76bb17689c1706435a4d923d1cd67",
+      "bytes": 1572963
+    },
+    {
+      "path": "local-runs/dictalm-20261010/dictalm_test_generate_details.csv",
+      "sha256": "d4c95c4ad035b1a32f7d0515e86e7c91e720412d535c957c24c915dfd92bc6ef",
+      "bytes": 170496
+    },
+    {
+      "path": "local-runs/dictalm-20261010/dictalm_test_select_details.csv",
+      "sha256": "045376f8ac1a24721e7aef74119cad70b344be36b7415fa7cb935f03d30aa0f3",
+      "bytes": 234086
+    },
+    {
+      "path": "local-runs/dictalm-20261010/session-summary.json",
+      "sha256": "438128f85c13eacb800d7dd2e3fe16c0f26473647502ea9fcd8537026af394de",
+      "bytes": 1446
+    },
+    {
+      "path": "local-runs/dictalm-20261010/session.json",
+      "sha256": "a1b5927476232b25624c239388edb21d068fc7aec5cd94eca6047bc0625682a4",
+      "bytes": 8469
+    }
+  ],
+  "scored_signature_matches_reference": true,
+  "collected_items": 395,
+  "excluded_items": [
+    "kn-0116",
+    "kn-0127",
+    "kn3-0017",
+    "kn3-0081",
+    "kn4-0279",
+    "kn4-0280",
+    "kn4-0281",
+    "kn4-0282",
+    "kn4-0283",
+    "kn4-0284",
+    "kn4-0285",
+    "kn4-0286",
+    "kn4-0287",
+    "kn4-0288"
+  ],
+  "metrics": [
+    {
+      "system": "dictalm",
+      "task": "generate",
+      "n_items": 381,
+      "n_completed": 381,
+      "status_counts": {
+        "response_received": 381
+      },
+      "accuracy": 0.32808398950131235,
+      "score": "historical_quote_normalized_gold_substring",
+      "n_valid": 152,
+      "n_correct": 125,
+      "run_id": "c6cc64b4017547d884540a16af02a066",
+      "comparison_status": "held_for_protocol_review"
+    },
+    {
+      "system": "dictalm",
+      "task": "select",
+      "n_items": 381,
+      "n_completed": 381,
+      "status_counts": {
+        "response_received": 381
+      },
+      "accuracy": 0.0,
+      "score": "strict_candidate_label_v1",
+      "n_valid": 0,
+      "n_correct": 0,
+      "run_id": "c6cc64b4017547d884540a16af02a066",
+      "comparison_status": "held_for_protocol_review"
+    }
+  ],
+  "pilot": {
+    "run_id": "b20e4b8b0b3647b3afbc26061c69ef38",
+    "n_records": 20,
+    "n_calls": 20,
+    "n_completed": 20
+  },
+  "test_calls": 790,
+  "finish_reasons": {
+    "stop": 790
+  },
+  "attempt_counts": {
+    "1": 790
+  },
+  "local_increment_ils": 0.0,
+  "local_prior_ils": 0,
+  "diagnostic_selection": {
+    "n_items": 381,
+    "csv_boundary_whitespace_trimmed": 381,
+    "leading_label_parsed": 381,
+    "leading_label_matches_gold": 243,
+    "human_judgments": 0,
+    "official_score_unchanged": true
+  },
+  "comparison_rejection": "Prior expenditure does not match the preceding cumulative total"
+}

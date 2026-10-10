@@ -6,7 +6,9 @@ from pathlib import Path
 import unittest
 from unittest.mock import patch
 
-from hebrew_acronyms.saved_human_review import load_final_review, _merge_decisions, EXPORTS, FINAL
+from hebrew_acronyms.saved_human_review import (
+    load_final_review, load_agent_clarifications, _merge_decisions, EXPORTS, FINAL,
+)
 from hebrew_acronyms.test_review_export import identified_review_coverage
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -74,6 +76,24 @@ class FinalReviewTests(unittest.TestCase):
             self.assertEqual((a['raw'],a['automatic_score']),(r['selected_candidate'],r['correct']))
             checked+=1
         self.assertEqual(checked,4953)
+
+    def test_delegated_assessments_preserve_human_history_and_exact_bindings(self):
+        review = load_final_review(SAVED, COHORT)
+        original = copy.deepcopy(review)
+        result = load_agent_clarifications(SAVED, review)
+        self.assertEqual((result['groups'], result['responses']), (5, 10))
+        self.assertEqual(review, original)
+        self.assertEqual(review['totals']['reviewed'], 741)
+        self.assertFalse(result['provenance']['personally_reviewed_by_user'])
+        self.assertFalse(result['provenance']['included_in_human_metrics'])
+        changed = [r for r in result['rows'] if r['agent_label'] != r['human_label']]
+        self.assertEqual(len(changed), 6)
+        self.assertTrue(all(r['item_id'] == 'kn4-0525' and r['agent_label'] == 'fits' for r in changed))
+        for field in ('raw', 'option_mapping', 'run_id', 'human_label'):
+            wrong = copy.deepcopy(review)
+            wrong['cases'][0][field] = 'altered'
+            with self.assertRaisesRegex(ValueError, 'binding differs'):
+                load_agent_clarifications(SAVED, wrong)
 
     def test_focused_denominator_requires_explicit_selection(self):
         with self.assertRaisesRegex(ValueError,'coverage differs'):

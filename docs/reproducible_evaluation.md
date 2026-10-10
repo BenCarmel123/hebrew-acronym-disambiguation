@@ -532,5 +532,20 @@ not automatically incorrect or gibberish. Punctuation and digits are not foreign
 letters, and no scoring denominator changes.
 
 Additional DictaLM Ollama outputs are preserved in
-`saved-results/local-runs/dictalm-20261010/`. They await protocol validation and
-human review and are excluded from the current analysis and review denominators.
+`saved-results/local-runs/dictalm-20261010/`. The main notebook audits these separately:
+790 test responses become 762 occurrences on the approved 381 items. Input rows,
+prompts, candidate order and scoring match; all test responses ended with `stop`.
+The saved template lacks the newline after `[/INST]` specified in the
+[publisher's format](https://huggingface.co/dicta-il/dictalm2.0-instruct-GGUF#instruction-format).
+The actual tokenized prompt is not saved, and the causal effect is unknown. The
+existing comparison rejects appending the session's zero prior spend to the paid
+chronology. Neither gate nor manifest was altered; pooling awaits a protocol and
+accounting decision.
+
+The derivative retains the original scores: selection 0/381, generation 125/381.
+Leading-label matches (243/381) reproduce the supplied diagnostic only, not semantic
+accuracy. The selection CSV trims boundary whitespace; journal raw text controls
+response bindings. The new 762-answer add-on has zero human judgments. The closed
+review denominator stays 4,953; the separate enlarged source inventory is 5,715.
+DictaLM adds zero API cost, leaving documented expenditure at 23.1276784 ILS.
+No model-assisted triage was run during this audit.

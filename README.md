@@ -58,12 +58,23 @@ including technical failures. Gemini now includes all 381 items in both tasks:
 with two truncated generation responses retained. The closed human-review exports
 cover **638 groups / 741 of 4,953 responses**: 707 new judgments and 34 explicitly
 approved historical reuses. Human coverage remains partial and diagnostically
-prioritized; automatic scores do not replace it. Four contexts with conflicting
-scores and judgments remain marked for clarification, without relabeling.
+prioritized; automatic scores do not replace it. Four conflicting contexts now have
+separate [delegated agent assessments](saved-results/agent-clarifications-20261010/assessments.json)
+at the user's request: five groups / ten already-reviewed responses. These are
+unblinded assistant decisions, not personal user review or new human coverage.
+Historical labels and pending flags remain unchanged.
 [Reusable tables and figures](results/submission-20261010/README.md) include full
 response bindings, technical coverage and human-review gaps.
 Earlier measurements under [results/](results/test_results.md) remain historical
 sources and are not silently pooled with the identified collection.
+
+The notebook also audits DictaLM separately on 381 items: 125/381 automatic
+generation matches and 0/381 valid strict selection labels. The 243/381 leading-label
+matches are diagnostic, not human judgments or a replacement score. Pooling awaits
+a protocol decision: the recorded chat template omits the publisher-required newline,
+and the independent zero-cost session does not satisfy the carried-prior accounting
+gate. The historical empty review add-on is preserved on `dictalm-audit-review-20261010`
+and is not required for this analysis.
 
 ## Project structure
 

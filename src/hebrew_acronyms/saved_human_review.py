@@ -19,6 +19,7 @@ FINAL = 'human-review-final-20261010'
 NEW = 'new_human_judgment'
 REUSE = 'explicit_historical_reuse_not_new_judgment'
 CASES = ('kn4-0525', 'kn-0229', 'manual-0023', 'manual-0001')
+AGENT_CASES = 'agent-clarifications-20261010/assessments.json'
 
 
 def _read(path):
@@ -179,6 +180,40 @@ def load_final_review(saved_root, cohort_path):
     return dict(rows=rows, totals=totals, records=records, decisions=events, rechecks=rechecks,
                 reuse= reuse_groups, cases=[r for r in records if r['item_id'] in CASES and
                     (r['pending_clarification'] or (r['item_id']=='kn4-0525' and r['system']=='gemini_generate'))])
+
+
+def load_agent_clarifications(saved_root, review):
+    """Validate a separate delegated assessment layer; never relabel human data."""
+    saved = Path(saved_root)
+    content = (saved / AGENT_CASES).read_bytes()
+    entry = _read(saved / 'files.json')['files'][AGENT_CASES]
+    if len(content) != entry['bytes'] or hashlib.sha256(content).hexdigest() != entry['sha256']:
+        raise ValueError('Agent clarification evidence differs')
+    evidence = json.loads(content)
+    if (evidence['kind'] != 'delegated_agent_assessment_not_human_review'
+            or evidence['personally_reviewed_by_user'] is not False
+            or evidence['included_in_human_metrics'] is not False):
+        raise ValueError('Agent assessments must remain separate from human review')
+    expected = {r['answer_id']: r for r in review['cases']}
+    seen, groups, rows = set(), set(), []
+    for assessment in evidence['assessments']:
+        gid = assessment['group_id']
+        if gid in groups or assessment['label'] not in {'fits', 'not_fits', 'unsure'}:
+            raise ValueError('Duplicate group or invalid agent label')
+        groups.add(gid)
+        if not assessment['responses'] or not assessment['reason']:
+            raise ValueError('Agent assessment lacks responses or reasoning')
+        for response in assessment['responses']:
+            aid = response['answer_id']
+            if aid in seen or response != expected.get(aid) or response['group_id'] != gid:
+                raise ValueError('Agent assessment response binding differs')
+            seen.add(aid)
+            rows.append(response | dict(agent_label=assessment['label'],
+                agent_reason=assessment['reason'], assessment_kind=evidence['kind']))
+    if seen != set(expected):
+        raise ValueError('Agent clarification coverage differs')
+    return dict(provenance={k: v for k, v in evidence.items() if k != 'assessments'},
+                rows=rows, groups=len(groups), responses=len(seen))
 
 
 def write_csv(path, rows):
