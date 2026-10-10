@@ -34,10 +34,10 @@ Tel Aviv University \\
 \maketitle
 
 \begin{abstract}
-Hebrew acronyms are often ambiguous, and language models can resolve them either by generating an expansion or by selecting from candidate expansions. However, prior work has not directly compared these formats on the same occurrences. We evaluate both on a human-reviewed held-out test set of Hebrew sentences, most of them natural, whose acronym forms never appear in training, comparing six LLMs with a pre-trained Hebrew BERT-based encoder, both before and after fine-tuning. Candidate selection substantially outperforms free generation across models, and fine-tuning further improves encoder performance. The fine-tuned encoder outperforms the open LLMs in both formats and the proprietary LLMs in free generation, but not in candidate selection. We judge generated answers by hand, so valid variants of the same expansion count as correct.
+Hebrew acronyms are often ambiguous, and language models can resolve them either by generating an expansion or by selecting from candidate expansions. However, prior work has not directly compared these formats on the same occurrences. We evaluate both on a human-reviewed held-out test set of Hebrew sentences, most of them natural, whose acronym forms never appear in training, comparing seven LLMs with a pre-trained Hebrew BERT-based encoder, both before and after fine-tuning. Candidate selection substantially outperforms free generation across models, and fine-tuning further improves encoder performance. The fine-tuned encoder outperforms the open LLMs in both formats and the proprietary LLMs in free generation, but not in candidate selection. We judge generated answers by hand, so valid variants of the same expansion count as correct.
 \end{abstract}
 
-% TODO: replace XX with the test results, including the Qwen 14B, GPT-4.1 mini, Claude Haiku and Grok arms; recheck the claims that depend on them.
+% TODO: replace XX with the test results, including the Qwen 14B, DictaLM, GPT-4.1 mini, Claude Haiku and Grok arms; recheck the claims that depend on them.
 % ============================================================
 \section{Introduction}
 % ============================================================
@@ -47,7 +47,7 @@ Hebrew makes this problem harder than it is in many languages. Short words are w
 
 A language model can expand an acronym in two ways. In \emph{free generation}, it reads the sentence and writes the expansion. In \emph{candidate selection}, it is also given a list of possible expansions and picks one. Generation can produce an answer that is not on any list, but it can also produce a wrong or unsupported one. Selection limits the answer to the list, so it depends on the list being complete. Prior work has not directly compared the two formats on the same occurrences.
 
-We run this comparison on a human-reviewed held-out test set of 381 Hebrew sentences. Most (77\%) occur naturally, in parliamentary proceedings and on Wikipedia, and the rest were written by an LLM to add a second sense to types that had only one. We test two open LLMs, four proprietary LLMs, and a pre-trained Hebrew encoder, which we evaluate both before and after fine-tuning. All systems see the same sentence and the same marked acronym. No acronym form in the test set appears in training, so the encoder is tested on acronyms it has never seen.
+We run this comparison on a human-reviewed held-out test set of 381 Hebrew sentences. Most (77\%) occur naturally, in parliamentary proceedings and on Wikipedia, and the rest were written by an LLM to add a second sense to types that had only one. We test three open LLMs, one of them the Hebrew-specialised DictaLM, four proprietary LLMs, and a pre-trained Hebrew encoder, which we evaluate both before and after fine-tuning. All systems see the same sentence and the same marked acronym. No acronym form in the test set appears in training, so the encoder is tested on acronyms it has never seen.
 
 Our findings are as follows. First, candidate selection outperforms free generation for every LLM: accuracy rises from XX\% to XX\% for the open LLMs, and from XX\% to XX\% for the proprietary ones. Second, fine-tuning helps. Training the encoder on fewer than 3,000 examples raises its candidate-selection accuracy from XX\% to XX\%, so candidate selection can be learned. Third, the fine-tuned encoder's selection accuracy (XX\%) is higher than the open LLMs' selection (XX\%) and the proprietary LLMs' generation (XX\%), but lower than their selection (XX\%). A small fine-tuned model can therefore outperform larger language models in some settings, though not the strongest LLMs when they are given candidates. Generated answers are judged by hand, so variants of the same expansion, such as \heb{שקל חדש} and \heb{שקלים חדשים}, count as correct.
 
@@ -173,7 +173,7 @@ LLM generation & No & Expansion text \\
 LLM selection & Yes & Candidate letter \\
 \bottomrule
 \end{tabular}
-\caption{All arms receive a sentence and marked target. Each of the six LLMs runs both tasks. Only DictaBERT receives task-specific supervised training.}
+\caption{All arms receive a sentence and marked target. Each of the seven LLMs runs both tasks. Only DictaBERT receives task-specific supervised training.}
 \label{tab:systems}
 \end{table}
 
@@ -205,7 +205,8 @@ $z_j$ & Label of pair $j$: 1 for the reference candidate, 0 otherwise \\
 Training used dropout 0.1, learning rate $2\times10^{-5}$, pair batch size 16 and one epoch, and kept the checkpoint with the lowest development pair loss. The checkpoint comes from the authors' Colab run based on \texttt{dicta-il/dictabert}. The seed (42) was set after model initialization, so it does not control initialization, and we could not verify the executed settings from a complete training log. Each pair is the marked sentence followed by the candidate, joined by BERT special tokens, with a limit of 256 tokens. Long contexts are cropped while keeping the target and candidate. The LLMs receive the full sentence.
 
 \subsection{Prompted language models}
-The generation prompt, written in Hebrew, asks for the expansion of the marked acronym in a few words, without explanation. The selection prompt lists lettered candidates and asks for exactly one letter. Neither includes examples or the answer. We use \texttt{qwen2.5:7b} and \texttt{qwen2.5:14b} \citep{qwen2025technical} through Ollama with Q4\_K\_M quantization, \texttt{gemini-3.8-flash} with low thinking, \texttt{gpt-4.1-mini-2025-04-14}, \texttt{claude-haiku-5-5}, and \texttt{grok-4.7} with low reasoning and no tools. Each item gets one request per task. We set no decoding options for Qwen 7B, and low thinking is not disabled thinking, so the runs are not deterministic. Full prompts and raw answers are in the repository.
+The generation prompt, written in Hebrew, asks for the expansion of the marked acronym in a few words, without explanation. The selection prompt lists lettered candidates and asks for exactly one letter. Neither includes examples or the answer. We use \texttt{qwen2.5:7b} and \texttt{qwen2.5:14b} \citep{qwen2025technical} through Ollama with Q4\_K\_M quantization, DictaLM, a Hebrew-specialised LLM, through Ollama with temperature 0 and seed 42, % TODO: exact DictaLM tag, quantization and citation
+\texttt{gemini-3.8-flash} with low thinking, \texttt{gpt-4.1-mini-2025-04-14}, \texttt{claude-haiku-5-5}, and \texttt{grok-4.7} with low reasoning and no tools. Each item gets one request per task. We set no decoding options for Qwen 7B, and low thinking is not disabled thinking, so the runs are not deterministic. Full prompts and raw answers are in the repository.
 
 % ============================================================
 \section{Evaluation}
@@ -249,6 +250,8 @@ Qwen 2.5 7B, generation & XX\% & XX\% \\
 Qwen 2.5 7B, selection & XX\% & XX\% \\
 Qwen 2.5 14B, generation & XX\% & XX\% \\
 Qwen 2.5 14B, selection & XX\% & XX\% \\
+DictaLM, generation & XX\% & XX\% \\
+DictaLM, selection & XX\% & XX\% \\
 \midrule
 Gemini, generation & XX\% & XX\% \\
 Gemini, selection & XX\% & XX\% \\
@@ -268,7 +271,7 @@ Grok 4.7, selection & XX\% & XX\% \\
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{paper/figures/arm_comparison.pdf}
-\caption{Accuracy of all systems on the test set, sorted, with the baselines and the oracle as reference lines. % TODO: update this figure: add Qwen 14B, GPT-4.1 mini, Claude Haiku and Grok, and use the final test scores
+\caption{Accuracy of all systems on the test set, sorted, with the baselines and the oracle as reference lines. % TODO: update this figure: add Qwen 14B, DictaLM, GPT-4.1 mini, Claude Haiku and Grok, and use the final test scores
 }
 \label{fig:arm-comparison}
 \end{figure}
@@ -276,14 +279,14 @@ Grok 4.7, selection & XX\% & XX\% \\
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{paper/figures/generate_vs_select.pdf}
-\caption{Accuracy under free generation and under candidate selection, for each LLM. % TODO: update this figure: add Qwen 14B, GPT-4.1 mini, Claude Haiku and Grok, and use the final test scores
+\caption{Accuracy under free generation and under candidate selection, for each LLM. % TODO: update this figure: add Qwen 14B, DictaLM, GPT-4.1 mini, Claude Haiku and Grok, and use the final test scores
 }
 \label{fig:generate-vs-select}
 \end{figure}
 
 \subsection{Generation versus selection}
 \label{sec:res-formats}
-Candidate selection beats free generation for every LLM. Accuracy rises from XX\% to XX\% for Qwen 7B, XX\% to XX\% for Qwen 14B, XX\% to XX\% for Gemini, XX\% to XX\% for GPT-4.1 mini, XX\% to XX\% for Claude Haiku and XX\% to XX\% for Grok. % TODO: one sentence on why, from the error analysis, e.g. where generated answers go wrong
+Candidate selection beats free generation for every LLM. Accuracy rises from XX\% to XX\% for Qwen 7B, XX\% to XX\% for Qwen 14B, XX\% to XX\% for DictaLM, XX\% to XX\% for Gemini, XX\% to XX\% for GPT-4.1 mini, XX\% to XX\% for Claude Haiku and XX\% to XX\% for Grok. % TODO: one sentence on why, from the error analysis, e.g. where generated answers go wrong
 Because selection is constrained to the inventory, this gain also depends on the inventory containing the right answer, which holds for every test item (the oracle is 100\%).
 
 \subsection{Fine-tuning and the encoder}
@@ -335,7 +338,7 @@ Case & Example \\
 
 \paragraph{Labels and inventories.} Named uses need an annotation decision. In development, we accept \heb{רבי משה בן מימון} as the expansion of \heb{רמב״ם} even in hospital and street contexts, which is a local convention, not a general rule. An inventory may also omit a valid expansion, so matching the stored label can reward or penalize a system unfairly.
 
-\paragraph{Comparison.} Candidate access is tied to the response format, and the systems also differ in supervision, architecture and size, so the results do not isolate the effect of candidate information. We tested only six LLMs, each run once, so we cannot say how far the findings hold for other models or settings.
+\paragraph{Comparison.} Candidate access is tied to the response format, and the systems also differ in supervision, architecture and size, so the results do not isolate the effect of candidate information. We tested only seven LLMs, each run once, so we cannot say how far the findings hold for other models or settings.
 
 % ============================================================
 \section*{AI Disclosure and Reflection}

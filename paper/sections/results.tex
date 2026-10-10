@@ -23,6 +23,8 @@ Qwen 2.5 7B, generation & XX\% & XX\% \\
 Qwen 2.5 7B, selection & XX\% & XX\% \\
 Qwen 2.5 14B, generation & XX\% & XX\% \\
 Qwen 2.5 14B, selection & XX\% & XX\% \\
+DictaLM, generation & XX\% & XX\% \\
+DictaLM, selection & XX\% & XX\% \\
 \midrule
 Gemini, generation & XX\% & XX\% \\
 Gemini, selection & XX\% & XX\% \\
@@ -42,7 +44,7 @@ Grok 4.7, selection & XX\% & XX\% \\
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{figures/arm_comparison.pdf}
-\caption{Accuracy of all systems on the test set, sorted, with the baselines and the oracle as reference lines. % TODO: update this figure: add Qwen 14B, GPT-4.1 mini, Claude Haiku and Grok, and use the final test scores
+\caption{Accuracy of all systems on the test set, sorted, with the baselines and the oracle as reference lines. % TODO: update this figure: add Qwen 14B, DictaLM, GPT-4.1 mini, Claude Haiku and Grok, and use the final test scores
 }
 \label{fig:arm-comparison}
 \end{figure}
@@ -50,14 +52,14 @@ Grok 4.7, selection & XX\% & XX\% \\
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{figures/generate_vs_select.pdf}
-\caption{Accuracy under free generation and under candidate selection, for each LLM. % TODO: update this figure: add Qwen 14B, GPT-4.1 mini, Claude Haiku and Grok, and use the final test scores
+\caption{Accuracy under free generation and under candidate selection, for each LLM. % TODO: update this figure: add Qwen 14B, DictaLM, GPT-4.1 mini, Claude Haiku and Grok, and use the final test scores
 }
 \label{fig:generate-vs-select}
 \end{figure}
 
 \subsection{Generation versus selection}
 \label{sec:res-formats}
-Candidate selection beats free generation for every LLM. Accuracy rises from XX\% to XX\% for Qwen 7B, XX\% to XX\% for Qwen 14B, XX\% to XX\% for Gemini, XX\% to XX\% for GPT-4.1 mini, XX\% to XX\% for Claude Haiku and XX\% to XX\% for Grok. % TODO: one sentence on why, from the error analysis, e.g. where generated answers go wrong
+Candidate selection beats free generation for every LLM. Accuracy rises from XX\% to XX\% for Qwen 7B, XX\% to XX\% for Qwen 14B, XX\% to XX\% for DictaLM, XX\% to XX\% for Gemini, XX\% to XX\% for GPT-4.1 mini, XX\% to XX\% for Claude Haiku and XX\% to XX\% for Grok. % TODO: one sentence on why, from the error analysis, e.g. where generated answers go wrong
 Because selection is constrained to the inventory, this gain also depends on the inventory containing the right answer, which holds for every test item (the oracle is 100\%).
 
 \subsection{Fine-tuning and the encoder}
