@@ -182,10 +182,26 @@ class IdentifiedStore(MaskedStore):
                 'exacttrim_answers':0,'technical_answers':0,'unsure_answers':unsure}
 
     def snapshot(self):
-        result=super().snapshot(); result.update(queues=self.queues(), manual_session=self.state.get('manual_session'),
+        queues = self.queues()
+        table_queues = {}
+        for view, ids in queues.items():
+            groups = {}
+            for i in ids:
+                groups.setdefault(self.display_pair_key(i), []).append(i)
+            table_queues[view] = [i for group in groups.values() for i in group]
+        result=super().snapshot(); result.update(queues=queues, table_queues=table_queues, manual_session=self.state.get('manual_session'),
             pending_reuse=sum(i not in self.state.get('historical_reuse', {}) for i in self.reuse_proposals),
             pending_drafts=[dict(batch_id=k, view=d['view'], saved_at=d['saved_at']) for k,d in self.read_drafts()['batches'].items() if d['status']=='unconfirmed'])
         return result
+
+    def display_pair_key(self, item_id):
+        """Presentation only: never a key for transferring a judgment."""
+        item = self.items[item_id]; a = item['answers'][0]
+        if a['technical_failure']:
+            return item_id
+        return digest([item['acronym'], item['gold'], a['task'], a['raw'],
+                       a.get('decoded'), a.get('option_mapping'), a.get('shown_order'),
+                       a.get('omitted_candidates')])
 
     def public_item(self,item_id,include_all=False):
         item=super().public_item(item_id,include_all)
@@ -194,7 +210,26 @@ class IdentifiedStore(MaskedStore):
             item['answers'][0]['text']='פלט מקורי: '+a['raw']+'\nפירוש מפוענח: '+str(a.get('decoded') or 'לא פוענח')
         item['answers'][0].update(occurrence_count=len(source['occurrences']),review_status='missing' if a['technical_failure'] else 'pending', can_restore=False)
         item['task_label']='בחירה — בדיקת פירוש ופענוח' if a['task']=='selection' else 'יצירה'
+        item['display_pair_key'] = self.display_pair_key(item_id)
         return item
+
+    def authorize_continuation(self, authorization):
+        """Operator-only action after an explicit user request; preserve the original clock."""
+        if not isinstance(authorization, str) or not authorization.strip():
+            raise ValueError('Explicit user authorization is required')
+        with self.lock:
+            if not self.state.get('manual_session'):
+                raise ValueError('No original session to continue')
+            if self.state['manual_session'].get('continuation'):
+                raise ValueError('Continuation is already authorized')
+            candidate = copy.deepcopy(self.state)
+            candidate['manual_session']['continuation'] = dict(
+                authorized_at=now(), authorized_by=self.state['reviewer'],
+                authorization=authorization, mode='user_controlled_no_deadline')
+            return self.commit(candidate, 'authorize-continuation')
+
+    def continued(self):
+        return self.state.get('manual_session', {}).get('continuation', {}).get('mode') == 'user_controlled_no_deadline'
 
     def commit(self, candidate, action, item_id=None):
         if action in {'save', 'batch-save'} and not candidate.get('manual_session'):
@@ -207,6 +242,8 @@ class IdentifiedStore(MaskedStore):
 
     def stop_if_due(self):
         with self.lock:
+            if self.continued():
+                return False
             session=self.state.get('manual_session')
             if not session or datetime.now(timezone.utc) < datetime.fromisoformat(session['deadline']):
                 return False
@@ -290,7 +327,8 @@ class IdentifiedStore(MaskedStore):
                     raise ValueError('Invalid table membership')
                 opened = secrets.token_hex(16)
                 candidate['active_batch'] = dict(id=opened, item_ids=ids, view=self._view, opened_at=now(),
-                    proposed_default='not_fits', interaction_mode='explicit_table_confirmation')
+                    proposed_default='not_fits', interaction_mode='explicit_table_confirmation',
+                    display_grouping='exact_pair_across_queue_with_individual_context_labels')
                 for i in ids:
                     r = candidate['records'].setdefault(i, self.blank())
                     r['exposure'].setdefault('reference_and_generation', dict(at=now(), protocol=self.protocol,

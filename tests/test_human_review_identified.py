@@ -11,6 +11,62 @@ from hebrew_acronyms.human_review_identified import build_bundle, IdentifiedStor
 
 
 class IdentifiedReviewTests(unittest.TestCase):
+    def test_explicit_continuation_preserves_clock_draft_and_requires_confirmation(self):
+        from hebrew_acronyms.human_review_server import atomic_json
+        ids = self.store.queues()['all']
+        opened = self.store.transact('batch-open', dict(revision=0, item_ids=ids))
+        labels = {ids[0]: 'fits', ids[1]: 'unsure'}
+        self.store.transact('batch-draft', dict(batch_id=opened['batch_id'], labels=labels, edited_item_ids=ids))
+        original = dict(started_at='1999-12-31T23:00:00+00:00', deadline='2000-01-01T00:00:00+00:00')
+        self.store.state['manual_session'] = original.copy()
+        atomic_json(self.store.path, self.store.state)
+        self.assertTrue(self.store.stop_if_due())
+        backup = (self.root/'verified-backup-60min/annotations.json').read_bytes()
+        draft = self.store.draft_path.read_bytes()
+        records = copy.deepcopy(self.store.state['records'])
+        with self.assertRaises(ValueError): self.store.authorize_continuation('')
+        self.store.authorize_continuation('Invented QA user explicitly requests continuing until done')
+        resumed = IdentifiedStore(self.bundle, self.store.path)
+        self.assertFalse(resumed.stop_if_due())
+        self.assertEqual(resumed.state['records'], records)
+        self.assertEqual(resumed.draft_path.read_bytes(), draft)
+        self.assertEqual((self.root/'verified-backup-60min/annotations.json').read_bytes(), backup)
+        for key, value in original.items(): self.assertEqual(resumed.state['manual_session'][key], value)
+        event = json.loads(self.store.path.with_suffix('.history.jsonl').read_text().splitlines()[-1])
+        self.assertEqual(event['manual_session'], resumed.state['manual_session'])
+        restored = resumed.transact('draft-restore', dict(revision=resumed.state['revision'], batch_id=opened['batch_id']))
+        self.assertFalse(restored['read_only'])
+        self.assertEqual(resumed.counts()['human_decisions'], 0)
+        resumed.transact('batch-save', dict(revision=resumed.state['revision'], batch_id=opened['batch_id'], labels=labels, confirmed=True))
+        self.assertEqual(resumed.counts()['human_decisions'], 2)
+        self.assertEqual(resumed.queues()['all'], [])
+
+    def test_table_groups_are_only_presentation_and_selection_mappings_must_match(self):
+        source = json.loads((self.root/'source.json').read_text())
+        other = copy.deepcopy(source['items'][-2])
+        other['id'] = 'extra'; other['answers'][0]['id'] = 'extra-answer'
+        other['answers'][0]['raw'] = 'different'
+        other['answers'][0]['binding']['response_sha256'] = hashlib.sha256(b'different').hexdigest()
+        source['items'].append(other)
+        (self.root/'source.json').write_text(json.dumps(source))
+        bundle = build_bundle([self.root/'source.json'], self.root/'cohort.csv', 'QA_NOT_HUMAN')
+        store = IdentifiedStore(bundle, self.root/'grouped.json')
+        valid = store.queues()['all']
+        same = [i for i in valid if store.items[i]['answers'][0]['raw'] == 'variant']
+        different = next(i for i in valid if i not in same)
+        store.plan['queue'] = [same[0], different, same[1]] + store.queues()['filtered']
+        before = copy.deepcopy(store.state)
+        snap = store.snapshot()
+        self.assertEqual(snap['queues']['all'], [same[0], different, same[1]])
+        self.assertEqual(snap['table_queues']['all'], same + [different])
+        self.assertEqual(store.state, before)
+        self.assertEqual(store.public_item(same[0])['display_pair_key'], store.public_item(same[1])['display_pair_key'])
+        first = store.items[same[0]]['answers'][0]; second = store.items[same[1]]['answers'][0]
+        first['task'] = second['task'] = 'selection'
+        self.assertEqual(store.display_pair_key(same[0]), store.display_pair_key(same[1]))
+        second['option_mapping'] = ['different candidate']
+        self.assertNotEqual(store.display_pair_key(same[0]), store.display_pair_key(same[1]))
+
     def setUp(self):
         self.tmp=tempfile.TemporaryDirectory(); self.addCleanup(self.tmp.cleanup)
         self.root=Path(self.tmp.name)

@@ -328,3 +328,16 @@ test('identical generation pairs share display but retain every context and judg
   const selection=items.slice(0,1).concat([{...items[0],id:'another'}]).map(i=>({...i,task_label:'בחירה'}));
   assert.equal(ui.batchPairGroups(selection).length,2);
 });
+
+test('server-verified selection pairs group visually and continuation retains original deadline',()=>{
+  const make=(id,key)=>({id,sentence:'context '+id,gold:'reference',acronym:'AC',task_label:'בחירה',display_pair_key:key,answers:[{text:'raw A; decoded reference',occurrence_count:1}]});
+  const items=[make('one','verified'),make('different','other-mapping'),make('three','verified')];
+  assert.deepEqual(ui.batchPairGroups(items).map(g=>g.map(i=>i.id)),[['one','three'],['different']]);
+  const html=ui.renderBatchTable(items,{one:'fits',three:'unsure',different:''});
+  assert.equal((html.match(/data-batch-item=/g)||[]).length,3);
+  const state={manual_session:{deadline:'2000-01-01',continuation:{mode:'user_controlled_no_deadline'}},queues:{all:['one','different','three']},table_queues:{all:['one','three','different']}};
+  assert.equal(ui.continuedSession(state),true);
+  assert.equal(ui.continuedSession({manual_session:{deadline:'2000-01-01'}}),false);
+  assert.deepEqual(ui.tableQueueIds(state,'all'),['one','three','different']);
+  assert.deepEqual(state.queues.all,['one','different','three']);
+});
