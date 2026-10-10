@@ -1,7 +1,8 @@
-"""Draw the two paper result figures from the saved 381-item test results.
+"""Draw the paper figures from the identified 381-item submission exports.
 
 Run from the repository root: python paper/make_result_figures.py
-Reads only saved CSV files; it calls no model and changes no result.
+Reads only saved CSV files; it calls no model and changes no result. DictaLM's
+four measurements belong to the separate supplementary manuscript table.
 """
 import csv
 from pathlib import Path
@@ -14,17 +15,17 @@ from matplotlib.ticker import PercentFormatter
 
 ROOT = Path(__file__).resolve().parents[1]
 SUBMISSION = ROOT / "results" / "submission-20261010"
-DICTALM = ROOT / "saved-results" / "local-runs" / "dictalm-20261010"
-UNTRAINED_DICTABERT = ROOT / "results" / "dictabert" / "test_details.csv"
 FIGURES = ROOT / "paper" / "figures"
 N_ITEMS = 381
 
-LLMS = [("qwen", "Qwen 2.5 7B"), ("qwen14", "Qwen 2.5 14B"), ("dictalm", "DictaLM 2.0"),
-        ("openai", "GPT-4.1 mini"), ("anthropic", "Claude Haiku 5.5"), ("xai", "Grok 4.7"),
-        ("gemini", "Gemini 3.8 Flash")]
-OPEN = {"qwen", "qwen14", "dictalm"}
-GENERATE, SELECT_OPEN, SELECT_PROPRIETARY = "#8c8c8c", "#5a9bd5", "#2b6cb0"
-TRAINED, UNTRAINED = "#2e8b57", "#a0aec0"
+LLMS = [("qwen", "Qwen 2.5 7B"), ("qwen14", "Qwen 2.5 14B"),
+        ("openai", "GPT-4.1 mini"), ("anthropic", "Claude Haiku 5.5"),
+        ("xai", "Grok 4.7"), ("gemini", "Gemini 3.8 Flash")]
+LOCAL = {"qwen", "qwen14"}
+GENERATE, SELECT_LOCAL, SELECT_API = "#8c8c8c", "#5a9bd5", "#2b6cb0"
+TRAINED, SIMILARITY, BASELINE = "#2e8b57", "#a0aec0", "#cccccc"
+EXPECTED_RULES = {"generate": "historical_quote_normalized_gold_substring",
+                  "select": "strict_candidate_label_v1"}
 
 
 def read_csv(path):
@@ -32,94 +33,109 @@ def read_csv(path):
         return list(csv.DictReader(handle))
 
 
-def share(rows, column):
-    rows = [row for row in rows if row.get("scored_in_381", "True") == "True"]
-    if len(rows) != N_ITEMS:
-        raise ValueError(f"expected {N_ITEMS} scored rows, found {len(rows)}")
-    return sum(row[column] == "True" for row in rows) / N_ITEMS
+def saved_accuracy(row, rule):
+    """Check a saved metric's identity and denominator without rescoring outputs."""
+    if int(row["n_items"]) != N_ITEMS or row["score"] != rule:
+        raise ValueError(f"unexpected denominator or rule: {row}")
+    accuracy = float(row["accuracy"])
+    if abs(accuracy - int(row["n_correct"]) / N_ITEMS) > 1e-12:
+        raise ValueError(f"saved count and accuracy disagree: {row}")
+    return accuracy
 
 
 def load_scores():
     scores = {}
+    llm_keys = {key for key, _ in LLMS}
     for row in read_csv(SUBMISSION / "automatic_metrics.csv"):
+        system, task = row["system"], row["task"]
+        if system not in llm_keys | {"dictabert"}:
+            continue
+        rule = "exact_candidate_match" if system == "dictabert" else EXPECTED_RULES[task]
+        key = (system, task)
+        if key in scores:
+            raise ValueError(f"duplicate saved metric: {key}")
+        scores[key] = saved_accuracy(row, rule)
+    expected = {(key, task) for key in llm_keys for task in EXPECTED_RULES}
+    if set(scores) != expected | {("dictabert", "select")}:
+        raise ValueError("missing or unexpected automatic metric")
+    similarity_rows = read_csv(SUBMISSION / "similarity_metric.csv")
+    if len(similarity_rows) != 1 or similarity_rows[0]["system"] != "dictabert_similarity":
+        raise ValueError("expected the identified pretrained similarity metric")
+    scores[("dictabert_similarity", "select")] = saved_accuracy(
+        similarity_rows[0], "exact_candidate_match")
+    baselines = {}
+    for row in read_csv(SUBMISSION / "baselines.csv"):
         if int(row["n_items"]) != N_ITEMS:
-            raise ValueError(f"{row['system']} {row['task']} is not on {N_ITEMS} items")
-        scores[(row["system"], row["task"])] = float(row["accuracy"])
-    # DictaLM generation is judged by hand (yes = same as the reference); other generation scores are automatic.
-    tags = read_csv(DICTALM / "dictalm_generate_human_tags.csv")
-    if len(tags) != N_ITEMS:
-        raise ValueError(f"expected {N_ITEMS} hand tags, found {len(tags)}")
-    scores[("dictalm", "generate")] = sum(row["same_as_gold"] == "yes" for row in tags) / N_ITEMS
-    # DictaLM answers "B. <candidate>"; the leading letter is read (lenient parse, see the paper).
-    scores[("dictalm", "select")] = share(read_csv(DICTALM / "dictalm_test_select_details.csv"), "lenient_correct")
-    scores[("dictabert_untrained", "select")] = share(read_csv(UNTRAINED_DICTABERT), "correct")
-    baselines = {row["baseline"]: float(row["accuracy"]) for row in read_csv(SUBMISSION / "baselines.csv")}
+            raise ValueError("baseline denominator differs from the test cohort")
+        baselines[row["baseline"]] = float(row["accuracy"])
     return scores, baselines
 
 
-def arm_comparison(scores, baselines, path):
-    bars = [("DictaBERT (fine-tuned)", scores[("dictabert", "select")], TRAINED),
-            ("DictaBERT (untrained)", scores[("dictabert_untrained", "select")], UNTRAINED)]
-    for key, name in LLMS:
-        bars.append((f"{name} (select)", scores[(key, "select")],
-                     SELECT_OPEN if key in OPEN else SELECT_PROPRIETARY))
-        bars.append((f"{name} (generate{', hand-judged' if key == 'dictalm' else ''})",
-                     scores[(key, "generate")], GENERATE))
-    bars.sort(key=lambda bar: bar[1])
-
-    fig, ax = plt.subplots(figsize=(6.2, 6.4))
-    positions = range(len(bars))
-    ax.barh(positions, [bar[1] for bar in bars], color=[bar[2] for bar in bars], height=0.65)
-    ax.set_yticks(list(positions), [bar[0] for bar in bars], fontsize=8.5)
-    for position, (_, value, _) in zip(positions, bars):
-        ax.text(value + 0.01, position, f"{value:.1%}", va="center", fontsize=7.5)
-    for name, label, style in [("random", "Random", "--"), ("most_frequent", "Most frequent", "--"),
-                               ("most_mined", "Most mined", "--")]:
-        ax.axvline(baselines[name], color="#4a5568", linestyle=style, linewidth=0.9)
-        ax.text(baselines[name] + 0.008, -1.55, label, rotation=90, fontsize=7,
-                color="#4a5568", va="bottom")
-    ax.axvline(1.0, color="#c53030", linestyle="--", linewidth=1.2)
-    ax.text(1.008, -1.55, "Oracle", rotation=90, fontsize=7, color="#c53030", va="bottom")
+def style_axis(ax):
     ax.set_xlim(0, 1.15)
-    ax.set_ylim(-1.6, len(bars) - 0.4)
-    ax.xaxis.set_major_formatter(PercentFormatter(1.0, decimals=0))
     ax.set_xticks([0, 0.25, 0.5, 0.75, 1.0])
-    ax.set_xlabel("Accuracy")
-    ax.set_title(f"All systems on the held-out test set (n={N_ITEMS})", fontsize=10)
-    for side in ("top", "right"):
+    ax.xaxis.set_major_formatter(PercentFormatter(1.0, decimals=0))
+    ax.tick_params(axis="both", labelsize=7)
+    ax.tick_params(axis="y", length=0)
+    for side in ("top", "right", "left"):
         ax.spines[side].set_visible(False)
-    fig.tight_layout()
-    fig.savefig(path)
+
+
+def save_figure(fig, path):
+    fig.savefig(path, metadata={"CreationDate": None, "ModDate": None})
     plt.close(fig)
+
+
+def arm_comparison(scores, baselines, path):
+    # Only candidate-selection outcomes share this panel; generation has a
+    # different scoring rule and is shown separately in generate_vs_select.
+    bars = [("Random", baselines["random"], BASELINE),
+            ("Most frequent", baselines["most_frequent"], BASELINE),
+            ("Most mined", baselines["most_mined"], BASELINE),
+            ("Pretrained similarity", scores[("dictabert_similarity", "select")], SIMILARITY),
+            ("Task-trained encoder", scores[("dictabert", "select")], TRAINED)]
+    bars.extend((name, scores[(key, "select")], SELECT_LOCAL if key in LOCAL else SELECT_API)
+                for key, name in LLMS)
+    fig, ax = plt.subplots(figsize=(3.35, 3.25))
+    for position, (name, value, color) in enumerate(bars):
+        ax.barh(position, value, color=color, height=0.65)
+        ax.text(value + 0.015, position, f"{value:.1%}", va="center", fontsize=6.5,
+                bbox={"facecolor": "white", "edgecolor": "none", "pad": 0.1}, zorder=3)
+    ax.set_yticks(range(len(bars)), [bar[0] for bar in bars])
+    ax.invert_yaxis()
+    for boundary in (2.5, 4.5, 6.5):
+        ax.axhline(boundary, color="#dddddd", linewidth=0.6)
+    ax.axvline(baselines["oracle"], color="#666666", linestyle=":", linewidth=0.8)
+    ax.text(baselines["oracle"], -0.95, "Oracle", ha="center", fontsize=6.5)
+    style_axis(ax)
+    ax.set_xlabel("Candidate-selection accuracy", fontsize=7.5)
+    ax.set_title(f"Candidate selection (n = {N_ITEMS})", fontsize=8, pad=13)
+    fig.tight_layout(pad=0.5)
+    save_figure(fig, path)
 
 
 def generate_vs_select(scores, path):
-    fig, ax = plt.subplots(figsize=(6.4, 3.4))
-    width = 0.38
+    fig, ax = plt.subplots(figsize=(3.35, 3.0))
+    width = 0.32
     for index, (key, _) in enumerate(LLMS):
         generate, select = scores[(key, "generate")], scores[(key, "select")]
-        ax.bar(index - width / 2, generate, width, color=GENERATE,
-               label="Generate (no candidates)" if index == 0 else None)
-        ax.bar(index + width / 2, select, width, color=SELECT_PROPRIETARY,
-               label="Select (candidates shown)" if index == 0 else None)
-        ax.text(index - width / 2, generate + 0.015, f"{generate:.1%}", ha="center", fontsize=6.5)
-        ax.text(index + width / 2, select + 0.015, f"{select:.1%}", ha="center", fontsize=6.5)
-    ax.axvline(2.5, color="#a0aec0", linewidth=0.8, linestyle=":")
-    ax.text(1.0, 1.06, "Open", ha="center", fontsize=8, color="#4a5568")
-    ax.text(4.5, 1.06, "Proprietary", ha="center", fontsize=8, color="#4a5568")
-    labels = [name + (" (gen. hand-judged)" if key == "dictalm" else "") for key, name in LLMS]
-    ax.set_xticks(range(len(LLMS)), labels, fontsize=7.5, rotation=20, ha="right")
-    ax.set_ylim(0, 1.12)
-    ax.set_yticks([0, 0.25, 0.5, 0.75, 1.0])
-    ax.yaxis.set_major_formatter(PercentFormatter(1.0, decimals=0))
-    ax.set_ylabel("Accuracy")
-    ax.set_title(f"Free generation vs. candidate selection (held-out test, n={N_ITEMS})", fontsize=9.5)
-    ax.legend(fontsize=7.5, frameon=False, loc="upper left", bbox_to_anchor=(0.0, 0.97))
-    for side in ("top", "right"):
-        ax.spines[side].set_visible(False)
-    fig.tight_layout()
-    fig.savefig(path)
-    plt.close(fig)
+        ax.barh(index - width / 2, generate, width, color=GENERATE,
+                label="Generation: normalized gold substring" if index == 0 else None)
+        ax.barh(index + width / 2, select, width, color=SELECT_API,
+                label="Selection: strict candidate label" if index == 0 else None)
+        ax.text(generate + 0.015, index - width / 2, f"{generate:.1%}", va="center", fontsize=6.5)
+        ax.text(select + 0.015, index + width / 2, f"{select:.1%}", va="center", fontsize=6.5)
+    ax.axhline(1.5, color="#dddddd", linewidth=0.6)
+    ax.set_yticks(range(len(LLMS)), [name for _, name in LLMS])
+    ax.invert_yaxis()
+    style_axis(ax)
+    fig.text(0.5, 0.035, "Automatic score (task-specific rule)", ha="center", fontsize=7.5)
+    fig.suptitle(f"Generation and selection (n = {N_ITEMS})", fontsize=8, y=0.98)
+    handles, labels = ax.get_legend_handles_labels()
+    fig.legend(handles, labels, fontsize=6.5, frameon=False, loc="upper left",
+               bbox_to_anchor=(0.02, 0.935))
+    fig.subplots_adjust(left=0.37, right=0.98, bottom=0.17, top=0.78)
+    save_figure(fig, path)
 
 
 def main():
