@@ -1,6 +1,6 @@
 \section{Results and Discussion}
 \label{sec:results}
-Table~\ref{tab:test-results} and Figure~\ref{fig:arm-comparison} support two findings. The task-trained encoder is competitive with the local Qwen models tested here, while the API models obtain higher selection scores. For each of the six LLMs in the main comparison, selection scores exceed generation scores. This second finding depends on both candidate access and the different scoring rules; it does not isolate model ability. DictaLM is reported separately in Table~\ref{tab:dictalm-supplement}.
+Table~\ref{tab:test-results} and Figure~\ref{fig:generate-vs-select} support two findings. The task-trained encoder is competitive with the local Qwen models tested here, while the API models obtain higher selection scores. For each of the six LLMs in the main comparison, selection scores exceed generation scores. This second finding depends on both candidate access and the different scoring rules; it does not isolate model ability. DictaLM is reported separately in Table~\ref{tab:dictalm-supplement}.
 
 \begin{table}[t]
 \centering\small
@@ -30,13 +30,6 @@ Grok 4.7 & 48.3 & 92.1 \\
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\linewidth]{figures/arm_comparison.pdf}
-\caption{Candidate-selection scores on 381 items. LLM responses require a strict valid label; encoders and baselines are scored by candidate equality. The oracle marks reference availability, not a deployable system.}
-\label{fig:arm-comparison}
-\end{figure}
-
-\begin{figure}[t]
-\centering
 \includegraphics[width=\linewidth]{figures/generate_vs_select.pdf}
 \caption{Automatic generation and selection scores for the six main LLMs (381 items each). Both the supplied information and the scoring rule change between tasks, so the gap does not isolate model ability. DictaLM's distinct measurements are in Table~\ref{tab:dictalm-supplement}.}
 \label{fig:generate-vs-select}
@@ -48,11 +41,15 @@ The fine-tuned encoder reaches 273/381 (71.7\%) in candidate selection, compared
 
 The pretrained similarity baseline scores 245/381 (64.3\%), versus 273/381 for the ranker, a difference of 28 items (7.3 points). This is not an ablation of training: separate context/candidate vectors and cosine similarity are replaced by joint encoding and a learned scoring head. The results do not establish that fine-tuning matters more than size or that Hebrew pretraining caused an advantage. Likewise, the Qwen 7B and 14B runs compare two model configurations, not a controlled intervention on size.
 
+This result supports candidate ranking as a useful approach when an expansion inventory is available. Like AcroBERT \citep{chen2023gladis}, the ranker scores context--candidate pairs rather than learning a separate output class for every acronym sense. It can therefore score the supplied candidates for forms absent from the documented task-training file. The observed performance makes a small task-adapted encoder a relevant local baseline alongside prompted LLMs. It does not establish lower inference cost: latency and memory were not measured, and the ranker evaluates each candidate separately.
+
 \subsection{Generation versus selection}
 \label{sec:res-formats}
 Selection scores exceed generation scores for every LLM in the main comparison. Qwen 7B rises from 31/381 (8.1\%) to 223/381 (58.5\%), and Qwen 14B from 44/381 (11.5\%) to 266/381 (69.8\%). The corresponding percentages are 54.3 to 93.7 for Gemini, 33.9 to 83.2 for GPT-4.1 mini, 43.3 to 89.0 for Claude Haiku and 48.3 to 92.1 for Grok (Figure~\ref{fig:generate-vs-select}).
 
 Because selection is constrained to the inventory, this comparison depends on the inventory containing the reference, which holds for every test item (the oracle is 100\%). Generation must produce an expansion without that help and is checked by string inclusion, whereas selection must return a valid label. The observed gap describes these task and measurement configurations together. It does not measure the gain from candidates alone or a difference in semantic understanding under a common metric.
+
+For an application with a reliable inventory, selection makes the available alternatives explicit and returns a directly usable inventory entry. Our results support evaluating that formulation before relying on free text generation. They do not show that generation is generally inferior: it can express valid answers outside a stored list or in a different form. In word-sense disambiguation, \citet{meconi2025large} also find strong free-form explanations under expert evaluation. In clinical abbreviation expansion, \citet{agrawal2022large} map generated text back to candidates before scoring. These studies show why the answer space and evaluation procedure matter; their scores are not directly comparable to ours. A matched semantic evaluation would be needed to determine how much of our observed gap reflects answer correctness rather than reference wording or output format.
 
 \subsection{Results by kind of sentence}
 \label{sec:res-source}
@@ -132,10 +129,10 @@ Selected: \heb{חוק יסוד} (Basic Law).\newline
 Exact candidate match: no. \\
 \bottomrule
 \end{tabular}
-\caption{Two Knesset items, identified by stored item ID. Excerpts preserve the target and local context. Responses and decisions come from the identified exports: DictaLM run \texttt{c6cc64b4\ldots}, Ben's bound labels, and encoder run \texttt{dictabert-test-20261009-f49c3b5}. Boundary whitespace is omitted.}
+\caption{Two Knesset items, identified by stored item ID. Excerpts preserve the target and local context. Responses and decisions come from the saved exports described in Section~\ref{sec:artifacts}. Boundary whitespace is omitted.}
 \label{tab:res-examples}
 \end{table}
 
 \subsection{Conclusions}
 \label{sec:conclusions}
-We draw two conclusions. First, the task-trained encoder is competitive with the tested local Qwen models on candidate selection, while the API models score higher. The comparison supports this practical observation without isolating training, architecture or model size. Second, selection scores exceed generation scores for the six main LLMs under the evaluated configurations. Candidate access and scoring differ together, so this is not an isolated measure of model ability. The DictaLM annotation and decoding diagnostics illustrate why these measurements must be interpreted separately.
+We draw two conclusions. First, a small task-trained Hebrew encoder is competitive with the tested local Qwen configurations at candidate selection, while the API models score higher. Candidate ranking is thus a practical option to investigate when local inference and a known inventory are desired, although the present comparison does not isolate the contribution of training or size. Second, selection scores exceed generation scores for the six main LLMs under the evaluated configurations. This supports making candidate access an explicit design choice, while keeping the different metrics in view. Together, the findings place the choice of model alongside the choice of answer space: resolving an acronym from known alternatives and producing its expansion freely call for different system designs and different evidence of success.
