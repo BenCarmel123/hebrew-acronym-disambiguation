@@ -617,6 +617,46 @@
       "bytes": 2963968,
       "derived_from": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test",
       "run_id": "6658d323657f4df3aced950bfe6abb07"
+    },
+    "human-review-381-20261010/review-export.json": {
+      "sha256": "01ea404fda744e10556c869d3cddccda228fcfc209ece7805a151fcad45834df",
+      "bytes": 634329,
+      "original_artifact": "human-review-381-20261010/review-export.json"
+    },
+    "human-review-focus-200-20261010/gemini-review-data.json": {
+      "sha256": "f5c4aa362720865ed40ae7c9f9edfd100d443e8d2c8303a9db569f0e4aab62de",
+      "bytes": 3088278,
+      "original_artifact": "human-review-focus-200-20261010/verified-backup-final/gemini-review-data.json"
+    },
+    "human-review-focus-200-20261010/review-export.json": {
+      "sha256": "cfde0bbc065f3fbe7a134500a3b5dfeb2bc335b3149662492ef229250c19d06f",
+      "bytes": 267346,
+      "original_artifact": "human-review-focus-200-20261010/verified-backup-final/review-export.json"
+    },
+    "human-review-final-20261010/reuse-context-evidence.json": {
+      "sha256": "53ed2f7a00429d62564d9a4fc5873603cf64a22b6048527e8f03ba19e70a901b",
+      "bytes": 19574,
+      "original_artifact": "Derived portable review evidence; see human-review-final-20261010/receipt.json"
+    },
+    "human-review-final-20261010/combined-review-coverage.json": {
+      "sha256": "7aa9b73903e779584dd53260238c113ba57e598ac33ae7ef64afd5ad5fc74b23",
+      "bytes": 706116,
+      "original_artifact": "human-review-focus-200-20261010/verified-backup-final/combined-review-coverage.json"
+    },
+    "human-review-final-20261010/selection-manifest.json": {
+      "sha256": "5fdae882d58691319e91cc930236de8a57cb106eedc85c934d7c766f28922cc4",
+      "bytes": 21184,
+      "original_artifact": "human-review-focus-200-20261010/verified-backup-final/selection-manifest.json"
+    },
+    "human-review-final-20261010/backup-sha256.json": {
+      "sha256": "0dd4513f6b01b32c5a27b19f07b6a2d39e5163239b175993a5f0b5ced3d9ef6e",
+      "bytes": 965,
+      "original_artifact": "human-review-focus-200-20261010/verified-backup-final/sha256.json"
+    },
+    "human-review-final-20261010/receipt.json": {
+      "sha256": "183b182322ae4d0041fa18ccacd89f56b184f703fbfadf9bba5468b9617b6ab3",
+      "bytes": 2371,
+      "original_artifact": "Derived portable review evidence; see human-review-final-20261010/receipt.json"
     }
   }
 }

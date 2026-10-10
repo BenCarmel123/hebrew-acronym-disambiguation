@@ -15,9 +15,10 @@ identify collection provenance and are not required analysis paths.
   loading evidence and the comparison with the separately preserved historical CSV.
 - `encoder-test-inputs-20261009/` contains the one-to-one derived test input and its
   explicitly automatic target-position policy. These spans are not human labels.
-- `human-review-*/` contains immutable answer queues. Each answer binds the original
-  item, task, run and response hash. Missing annotation files mean no recorded new
-  judgments; automatically correct answers are not human-approved answers.
+- `human-review-*/` contains immutable answer queues and the two closed review
+  exports. Each answer binds the original item, task, run and response hash.
+  [Final review evidence](human-review-final-20261010/README.md) distinguishes new
+  judgments, explicitly approved historical reuse and unreviewed answers.
 - `collection-notebooks/` contains execution snapshots as provenance appendices.
   They document separate collection sessions and are not the analysis entry point.
   Their saved credentials are names only; actual secrets are not included.
@@ -32,8 +33,10 @@ collector status `incomplete` is preserved. The local two-call diagnostic is
 accounted once before the new session: 21.6620734 ILS carried prior plus
 1.465605 ILS new expenditure and allowances equals 23.1276784 ILS.
 These are usage-based estimates and uncertainty allowances, not invoices.
-Human review remains unfinished; the [Gemini add-on](human-review-gemini381-20261010/README.md)
-has no human judgments and is not installed in the active annotator.
+The closed review windows cover 638 groups / 741 of 4,953 responses, including
+Gemini. Coverage is partial: 707 newly judged occurrences and 34 approved historical
+reuses. The original Gemini preparation bundle remains unchanged; the final review
+uses the actual focused-window source with its original hash and exact bindings.
 
 To repeat collection, use the identified collector revision in each manifest and
 [the collection guide](../docs/reproducible_evaluation.md). To obtain the authorized

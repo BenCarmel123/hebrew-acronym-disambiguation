@@ -1,0 +1,2 @@
+total,new_human_reviewed,historical_reused,reviewed,positive_total,positive_reviewed,negative_total,negative_reviewed,technical_failures,fits,not_fits,unsure,automatic_negative_human_fits,automatic_positive_human_not_fits,unreviewed,valid_unreviewed,unresolved,unique_groups_with_review,full_source_groups,new_decision_events,new_unique_groups,historical_reuse_groups,rechecked_responses
+4953,707,34,741,2886,67,2050,674,17,396,345,0,338,9,4212,4195,4212,638,2919,620,618,20,2

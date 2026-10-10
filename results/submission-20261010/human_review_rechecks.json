@@ -1,0 +1,48 @@
+[
+  {
+    "answer_id": "07e53bd9b316fcfa690a3617837bdfb1a197059136169d00455007c1e26319fe",
+    "previous": {
+      "answer_id": "07e53bd9b316fcfa690a3617837bdfb1a197059136169d00455007c1e26319fe",
+      "group_id": "33c949d9d540f5b3bd8bf3934380d4a690ddd48dba772dced1ff57c396712acb",
+      "label": "unsure",
+      "kind": "new_human_judgment",
+      "round": "previous",
+      "decision_id": "33c949d9d540f5b3bd8bf3934380d4a690ddd48dba772dced1ff57c396712acb",
+      "source_export": "human-review-381-20261010/review-export.json",
+      "label_updated_at": "2026-10-10T10:45:07.750952+00:00"
+    },
+    "latest": {
+      "answer_id": "07e53bd9b316fcfa690a3617837bdfb1a197059136169d00455007c1e26319fe",
+      "group_id": "33c949d9d540f5b3bd8bf3934380d4a690ddd48dba772dced1ff57c396712acb",
+      "label": "fits",
+      "kind": "new_human_judgment",
+      "round": "focused",
+      "decision_id": "33c949d9d540f5b3bd8bf3934380d4a690ddd48dba772dced1ff57c396712acb",
+      "source_export": "human-review-focus-200-20261010/review-export.json",
+      "label_updated_at": "2026-10-10T12:26:55.149189+00:00"
+    }
+  },
+  {
+    "answer_id": "3882e5cd4171b2e711c8576516ca77b97cac988b4591935ebab55061da720214",
+    "previous": {
+      "answer_id": "3882e5cd4171b2e711c8576516ca77b97cac988b4591935ebab55061da720214",
+      "group_id": "3f9446394a0578be0979d3fa5cd22fdc54e9a285394c17131ee09e42cab23e17",
+      "label": "unsure",
+      "kind": "new_human_judgment",
+      "round": "previous",
+      "decision_id": "3f9446394a0578be0979d3fa5cd22fdc54e9a285394c17131ee09e42cab23e17",
+      "source_export": "human-review-381-20261010/review-export.json",
+      "label_updated_at": "2026-10-10T10:33:53.068370+00:00"
+    },
+    "latest": {
+      "answer_id": "3882e5cd4171b2e711c8576516ca77b97cac988b4591935ebab55061da720214",
+      "group_id": "3f9446394a0578be0979d3fa5cd22fdc54e9a285394c17131ee09e42cab23e17",
+      "label": "fits",
+      "kind": "new_human_judgment",
+      "round": "focused",
+      "decision_id": "3f9446394a0578be0979d3fa5cd22fdc54e9a285394c17131ee09e42cab23e17",
+      "source_export": "human-review-focus-200-20261010/review-export.json",
+      "label_updated_at": "2026-10-10T12:26:55.150079+00:00"
+    }
+  }
+]

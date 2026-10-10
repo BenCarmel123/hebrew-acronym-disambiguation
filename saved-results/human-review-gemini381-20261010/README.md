@@ -1,4 +1,9 @@
-# Gemini human-review add-on
+# Original Gemini human-review preparation bundle
+
+This document describes the preserved pre-review bundle. Current confirmed
+judgments are in the [closed review evidence](../human-review-final-20261010/README.md)
+and the main notebook. The zero-judgment counts below describe this input bundle
+at preparation time; they are not current review coverage.
 
 `review-data.json` contains 762 original answer occurrences from test run
 `6658d323657f4df3aced950bfe6abb07`, session
@@ -12,7 +17,7 @@ response text and bindings preserve item, task, run and response identity.
 | Generation | 381 | 207 | 172 | 2 | 0 | 0 | 381 |
 | Selection | 381 | 357 | 24 | 0 | 0 | 0 | 381 |
 
-This is an **inactive add-on**, not a replacement for the current annotator input.
+This was an **inactive add-on** at preparation time.
 All nonpositive answers and positive controls remain available; the two technical
 failures are separate from semantic disagreements. The existing schema's optional
 calibration queue does not authorize a new timed window. No judgment, draft or

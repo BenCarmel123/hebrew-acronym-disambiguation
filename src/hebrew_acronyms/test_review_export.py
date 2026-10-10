@@ -248,11 +248,22 @@ def export_encoder_review(directory, test_path, output_path, *, expected_run_id,
     return _write_review_bundle(items, systems, sources, {expected_run_id}, output_path)
 
 
-def identified_review_coverage(export_path, saved_root, cohort_path):
+def identified_group_id(item, answer):
+    """Match the annotator's ASCII-escaped exact-context group identity."""
+    value = [item['original_item_id'], item['sentence'], item['acronym'], item['gold'],
+             answer['task'], answer['raw'], answer.get('decoded'),
+             answer.get('option_mapping'), answer.get('technical_failure')]
+    return hashlib.sha256(json.dumps(value, sort_keys=True, ensure_ascii=True,
+                                    separators=(',', ':')).encode()).hexdigest()
+
+
+def identified_review_coverage(export_path, saved_root, cohort_path, *, selected_group_ids=None):
     """Verify portable compact-review decisions against original answer bundles.
 
     Returns occurrence coverage and distinct decision count, never an estimate of
     benchmark-wide semantic accuracy. No legacy annotation migration is performed.
+    selected_group_ids explicitly binds a focused export to its saved selection;
+    the default denominator remains the full cohort.
     """
     export = json.loads(Path(export_path).read_text())
     if export.get('protocol_version') != 'identified-test-review-v1':
@@ -277,6 +288,18 @@ def identified_review_coverage(export_path, saved_root, cohort_path):
                 if answer['id'] in answers:
                     raise ValueError('Duplicate source answer')
                 answers[answer['id']] = (item, answer)
+    if selected_group_ids is not None:
+        selected_group_ids = set(selected_group_ids)
+        scoped = {}
+        found_groups = set()
+        for aid, (item, answer) in answers.items():
+            group_id = identified_group_id(item, answer)
+            if group_id in selected_group_ids:
+                scoped[aid] = (item, answer)
+                found_groups.add(group_id)
+        if found_groups != selected_group_ids:
+            raise ValueError('Selected review group missing from source')
+        answers = scoped
     judged = {}
     decisions = set()
     for decision in export['decisions']:
