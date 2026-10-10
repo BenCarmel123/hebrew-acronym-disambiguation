@@ -120,21 +120,22 @@ def generate_vs_select(scores, path):
     for index, (key, _) in enumerate(LLMS):
         generate, select = scores[(key, "generate")], scores[(key, "select")]
         ax.barh(index - width / 2, generate, width, color=GENERATE,
-                label="Generation: normalized gold substring" if index == 0 else None)
+                label="Generation: reference substring" if index == 0 else None)
         ax.barh(index + width / 2, select, width, color=SELECT_API,
                 label="Selection: strict candidate label" if index == 0 else None)
-        ax.text(generate + 0.015, index - width / 2, f"{generate:.1%}", va="center", fontsize=6.5)
-        ax.text(select + 0.015, index + width / 2, f"{select:.1%}", va="center", fontsize=6.5)
+        ax.text(generate + 0.015, index - width / 2, f"{generate:.1%}", va="center", fontsize=7.5)
+        ax.text(select + 0.015, index + width / 2, f"{select:.1%}", va="center", fontsize=7.5)
     ax.axhline(1.5, color="#dddddd", linewidth=0.6)
     ax.set_yticks(range(len(LLMS)), [name for _, name in LLMS])
     ax.invert_yaxis()
     style_axis(ax)
+    ax.tick_params(axis="both", labelsize=8)
     fig.text(0.5, 0.035, "Automatic score (task-specific rule)", ha="center", fontsize=7.5)
-    fig.suptitle(f"Generation and selection (n = {N_ITEMS})", fontsize=8, y=0.98)
+    fig.suptitle(f"Generation and selection (n = {N_ITEMS})", fontsize=9, y=0.98)
     handles, labels = ax.get_legend_handles_labels()
-    fig.legend(handles, labels, fontsize=6.5, frameon=False, loc="upper left",
+    fig.legend(handles, labels, fontsize=7.5, frameon=False, loc="upper left",
                bbox_to_anchor=(0.02, 0.935))
-    fig.subplots_adjust(left=0.37, right=0.98, bottom=0.17, top=0.78)
+    fig.subplots_adjust(left=0.40, right=0.98, bottom=0.17, top=0.78)
     save_figure(fig, path)
 
 
