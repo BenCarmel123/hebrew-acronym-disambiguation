@@ -40,12 +40,13 @@
   and environment setup in the first code cell, then short explanations and function
   calls. Shared logic belongs in source modules. Experimental fixes require separate scope.
 - Maintain `notebooks/experimental_study.ipynb` as the main methods and analysis
-  companion and `notebooks/train_dictabert.ipynb` as the training appendix. Extend
+  companion and `notebooks/train_dictabert.ipynb` as an optional training example. Extend
   the main notebook as approved research components are completed. Its current
   outline is not a finalized protocol or evidence of completed experiments.
 - Use `notebooks/run_test_eval_colab.ipynb` as the full-test execution entry point,
-  backed by the installed package. Keep the Qwen scale notebook optional; do not
-  create another competing master notebook. Fixes to execution and integrations
+  backed by the installed package. Keep the byte-preserved checkpoint reference under `notebooks/historical/`;
+  the removed Qwen scale route remains historical only. Do not create another
+  competing master notebook. Fixes to execution and integrations
   do not authorize overwriting historical results or relabeling their provenance.
 - Use descriptive scientific or technical names in committed files, notebooks and
   commit messages. Internal work-package labels belong only in the external
