@@ -506,5 +506,15 @@ A portable `human-review-381-20261010/review-export.json`, when present in saved
 results, is validated against the original review bundles and cohort before its
 coverage is displayed. It does not replace automatic scores or justify a
 benchmark-wide human accuracy estimate. No historical labels are transferred.
+The optional table interface proposes `not_fits` and requires explicit human
+confirmation for each displayed batch of up to 20 contexts. Exceptions and
+`unsure` can be selected; unread rows are skipped. Merely opening a table creates
+no judgments. The interaction mode and batch membership are retained in the
+annotation history. This default may anchor judgments toward rejection and must
+be reported with the diagnostic sampling limitation. The shortened generation
+queue defers responses containing non-Hebrew letters; these remain unreviewed,
+not automatically incorrect or gibberish. Punctuation and digits are not foreign
+letters, and no scoring denominator changes.
+
 DictaLM remains unmeasured in this bundle until identified output and matching
 protocol evidence are supplied; adapter or training code alone is not a result.
