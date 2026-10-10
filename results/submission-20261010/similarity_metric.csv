@@ -1,0 +1,2 @@
+system,baseline,task,run_id,n_items,n_completed,n_valid,n_correct,accuracy,score,status_counts,technical_failures,source_path,source_commit,source_sha256
+dictabert_similarity,dictabert_similarity,select,,381,381,381,245,0.6430446194225722,exact_candidate_match,"{""saved_candidate_prediction"": 381}",,results/dictabert/test_details.csv,4a3d0051f4ae299f492ab7263cd57bfacd1e8793,f0b7ba4f81d79fb734199117d09445b4d3516a8d3b102d7ee7a60d1eb9589873
