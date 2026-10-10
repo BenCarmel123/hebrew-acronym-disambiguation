@@ -36,7 +36,10 @@ shows candidate selection (two encoder variants and six LLMs) alongside generati
 and selection for the same six LLMs. The panels preserve task-specific scoring;
 encoders rank candidates without the strict LLM text-label decoder. The most-mined
 line uses the saved 0.4803 value, displayed as 48.0%. Both axes span 0--100%; marker
-shape and fill distinguish the series without relying on color.
+shape and fill distinguish the series without relying on color. A shared model-label
+column aligns both panels; generation and selection share one row per LLM. Empty
+encoder rows in the LLM panel are not applicable, not zero scores. Full metric
+definitions appear in the adjacent caption, leaving a short in-figure legend.
 
 Regenerate this vector PDF from the repository root with the installed project
 environment, then build the paper:

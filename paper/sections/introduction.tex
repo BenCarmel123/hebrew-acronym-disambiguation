@@ -4,7 +4,7 @@ An acronym is a short written form that stands for a longer expression. In Hebre
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{figures/generate_vs_select.pdf}
-\caption{Automatic scores on 381 items; failures remain in the denominator. (a) Candidate selection, with the most-mined reference line. Encoders rank candidates without the LLM text-label decoder. (b) Six LLMs under two task-specific metrics. Candidate access and scoring rules differ, so the gap does not isolate model ability. Exact results are in Table~\ref{tab:test-results}; DictaLM is separate (Table~\ref{tab:dictalm-supplement}).}
+\caption{Automatic scores on 381 items, including failures. (a) Encoders rank candidates and match the reference directly, without LLM text-label decoding. (b) LLM generation uses \emph{normalized reference substring}; selection uses \emph{strict label + reference match}. Encoder rows are not applicable. Candidate access and scoring rules differ, so the gap does not isolate model ability. Exact results: Table~\ref{tab:test-results}; DictaLM: Table~\ref{tab:dictalm-supplement}.}
 \label{fig:generate-vs-select}
 \end{figure*}
 

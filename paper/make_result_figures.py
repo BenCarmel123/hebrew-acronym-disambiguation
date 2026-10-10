@@ -126,33 +126,31 @@ def generate_vs_select(scores, baselines, path):
                  ("dictabert", "DictaBERT ranker")]
     selection += [(key, names[key]) for key in systems]
     blue, charcoal = "#28608b", "#333333"
-    with plt.rc_context({"font.family": "DejaVu Sans", "font.size": 8.5,
+    with plt.rc_context({"font.family": "DejaVu Sans", "font.size": 9,
                          "pdf.fonttype": 42}):
-        fig = plt.figure(figsize=(7.0, 2.85))
-        left = fig.add_axes((0.20, 0.14, 0.28, 0.61))
-        right = fig.add_axes((0.72, 0.14, 0.25, 0.61))
-        fig.text(0.01, 0.96, "(a) Candidate selection", weight="bold", fontsize=10)
-        fig.text(0.53, 0.96, "(b) Generation and selection", weight="bold", fontsize=10)
-        fig.text(0.01, 0.865,
-                 "Encoder: candidate ranking + reference match\n"
-                 "LLM: strict label + reference match", fontsize=8.5)
+        fig = plt.figure(figsize=(7.0, 2.65))
+        # One model-label column and identical row positions free horizontal
+        # space for both comparisons. Encoder rows have no points in panel (b).
+        left = fig.add_axes((0.21, 0.16, 0.34, 0.65))
+        right = fig.add_axes((0.63, 0.16, 0.34, 0.65), sharey=left)
+        fig.text(0.21, 0.95, "(a) Candidate selection", weight="bold", fontsize=10)
+        fig.text(0.63, 0.95, "(b) Generation vs selection", weight="bold", fontsize=10)
         fig.legend([
             Line2D([], [], marker="o", linestyle="none", markerfacecolor="white",
                    markeredgecolor=charcoal, markersize=5),
             Line2D([], [], marker="s", linestyle="none", color=blue, markersize=5)],
-            ["Generation: normalized reference substring",
-             "Selection: strict label + reference match"],
-            loc="upper left", bbox_to_anchor=(0.515, 0.925), frameon=False,
-            fontsize=8, handletextpad=0.4, labelspacing=0.6)
+            ["Generation", "Selection"], ncol=2,
+            loc="upper left", bbox_to_anchor=(0.615, 0.92), frameon=False,
+            fontsize=9, handletextpad=0.4, columnspacing=0.9)
 
-        def point(ax, value, y, marker, color, filled=True):
+        def point(ax, value, y, marker, color, filled=True, label_left=False):
             ax.plot(value, y, marker=marker, linestyle="none", markersize=5,
                     markeredgecolor=color, markerfacecolor=color if filled else "white",
                     zorder=3)
             # Keep direct labels within the 0--100% plotting region.
-            high = value >= 0.80
+            high = value >= 0.80 or label_left
             ax.text(value + (-0.035 if high else 0.035), y, f"{value:.1%}",
-                    ha="right" if high else "left", va="center", fontsize=8.5,
+                    ha="right" if high else "left", va="center", fontsize=9,
                     bbox={"facecolor": "white", "edgecolor": "none", "pad": 0.1},
                     zorder=4)
 
@@ -169,12 +167,17 @@ def generate_vs_select(scores, baselines, path):
         left.set_ylim(len(selection) - 0.5, -1.0)
         left.axhline(1.5, color="#dddddd", linewidth=0.6)
         left.axhline(3.5, color="#dddddd", linewidth=0.6)
-        for index, key in enumerate(systems):
-            point(right, scores[(key, "generate")], index - 0.20, "o", charcoal, False)
-            point(right, scores[(key, "select")], index + 0.20, "s", blue)
-        right.set_yticks(range(len(systems)), [names[key] for key in systems])
-        right.set_ylim(len(systems) - 0.5, -0.7)
+        for index, key in enumerate(systems, start=2):
+            generate = scores[(key, "generate")]
+            # Put mid-range generation labels before their open circles, away
+            # from selection labels; near zero, retain room inside the axis.
+            point(right, generate, index, "o", charcoal, False, label_left=generate >= 0.20)
+            point(right, scores[(key, "select")], index, "s", blue)
+        right.tick_params(axis="y", labelleft=False)
+        right.text(0.5, 0.5, "LLMs only", ha="center", va="center",
+                   fontsize=9, color="#555555", style="italic")
         right.axhline(1.5, color="#dddddd", linewidth=0.6)
+        right.axhline(3.5, color="#dddddd", linewidth=0.6)
         for ax in (left, right):
             ax.set_xlim(0, 1)
             ax.set_xticks([0, 0.25, 0.5, 0.75, 1])
