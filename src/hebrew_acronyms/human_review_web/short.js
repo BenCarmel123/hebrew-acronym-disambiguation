@@ -95,7 +95,25 @@
     const recommendations=full&&summary.recommendations?.length?`<section class="card"><h3>המלצות לבדיקה ולהחלטה</h3><p class="small">לא שונה הניקוד הרשמי. תגית לצד פער אינה הוכחה לסיבת הפער; אלו הצעות לבדיקה ולא אימות עצמאי.</p>${summary.recommendations.map(r=>`<div class="recommendation">${typeof r==='string'?esc(r):`<h3>${esc(r.title||'הצעה לבדיקה')}</h3>${r.status?`<p class="small">${esc(r.status)}</p>`:''}<p><strong>כשל שהכלל עשוי לפתור:</strong> ${esc(r.possible_failure||'טרם פורט')}</p><p><strong>סיכון לקבלה שגויה:</strong> ${esc(r.false_acceptance_risk||'טרם פורט')}</p>${r.causal_limit?`<p class="small">${esc(r.causal_limit)}</p>`:''}${r.evidence?.length?`<p>מקרים לבדיקה:</p><ul>${r.evidence.map(e=>`<li><bdi>${esc(e.item_id)} / ${esc(e.answer_id)}</bdi> · ${esc(LABELS[e.label]||'טרם סומן')} · ציון שמור: ${esc(brief(e.auto_score))} · תגיות: ${esc(tagsText(e))}</li>`).join('')}</ul>`:'<p class="small">לא סומנו עדיין מקרים התומכים בכלל זה.</p>'}`}</div>`).join('')}${summary.next_step?`<p class="notice">${esc(summary.next_step)}</p>`:''}</section>`:'';
     return `${renderPartition(c)}${c.source_answers===undefined?`<div class="summary-counts"><div><strong>${c.reviewed_items??((c.complete_items||0)+(c.partial_items||0))}</strong> משפטים שנבדקו</div><div><strong>${c.complete_items||0}</strong> משפטים מלאים</div><div><strong>${c.partial_items||0}</strong> משפטים חלקיים</div><div><strong>${c.judged_answers||0}</strong> תשובות שסומנו מתוך ${c.total_answers||0}</div></div>`:''}<p class="small">${c.source_answers!==undefined?'״לא בטוח״ נשמר כשיפוט קיים בתור נפרד. סינון מכני אינו אישור אנושי.':'השלמה מתייחסת לשני שיפוטים בלבד, כולל ״לא בטוח״.'} תגיות והערות אינן חובה ואינן משלימות שיפוט חסר.</p><section class="card"><h3>תגיות שסומנו</h3><div class="tag-counts">${tagCounts}</div><p class="small">היעדר תגית פירושו ״לא סומן״. תגיות מוצגות גם כשאין פער בין השיפוט לניקוד.${c.source_answers!==undefined?' הספירה היא לפי מופעי תשובה; שיפוט יחיד שהוחל על מופעים זהים אינו כמה הכרעות עצמאיות.':''}</p></section>${sections.map(([key,title])=>`<section class="card"><h3>${title}</h3>${summary[key]?.length?summary[key].map(v=>renderCase(v,full)).join(''):'<p class="small">אין פריטים בסעיף זה.</p>'}</section>`).join('')}${full?`<section class="card"><h3>כל המקרים — כולל הסכמה בין השיפוט לניקוד</h3>${fullCasesTable(summary.cases||summary.all_cases||[])}</section>`:''}${full?renderFullComposition(summary.composition||summary.sample_composition):''}${rules}${recommendations}<section class="card"><h3>${c.source_answers!==undefined?'משפטים עם תשובות שממתינות לבדיקה':'משפטים שלא הושלמו'}</h3><p>${summary.incomplete_ids?.length?summary.incomplete_ids.map(esc).join(' · '):c.source_answers!==undefined&&c.pending_answers===0?'אין תשובות שממתינות לבדיקה; שיפוטי לא בטוח נשארים בתור החזרה.':c.source_answers===undefined&&c.complete_items===c.total_items?'כל המשפטים במסלול הושלמו.':'אפשר להמשיך בפריטים שטרם הושלמו.'}</p></section><section class="card"><h3>גבולות הסיכום</h3>${(Array.isArray(summary.limitations)?summary.limitations:[summary.limitations||'בדיקה איכותנית מצומצמת עם ייחוס מוצג. אין להסיק ממנה שיעורים לכל המאגר; סגנון התשובה עשוי לרמוז לזהות.']).map(text=>`<p>${esc(text)}</p>`).join('')}</section>`;
   }
-  const api={shortcutIntent,nextActiveAnswer,canShowFull,isContinuation,queueIds,nextQueueId,editableAnswer,renderFilteredAnswer,renderPartition,judgmentPhaseText,TAGS,TAG_HELP,PHASES,tagsText,renderMaskedDetails,renderSummaryContent,fullCasesTable,LABELS,esc,labelOf,savedLabels,firstIncomplete,progressFor,highlightedSentence,renderMainAnswer,renderMain,renderCase};
+  function batchPairGroups(items){
+    const groups=new Map();
+    for(const item of items){
+      // Generation only: selection letters can denote different candidates.
+      const key=item.task_label==='יצירה'?JSON.stringify([item.acronym,item.gold,item.answers[0].text]):item.id;
+      if(!groups.has(key))groups.set(key,[]);
+      groups.get(key).push(item);
+    }
+    return [...groups.values()];
+  }
+  function renderBatchTable(items,labels){
+    let rowNumber=0;
+    return '<table class="review-table"><thead><tr><th># / קיצור</th><th>המשפט המלא</th><th>ייחוס</th><th>תשובת המערכת המלאה</th><th>הכרעה מוצעת</th></tr></thead>'+batchPairGroups(items).map(group=>'<tbody>'+group.map((item,index)=>{
+      rowNumber++;
+      const shared=index===0?`<td rowspan="${group.length}" dir="auto">${esc(item.gold)}</td><td rowspan="${group.length}"><div dir="auto">${esc(item.answers[0].text)}</div>${group.length>1?`<p class="small">אותו צמד ב־${group.length} משפטים. סרוק כל הקשר לפני אישור.</p><div class="pair-actions">${Object.entries(LABELS).map(([value,label])=>`<button type="button" data-pair-label="${value}">${esc(label)} בכולם</button>`).join('')}</div><p class="small">אפשר לשנות חריג בכל שורה. הכפתורים משנים טיוטה בלבד.</p>`:''}</td>`:'';
+      return `<tr><td>${rowNumber}<br><strong>${esc(item.acronym)}</strong><br><small>${esc(item.task_label)} · ${item.answers[0].occurrence_count} תשובות</small></td><td dir="auto">${esc(item.sentence)}</td>${shared}<td><select data-batch-item="${esc(item.id)}" aria-label="הכרעה בשורה ${rowNumber}">${Object.entries({...LABELS,'':'לא קראתי — דילוג'}).map(([value,label])=>`<option value="${value}" ${value===labels[item.id]?'selected':''}>${label}</option>`).join('')}</select></td></tr>`;
+    }).join('')+'</tbody>').join('')+'</table>';
+  }
+  const api={batchPairGroups,renderBatchTable,shortcutIntent,nextActiveAnswer,canShowFull,isContinuation,queueIds,nextQueueId,editableAnswer,renderFilteredAnswer,renderPartition,judgmentPhaseText,TAGS,TAG_HELP,PHASES,tagsText,renderMaskedDetails,renderSummaryContent,fullCasesTable,LABELS,esc,labelOf,savedLabels,firstIncomplete,progressFor,highlightedSentence,renderMainAnswer,renderMain,renderCase};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   root.ShortReview=api;
   if(typeof document==='undefined')return;
@@ -202,11 +220,19 @@
     if(!ids.length){batchItems=[];$('batchTable').innerHTML='<p>אין שורות נוספות בתור הזה. שורות שדילגת עליהן נשארות ללא תיוג; בחירה חוזרת בתור מציגה אותן.</p>';$('batchConfirm').disabled=true;$('batchSkip').disabled=true;updateProgress();showScreen('reviewScreen');return;}
     const result=restored||await request('/api/short/batch-open',{revision:state.revision,view,item_ids:ids});
     state=result.state;batchItems=result.items;batchId=result.batch_id;
-    $('batchTable').innerHTML='<table class="review-table"><thead><tr><th># / קיצור</th><th>המשפט המלא</th><th>ייחוס</th><th>תשובת המערכת המלאה</th><th>הכרעה מוצעת</th></tr></thead><tbody>'+batchItems.map((item,index)=>{
-      const existing=restored?.draft?restored.draft.labels[item.id]:(Object.values(state.records[item.id]?.judgments||{})[0]?.label||'not_fits');
-      return `<tr><td>${index+1}<br><strong>${esc(item.acronym)}</strong><br><small>${esc(item.task_label)} · ${item.answers[0].occurrence_count} תשובות</small></td><td dir="auto">${esc(item.sentence)}</td><td dir="auto">${esc(item.gold)}</td><td dir="auto">${esc(item.answers[0].text)}</td><td><select data-batch-item="${esc(item.id)}" aria-label="הכרעה בשורה ${index+1}">${Object.entries({...LABELS,'':'לא קראתי — דילוג'}).map(([value,label])=>`<option value="${value}" ${value===existing?'selected':''}>${label}</option>`).join('')}</select></td></tr>`;
-    }).join('')+'</tbody></table>';
-    $('batchTable').querySelectorAll('select').forEach(select=>select.onchange=()=>{batchDirty=true;draftEdits.add(select.dataset.batchItem);select.closest('tr').classList.add('modified');cacheDraft();status('שומר טיוטה בלבד — אין כאן אישור שיפוטים');run(saveBatchDraft,false);});
+    const labels=Object.fromEntries(batchItems.map(item=>[item.id,restored?.draft?restored.draft.labels[item.id]:(Object.values(state.records[item.id]?.judgments||{})[0]?.label||'not_fits')]));
+    $('batchTable').innerHTML=renderBatchTable(batchItems,labels);
+    function changed(selects){
+      batchDirty=true;
+      for(const select of selects){draftEdits.add(select.dataset.batchItem);select.closest('tr').classList.add('modified');}
+      cacheDraft();status('שומר טיוטה בלבד — אין כאן אישור שיפוטים');run(saveBatchDraft,false);
+    }
+    $('batchTable').querySelectorAll('select').forEach(select=>select.onchange=()=>changed([select]));
+    $('batchTable').querySelectorAll('[data-pair-label]').forEach(button=>button.onclick=()=>{
+      const selects=[...button.closest('tbody').querySelectorAll('select[data-batch-item]')];
+      for(const select of selects)select.value=button.dataset.pairLabel;
+      changed(selects);
+    });
     $('batchTable').inert=Boolean(restored?.read_only);$('batchConfirm').disabled=Boolean(restored?.read_only);$('batchSkip').disabled=Boolean(restored?.read_only);$('batchConfirm').textContent=`קראתי — אישור עד ${batchItems.length} שורות והמשך`;
     updateProgress();showScreen('reviewScreen');updateDraftChoices();status(restored?'טיוטה שוחזרה — אינה שיפוט מאושר'+(restored.read_only?' · הזמן הסתיים: עיון בלבד':''):`${batchItems.length} שורות מוצגות · ברירות המחדל טרם אושרו ואין להן שיפוט אנושי`);
   }

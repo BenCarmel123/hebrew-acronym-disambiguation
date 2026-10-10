@@ -312,3 +312,19 @@ test('historical reuse is a separate partition, never a new judgment',()=>{
   assert.match(html,/הכרעות היסטוריות שאושרו לשימוש חוזר/);
   assert.match(html,/סכום הקבוצות הראשיות<\/th><td>10<\/td>/);
 });
+
+
+test('identical generation pairs share display but retain every context and judgment',()=>{
+  const item=(id,sentence,raw='same',gold='reference',acronym='AC')=>({id,sentence,gold,acronym,task_label:'יצירה',answers:[{id:'a-'+id,text:raw,occurrence_count:1}]});
+  const items=[item('one','context one'),item('different','context two','other'),item('three','context three'),item('four','context four','same','different reference'),item('five','context five','same','reference','OTHER')];
+  const before=JSON.stringify(items);
+  assert.deepEqual(ui.batchPairGroups(items).map(g=>g.map(i=>i.id)),[['one','three'],['different'],['four'],['five']]);
+  const html=ui.renderBatchTable(items,{one:'fits',different:'not_fits',three:'unsure',four:'',five:'not_fits'});
+  assert.equal((html.match(/data-batch-item=/g)||[]).length,5);
+  assert.match(html,/rowspan="2"/);
+  assert.match(html,/context one/);assert.match(html,/context three/);
+  assert.match(html,/אפשר לשנות חריג/);
+  assert.equal(JSON.stringify(items),before);
+  const selection=items.slice(0,1).concat([{...items[0],id:'another'}]).map(i=>({...i,task_label:'בחירה'}));
+  assert.equal(ui.batchPairGroups(selection).length,2);
+});
