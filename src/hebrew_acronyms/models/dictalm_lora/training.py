@@ -17,6 +17,7 @@ import random
 import time
 
 import torch
+from tqdm.auto import tqdm
 
 from hebrew_acronyms.data_processing.common.csv_io import load_rows
 from hebrew_acronyms.models.common.pairs import input_identity
@@ -168,7 +169,8 @@ def train(model, tok, train_rows, dev_rows, output_dir: str | Path,
         batches = [order[i:i + config.batch_size] for i in range(0, len(order), config.batch_size)]
         running, n_seen = 0.0, 0
         optimizer.zero_grad(set_to_none=True)
-        for step, indices in enumerate(batches, start=1):
+        progress = tqdm(batches, desc=f"epoch {epoch}/{config.epochs}", unit="batch")
+        for step, indices in enumerate(progress, start=1):
             loss, n_tokens = _batch_loss(model, tok, [train_encoded[i] for i in indices], device)
             (loss / config.grad_accum).backward()
             running += loss.item() * n_tokens
@@ -176,8 +178,7 @@ def train(model, tok, train_rows, dev_rows, output_dir: str | Path,
             if step % config.grad_accum == 0 or step == len(batches):
                 optimizer.step()
                 optimizer.zero_grad(set_to_none=True)
-            if step % 50 == 0:
-                print(f"  step {step}/{len(batches)}  train_loss={running / n_seen:.4f}")
+            progress.set_postfix(train_loss=f"{running / n_seen:.4f}")
         train_loss = running / n_seen
         dev_loss = evaluate_loss(model, tok, dev_encoded, config)
         print(f"epoch {epoch}/{config.epochs}  train_loss={train_loss:.4f}  "
