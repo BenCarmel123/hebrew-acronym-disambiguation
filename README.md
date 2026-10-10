@@ -53,8 +53,15 @@ neither API accounts nor weights. The optional development demonstration is disa
 and contributes no test observations.
 
 The test analysis preserves separate collection runs and full 381-item denominators,
-including technical failures. Gemini has a development pilot but no test result in
-this release. Human semantic review is pending; automatic scores do not replace it.
+including technical failures. Gemini now includes all 381 items in both tasks:
+357/381 selection and 207/381 generation under the existing automatic rules,
+with two truncated generation responses retained. The closed human-review exports
+cover **638 groups / 741 of 4,953 responses**: 707 new judgments and 34 explicitly
+approved historical reuses. Human coverage remains partial and diagnostically
+prioritized; automatic scores do not replace it. Four contexts with conflicting
+scores and judgments remain marked for clarification, without relabeling.
+[Reusable tables and figures](results/submission-20261010/README.md) include full
+response bindings, technical coverage and human-review gaps.
 Earlier measurements under [results/](results/test_results.md) remain historical
 sources and are not silently pooled with the identified collection.
 

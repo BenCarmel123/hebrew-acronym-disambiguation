@@ -1,0 +1,14 @@
+system,task,n_items,n_completed,status_counts,accuracy,score,n_valid,n_correct,run_id
+anthropic,generate,381,380,"{""response_received"": 380, ""incomplete_response"": 1}",0.4330708661417323,historical_quote_normalized_gold_substring,184,165,3248737a597b435181227711caea89d0
+anthropic,select,381,379,"{""response_received"": 379, ""incomplete_response"": 2}",0.889763779527559,strict_candidate_label_v1,379,339,3248737a597b435181227711caea89d0
+openai,generate,381,380,"{""response_received"": 380, ""incomplete_response"": 1}",0.33858267716535434,historical_quote_normalized_gold_substring,139,129,358e1fe65fa048c191eda08c078fd4cd
+openai,select,381,381,"{""response_received"": 381}",0.8320209973753281,strict_candidate_label_v1,381,317,358e1fe65fa048c191eda08c078fd4cd
+qwen,generate,381,380,"{""response_received"": 380, ""incomplete_response"": 1}",0.08136482939632546,historical_quote_normalized_gold_substring,31,31,cd1331b460364d4ebc341194c07dc1fe
+qwen,select,381,381,"{""response_received"": 381}",0.5853018372703412,strict_candidate_label_v1,381,223,cd1331b460364d4ebc341194c07dc1fe
+qwen14,generate,381,371,"{""response_received"": 371, ""incomplete_response"": 9, ""service_error"": 1}",0.11548556430446194,historical_quote_normalized_gold_substring,47,44,f23e084aace743e8a61a1a71dfbb33d4
+qwen14,select,381,381,"{""response_received"": 381}",0.6981627296587927,strict_candidate_label_v1,374,266,f23e084aace743e8a61a1a71dfbb33d4
+xai,generate,381,381,"{""response_received"": 381}",0.48293963254593175,historical_quote_normalized_gold_substring,189,184,885c4382ca904f0baca692ae9cc37ac9
+xai,select,381,381,"{""response_received"": 381}",0.9212598425196851,strict_candidate_label_v1,380,351,885c4382ca904f0baca692ae9cc37ac9
+gemini,generate,381,379,"{""response_received"": 379, ""incomplete_response"": 2}",0.5433070866141733,historical_quote_normalized_gold_substring,214,207,6658d323657f4df3aced950bfe6abb07
+gemini,select,381,381,"{""response_received"": 381}",0.937007874015748,strict_candidate_label_v1,381,357,6658d323657f4df3aced950bfe6abb07
+dictabert,select,381,381,"{""ok"": 381}",0.7165354330708661,exact_candidate_match,381,273,dictabert-test-20261009-f49c3b5

@@ -1,0 +1,5 @@
+baseline,accuracy,n_items
+random,0.2351,381
+most_frequent,0.3701,381
+most_mined,0.4803,381
+oracle,1.0,381

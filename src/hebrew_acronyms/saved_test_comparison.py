@@ -74,7 +74,51 @@ def scored_baselines(baselines):
                         "collected_n_items": baselines["n_items"]}
 
 
-def compare_saved_tests(session_sources, expected_test_runs, *, diagnostic_sources=(), continuation_sources=()):
+def _local_gemini_diagnostic(directory, journal_hash, receipt_hash):
+    """Validate the two-call local diagnostic; it is not a test or pilot run."""
+    directory = Path(directory)
+    journal = (directory / "diagnostic.jsonl").read_bytes()
+    receipt_bytes = (directory / "receipt.json").read_bytes()
+    if (hashlib.sha256(journal).hexdigest() != journal_hash
+            or hashlib.sha256(receipt_bytes).hexdigest() != receipt_hash):
+        raise ValueError("Local diagnostic evidence hash mismatch")
+    receipt = json.loads(receipt_bytes)
+    events = [json.loads(line) for line in journal.splitlines()]
+    if (len(events) != 5 or [e["event"] for e in events] !=
+            ["diagnostic_identity", "started", "finished", "started", "finished"]
+            or receipt["hashes"]["diagnostic.jsonl"] != journal_hash
+            or receipt["calls"] != 2 or receipt["diagnostic_only"] is not True
+            or receipt["uncertain_cost_reserve_usd"] != 0):
+        raise ValueError("Unsupported local diagnostic evidence")
+    identity = events[0]
+    if (identity["source_revision"] != receipt["source_revision"]
+            or identity["prior_accounted_ils"] != receipt["prior_accounted_ils"]
+            or identity["max_calls"] != 2 or identity["retries"] != 0
+            or hashlib.sha256(identity["prompt"].encode()).hexdigest() != identity["prompt_sha256"]
+            or hashlib.sha256(json.dumps(identity["payload"], sort_keys=True).encode()).hexdigest()
+            != identity["payload_sha256"]):
+        raise ValueError("Local diagnostic identity mismatch")
+    for mode, start, finish in zip(("adapter", "direct_http"), events[1::2], events[2::2]):
+        result = finish["result"]
+        if (start["mode"] != mode or finish["mode"] != mode
+                or result["model_version"] != identity["model"]
+                or result["status"] != "response_received" or result["http_status"] != 200
+                or result["finish_reason"] != "STOP" or evaluation._usage(result, "gemini") is None
+                or not math.isfinite(finish["accounted_usd"]) or finish["accounted_usd"] < 0
+                or finish["accounted_usd"] != finish["estimated_usage_usd"]):
+            raise ValueError("Unsupported local diagnostic result")
+    usd = sum(e["accounted_usd"] for e in events[2::2])
+    increment = usd * identity["ils_per_usd_allowance"]
+    if (not math.isclose(usd, receipt["estimated_usd"], rel_tol=0, abs_tol=1e-12)
+            or not math.isclose(increment, receipt["estimated_ils_allowance"], rel_tol=0, abs_tol=1e-12)
+            or not math.isclose(receipt["prior_accounted_ils"] + increment,
+                                receipt["updated_accounted_ils"], rel_tol=0, abs_tol=1e-9)):
+        raise ValueError("Local diagnostic accounting mismatch")
+    return directory, identity, events[2::2], increment
+
+
+def compare_saved_tests(session_sources, expected_test_runs, *, diagnostic_sources=(), continuation_sources=(),
+                        local_gemini_diagnostics=()):
     """Read chronological (directory, session hash) pairs; never call models or write.
 
     expected_test_runs maps each selected system to its original full-test run ID.
@@ -85,6 +129,12 @@ def compare_saved_tests(session_sources, expected_test_runs, *, diagnostic_sourc
     """
     if not session_sources or not expected_test_runs:
         raise ValueError("Provide identified sessions and expected test run IDs")
+    local_diagnostics, local_hashes = [], set()
+    for directory, journal_hash, receipt_hash in local_gemini_diagnostics:
+        if journal_hash in local_hashes:
+            raise ValueError("Duplicate local diagnostic")
+        local_hashes.add(journal_hash)
+        local_diagnostics.append(_local_gemini_diagnostic(directory, journal_hash, receipt_hash))
     # One separately journalled xAI HTTP diagnostic was made between sessions.
     diagnostics = []
     seen_diagnostics = set()
@@ -270,8 +320,35 @@ def compare_saved_tests(session_sources, expected_test_runs, *, diagnostic_sourc
             total += reserve
             uncertain += reserve
             diagnostics.remove((directory, start))
+        # This diagnostic occurred after the earlier session and is already in
+        # the next session's prior. Insert its increment at that boundary once.
+        for diagnostic in list(local_diagnostics):
+            directory, diagnostic_identity, finishes, increment = diagnostic
+            if not math.isclose(diagnostic_identity["prior_accounted_ils"], total, rel_tol=0, abs_tol=1e-9):
+                continue
+            source = next((json.loads((r / "session.json").read_text())["identity"]
+                           for r in original_roots.values()
+                           if json.loads((r / "session.json").read_text())["identity"]["code_revision"]
+                           == diagnostic_identity["source_revision"]), None)
+            if source is None or source["ils_per_usd"] != diagnostic_identity["ils_per_usd_allowance"]:
+                raise ValueError("Local diagnostic source revision or conversion mismatch")
+            for finish in finishes:
+                computed = evaluation._attempt_cost(
+                    {"rates_usd_per_million": {"gemini": source["rates"]["gemini"]},
+                     "reserve_per_call_usd": {"gemini": source["reserves"]["gemini"]}},
+                    {"name": "gemini", "provider": "gemini"}, finish["result"])
+                if not math.isclose(computed, finish["accounted_usd"], rel_tol=0, abs_tol=1e-12):
+                    raise ValueError("Local diagnostic token cost differs from collection rates")
+            costs.append({"session": directory.name, "prior_ils": total,
+                          "new_token_cost_ils": increment, "new_uncertain_ils": 0.0,
+                          "cumulative_ils": total + increment})
+            measured += increment
+            total += increment
+            local_diagnostics.remove(diagnostic)
     if diagnostics:
         raise ValueError("Diagnostic source session not found")
+    if local_diagnostics:
+        raise ValueError("Local diagnostic prior does not match cumulative expenditure")
     if found_tests != expected_test_runs:
         raise ValueError("Missing expected full-test run")
     if not baseline_paths:
@@ -295,7 +372,8 @@ def compare_saved_tests(session_sources, expected_test_runs, *, diagnostic_sourc
             "n_scored_items": SCORED_ITEMS,
             "cost": {"initial_prior_allocation_ils": initial_prior, "token_cost_ils": measured,
                      "uncertain_attempt_allowances_ils": uncertain, "total_accounted_ils": total},
-            "unique_attempts": len(seen_attempts), "diagnostic_requests": len(seen_diagnostics), "test_runs": found_tests}
+            "unique_attempts": len(seen_attempts),
+            "diagnostic_requests": len(seen_diagnostics) + 2 * len(local_hashes), "test_runs": found_tests}
 
 
 def result_table(rows, columns):

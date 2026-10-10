@@ -15,9 +15,10 @@ identify collection provenance and are not required analysis paths.
   loading evidence and the comparison with the separately preserved historical CSV.
 - `encoder-test-inputs-20261009/` contains the one-to-one derived test input and its
   explicitly automatic target-position policy. These spans are not human labels.
-- `human-review-*/` contains immutable answer queues. Each answer binds the original
-  item, task, run and response hash. Missing annotation files mean no recorded new
-  judgments; automatically correct answers are not human-approved answers.
+- `human-review-*/` contains immutable answer queues and the two closed review
+  exports. Each answer binds the original item, task, run and response hash.
+  [Final review evidence](human-review-final-20261010/README.md) distinguishes new
+  judgments, explicitly approved historical reuse and unreviewed answers.
 - `local-runs/dictalm-20261010/` holds the untrained DictaLM 2.0 instruct (Q4_K_M)
   run through Ollama with seed 42, collected on all 395 items before the 14
   document-overlap items were removed, with its journals and manifests. The two
@@ -33,7 +34,16 @@ The main notebook recomputes the unchanged task-specific automatic scores from
 these responses and retains every test item, failure and incomplete answer.
 Technical pilots are development evidence and are excluded from test scores.
 Historical results under the repository's `results/` directory remain distinct.
-Gemini has no test run in this release. Human review remains unfinished.
+Gemini collection is finished on 381 items in each task, with two truncated
+generation responses retained. Its 20-answer pilot is separate. The original
+collector status `incomplete` is preserved. The local two-call diagnostic is
+accounted once before the new session: 21.6620734 ILS carried prior plus
+1.465605 ILS new expenditure and allowances equals 23.1276784 ILS.
+These are usage-based estimates and uncertainty allowances, not invoices.
+The closed review windows cover 638 groups / 741 of 4,953 responses, including
+Gemini. Coverage is partial: 707 newly judged occurrences and 34 approved historical
+reuses. The original Gemini preparation bundle remains unchanged; the final review
+uses the actual focused-window source with its original hash and exact bindings.
 
 To repeat collection, use the identified collector revision in each manifest and
 [the collection guide](../docs/reproducible_evaluation.md). To obtain the authorized
