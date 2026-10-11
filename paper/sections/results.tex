@@ -2,6 +2,13 @@
 \label{sec:results}
 Figure~\ref{fig:generate-vs-select} and Table~\ref{tab:test-results} summarize the main comparison; Table~\ref{tab:dictalm-supplement} reports DictaLM separately.
 
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/generate_vs_select.pdf}
+\caption{Automatic scores on 381 items, including failures. (a) Candidate selection; encoders rank candidates without text-label decoding. Most mined (48.0\%) is an optimistic, non-held-out reference influenced by test-containing mining counts. (b) Six LLMs: generation uses normalized reference substring and selection uses strict label plus reference equality. Candidate access and metrics differ. Exact results: Table~\ref{tab:test-results}; DictaLM: Table~\ref{tab:dictalm-supplement}.}
+\label{fig:generate-vs-select}
+\end{figure*}
+
 \begin{table}[t]
 \centering\small
 \begin{tabular}{@{}lrr@{}}
@@ -24,25 +31,27 @@ Claude Haiku 5.5 & 43.3 & 89.0 \\
 Grok 4.7 & 48.3 & 92.1 \\
 \bottomrule
 \end{tabular}
-\caption{Automatic test scores (\%), all with denominator 381 including failures. Generation: normalized reference substring. LLM selection: strict candidate label and reference equality. Baselines and encoders: exact candidate match. Similarity uses a pretrained encoder without task adaptation; the ranker is task-trained. Columns have different metrics (Section~\ref{sec:eval}).}
+\caption{Automatic test scores (\%), all with denominator 381 including failures. Generation: normalized reference substring. LLM selection: strict candidate label and reference equality. Baselines and encoders: exact candidate match. Similarity uses a pretrained encoder without task adaptation; the ranker is task-trained. Most mined is an optimistic, non-held-out reference using test-influenced counts; oracle coverage follows review-time inventory additions. Columns have different metrics.}
 \label{tab:test-results}
 \end{table}
 
 \subsection{The task-trained encoder}
 \label{sec:res-encoder}
-The task-trained encoder's 71.7\% candidate-selection score is above the two tested local Qwen configurations and below the four API systems (Table~\ref{tab:test-results}). This makes it a competitive local option under these conditions. The gap from Qwen 14B is seven items (1.8 percentage points); without repeated runs or an uncertainty estimate it does not establish a stable advantage.
+The encoder is competitive with the tested local Qwen configurations and close to Qwen 14B, while the four API systems score higher. Its recorded selection count is 273/381 versus Qwen 14B's 266/381. A separate post-hoc sensitivity check substitutes contextual references for three known errors (Section~\ref{sec:limitations}): strict selection then gives 274 versus 269. The primary table retains the historical labels. Neither this small gap nor the single-run design establishes stable superiority.
 
 The pretrained similarity baseline scores 245/381 (64.3\%), versus 273/381 for the ranker, a difference of 28 items (7.3 points). This is not an ablation of training: separate context/candidate vectors and cosine similarity are replaced by joint encoding and a learned scoring head. The results do not establish that fine-tuning matters more than size or that Hebrew pretraining caused an advantage. Likewise, the Qwen 7B and 14B runs compare two model configurations, not a controlled intervention on size.
 
-Candidate ranking is useful when an expansion inventory is available. Like AcroBERT \citep{chen2023gladis}, the ranker scores context--candidate pairs rather than learning a separate output class for every acronym sense. It can therefore score candidates for forms absent from the documented task-training file. Latency and memory were not measured, and the ranker evaluates each candidate separately.
+Like AcroBERT \citep{chen2023gladis}, the ranker scores context--candidate pairs, permitting candidates for forms absent from task training. It evaluates each candidate separately; latency and memory were not measured.
 
 \subsection{Generation versus selection}
 \label{sec:res-formats}
 Selection scores exceed generation scores for each of the six LLMs under the task-specific rules (Figure~\ref{fig:generate-vs-select}b).
 
-The inventory contains the reference for every test item (the oracle is 100\%). Generation receives no candidates and is checked by string inclusion; LLM selection receives candidates and must return a valid label. The gap therefore does not isolate the gain from candidates or semantic correctness under a common metric.
+The inventory contains every stored test reference (100\% oracle coverage), partly through review-time additions that included test-related review. Generation receives no candidates and is checked by string inclusion; LLM selection receives candidates and must return a valid label. The gap therefore does not isolate the gain from candidates or semantic correctness under a common metric.
 
-The saved review documents 338 automatically rejected generation responses labeled \texttt{fits} across the six systems; the breakdown is in the accompanying analysis notebook (Section~\ref{sec:artifacts}). For example, for \heb{י״ח} in item \texttt{kn4-0499}, Grok generated \heb{שמונה עשר (18)} (eighteen), while the reference is \heb{שמונה עשרה (גימטריה)} (eighteen, gematria); the string rule rejects it, but its stored label is \texttt{fits}. These are responses, not unique items or a representative sample: they illustrate disagreement with the string rule but do not quantify how much of the generation--selection gap it explains (coverage in Section~\ref{sec:eval}).
+A post-hoc diagnostic finds parentheses in 67/381 references. Across six LLMs these 67 shared items yield 1/402 automatic generation matches versus 339/402 selection matches: 402 response occurrences, not independent items. References include meta-descriptions and numerical glosses. For \heb{י״ח} in \texttt{kn4-0499}, Grok generated \heb{שמונה עשר (18)} (eighteen), while the reference is \heb{שמונה עשרה (גימטריה)} (eighteen, gematria). The string rule rejects it; review marks it \texttt{fits}. Parentheses do not make matching impossible or define semantic invalidity, but the observed mismatch illustrates sensitivity to reference wording. On the remaining 314 items the automatic direction persists for all six systems (Gemini: 207 generation versus 294 selection matches). This post-hoc subset does not replace the full-cohort comparison.
+
+The selective review records 338 automatically rejected generation responses labeled \texttt{fits}. These are diagnostic response occurrences judged against displayed references, not global semantic accuracy or a common human ranking. The established selection--generation ordering is limited to automatic metrics.
 
 Selection returns an explicit inventory entry, while generation can express valid answers outside the list or in a different form. This practical distinction does not establish semantic superiority. In word-sense disambiguation, \citet{meconi2025large} also find strong free-form explanations under expert evaluation. In clinical abbreviation expansion, \citet{agrawal2022large} map generated text back to candidates before scoring. Their scores are not directly comparable to ours; comparing answer correctness requires a common semantic evaluation.
 
@@ -130,4 +139,8 @@ Exact candidate match: no. \\
 
 \subsection{Conclusions}
 \label{sec:conclusions}
-We draw two conclusions. First, a small task-trained Hebrew encoder is competitive with the tested local Qwen configurations at candidate selection, while the API models score higher. Candidate ranking is thus a practical option to investigate when local inference and a known inventory are desired, although the present comparison does not isolate the contribution of training or size. Second, selection scores exceed generation scores for the six main LLMs under the evaluated configurations. This supports making candidate access an explicit design choice, while keeping the different metrics in view. Together, the findings place the choice of model alongside the choice of answer space: resolving an acronym from known alternatives and producing its expansion freely call for different system designs and different evidence of success.
+Our framework compares ways of answering the same contextual acronym question, rather than treating model choice alone as the experimental variable. A task-trained Hebrew encoder is competitive with the tested local Qwen configurations when candidates are available; API models score higher under the recorded rules. This supports considering candidate ranking when an inventory is available, but provides no measured efficiency advantage or causal attribution to training, size or Hebrew specialization.
+
+Selection exceeds generation under the automatic metrics, yet candidate access and reference design shape what counts as success. An inventory can expose a conventional interpretation whose wording a free answer would not reproduce. The selective reference-relative review cannot supply a common semantic evaluation, and known reference errors make close rankings fragile. A next evaluation should therefore validate references independently and judge generated and selected answers under the same semantic criterion.
+
+Two focused future tests could clarify these issues. Newly coined acronym--meaning mappings in informative contexts could probe contextual interpretation versus familiar associations; coinage alone cannot prove absence from pretraining, and arbitrary mappings require contextual evidence. A separate test could vary candidate-set size, plausible hard distractors and option order while retaining the correct answer and a common semantic score. Our lists already include wrong candidates and a random reference. Since chance is $1/k$ for an item with $k$ candidates, changing $k$ changes both chance and difficulty; adding distractors alone would not isolate a statistical effect.

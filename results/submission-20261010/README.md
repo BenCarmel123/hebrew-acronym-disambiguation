@@ -19,9 +19,12 @@ or API calls. Ten exported files are tracked:
 
 The notebook also produces untracked coverage, event/recheck, agreement, cost,
 pilot and similarity-provenance exports, plus figures and clarification views.
-All 23 retained CSV/JSON analysis exports are checked during reproduction; the
-agent-assessment export has been retired. Execution receipts are saved outside
-Git and identify their actual notebook and package sources.
+There are 23 generated CSV/JSON analysis exports, of which 10 are tracked.
+Historical audits compared all 23 against external accepted outputs; the runner
+itself executes the notebook and records provenance but does not automatically
+compare exports. New acceptance requires a separate byte-for-byte comparison of
+all 23. The agent-assessment export has been retired. Execution receipts are
+saved outside Git and identify their actual notebook and package sources.
 
 The primary review remains 741/4,953 responses: 707 new judgments and 34 approved
 reuses. It includes 338 automatic-negative / `fits` occurrences; nine
@@ -29,6 +32,10 @@ positive / `not_fits` occurrences across four items remain unresolved. Ben's 381
 DictaLM labels are a separate layer in
 [the consolidated table](../../saved-results/human-review/review.csv), with
 [historical identities and limitations](../../saved-results/README.md#ben-dictalm-annotations).
-These selective reviews do not establish overall human accuracy.
+The empty `human_judgment` column in `dictalm_responses_381.csv` is retained
+for schema/byte preservation; DictaLM judgments live in the consolidated
+`review.csv` linked above, not in that column. `fits` in the primary review means
+matching the displayed reference. These selective reviews do not establish
+overall contextual accuracy or cross-system human rankings.
 
 For execution, use the [offline reproduction guide](../../docs/reproducible_evaluation.md#reproduce-the-saved-test-analysis).

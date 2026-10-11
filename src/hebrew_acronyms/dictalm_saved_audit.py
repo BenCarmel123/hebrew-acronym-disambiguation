@@ -115,7 +115,7 @@ def load_ben_dictalm_tags(saved_root, generation_records):
     """
     saved = Path(saved_root)
     directory = saved / SOURCE / 'dictalm/full-test'
-    inventory = json.loads((saved / 'files.json').read_text())['files']
+    inventory = json.loads((saved / 'files.json').read_text(encoding="utf-8"))['files']
     for path in (directory / 'manifest.json', *sorted(directory.glob('attempts*.jsonl'))):
         relative = str(path.relative_to(saved))
         _verified_bytes(saved, relative, inventory[relative])
@@ -142,10 +142,10 @@ def audit_saved_dictalm(saved_root, reference_manifest):
     cause of any error. No sources or historical judgments are written here.
     """
     root = Path(saved_root) / SOURCE
-    session = json.loads((root / 'session.json').read_text())
+    session = json.loads((root / 'session.json').read_text(encoding="utf-8"))
     if evaluation._hash(session['identity']) != session['identity_sha256']:
         raise ValueError('DictaLM session identity mismatch')
-    reference = json.loads(Path(reference_manifest).read_text())
+    reference = json.loads(Path(reference_manifest).read_text(encoding="utf-8"))
     if (session['identity']['code_sha256']['test_evaluation.py'] not in COMPATIBLE_COLLECTOR_SHA256
             or hashlib.sha256(Path(evaluation.__file__).read_bytes()).hexdigest() not in COMPATIBLE_COLLECTOR_SHA256):
         raise ValueError('Unreviewed DictaLM collector')
@@ -183,7 +183,7 @@ def audit_saved_dictalm(saved_root, reference_manifest):
         raise ValueError('Unexpected DictaLM test run')
     if _test_signature(manifest['identity']) != _test_signature(reference['identity']):
         raise ValueError('DictaLM scored inputs, prompts or orders differ')
-    pilot_reference = json.loads((Path(reference_manifest).parent.parent / 'dev-pilot/manifest.json').read_text())['identity']
+    pilot_reference = json.loads((Path(reference_manifest).parent.parent / 'dev-pilot/manifest.json').read_text(encoding="utf-8"))['identity']
     pilot_identity = runs['dev-pilot'][0]['identity']
     for field in ('rows', 'protocol', 'seed', 'target_policy', 'target_occurrences'):
         if pilot_identity[field] != pilot_reference[field]:

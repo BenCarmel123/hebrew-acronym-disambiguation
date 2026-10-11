@@ -17,7 +17,7 @@ def load_encoder_test(directory, test_path, *, expected_run_id, expected_identit
     current 381-item test file.
     """
     root = Path(directory)
-    manifest = json.loads((root / 'manifest.json').read_text())
+    manifest = json.loads((root / 'manifest.json').read_text(encoding="utf-8"))
     identity = manifest['identity']
     if (manifest['run_id'] != expected_run_id or manifest['identity_sha256'] != expected_identity
             or _hash(identity) != expected_identity):
@@ -26,7 +26,7 @@ def load_encoder_test(directory, test_path, *, expected_run_id, expected_identit
     if hashlib.sha256(raw).hexdigest() != expected_predictions_sha256:
         raise ValueError('Encoder predictions differ from the identified saved artifact')
     records = [json.loads(line) for line in raw.decode().splitlines()]
-    rows = json.loads((root / 'inputs.json').read_text())
+    rows = json.loads((root / 'inputs.json').read_text(encoding="utf-8"))
     if (len(records) != len(rows)
             or [r['item_id'] for r in rows] != identity['item_ids']
             or [r['item_id'] for r in records] != identity['item_ids']):
@@ -50,7 +50,7 @@ def load_encoder_test(directory, test_path, *, expected_run_id, expected_identit
         if record['correct'] is not recomputed:
             raise ValueError('Encoder saved score disagrees with exact candidate equality')
         correct += recomputed and row['item_id'] in scored
-    reconstruction = json.loads((root / 'checkpoint-reconstruction.json').read_text())
+    reconstruction = json.loads((root / 'checkpoint-reconstruction.json').read_text(encoding="utf-8"))
     if reconstruction['weights_sha256'] != identity['weights_sha256']:
         raise ValueError('Encoder checkpoint provenance mismatch')
     metric = {'system': 'dictabert', 'task': 'select', 'run_id': expected_run_id,

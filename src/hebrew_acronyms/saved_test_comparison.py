@@ -173,7 +173,7 @@ def compare_saved_tests(session_sources, expected_test_runs, *, diagnostic_sourc
     for index, (root, (_, expected_session)) in enumerate(zip(roots, all_sources)):
         continuation = index >= len(session_sources)
         old_run_ids = {}
-        session = json.loads((root / "session.json").read_text())
+        session = json.loads((root / "session.json").read_text(encoding="utf-8"))
         identity = session["identity"]
         if session["identity_sha256"] != expected_session or evaluation._hash(identity) != expected_session:
             raise ValueError("Session identity mismatch")
@@ -188,12 +188,12 @@ def compare_saved_tests(session_sources, expected_test_runs, *, diagnostic_sourc
                 if not new.is_file() or new.read_bytes() != old.read_bytes():
                     raise ValueError("Continuation changed previously counted evidence")
                 if old.name == "manifest.json":
-                    old_run_ids[json.loads(old.read_text())["run_id"]] = old.relative_to(original)
+                    old_run_ids[json.loads(old.read_text(encoding="utf-8"))["run_id"]] = old.relative_to(original)
                     if ({q.name for q in old.parent.glob("attempts*.jsonl")}
                             != {q.name for q in new.parent.glob("attempts*.jsonl")}):
                         raise ValueError("Continuation changed previously counted journals")
             new_manifests = [p for p in root.glob("*/*/manifest.json")
-                             if json.loads(p.read_text())["run_id"] not in old_run_ids]
+                             if json.loads(p.read_text(encoding="utf-8"))["run_id"] not in old_run_ids]
             if not new_manifests:
                 raise ValueError("Continuation contains no new run")
         elif expected_session in seen_sessions:
@@ -326,9 +326,9 @@ def compare_saved_tests(session_sources, expected_test_runs, *, diagnostic_sourc
             directory, diagnostic_identity, finishes, increment = diagnostic
             if not math.isclose(diagnostic_identity["prior_accounted_ils"], total, rel_tol=0, abs_tol=1e-9):
                 continue
-            source = next((json.loads((r / "session.json").read_text())["identity"]
+            source = next((json.loads((r / "session.json").read_text(encoding="utf-8"))["identity"]
                            for r in original_roots.values()
-                           if json.loads((r / "session.json").read_text())["identity"]["code_revision"]
+                           if json.loads((r / "session.json").read_text(encoding="utf-8"))["identity"]["code_revision"]
                            == diagnostic_identity["source_revision"]), None)
             if source is None or source["ils_per_usd"] != diagnostic_identity["ils_per_usd_allowance"]:
                 raise ValueError("Local diagnostic source revision or conversion mismatch")
@@ -353,7 +353,7 @@ def compare_saved_tests(session_sources, expected_test_runs, *, diagnostic_sourc
         raise ValueError("Missing expected full-test run")
     if not baseline_paths:
         raise ValueError("Saved test baselines are required")
-    baselines = json.loads(baseline_paths[0].read_text())
+    baselines = json.loads(baseline_paths[0].read_text(encoding="utf-8"))
     rows = {r["item_id"]: r for r in signature["rows"]}
     details = baselines["details"]
     if (baselines["n_items"] != len(details)
@@ -363,7 +363,7 @@ def compare_saved_tests(session_sources, expected_test_runs, *, diagnostic_sourc
             or any(r["gold"] != rows[r["item_id"]]["gold_expansion"].strip() for r in details if r["item_id"] in rows)):
         raise ValueError("Baseline test cohort or provenance differs")
     for path in baseline_paths[1:]:
-        if json.loads(path.read_text()) != baselines:
+        if json.loads(path.read_text(encoding="utf-8")) != baselines:
             raise ValueError("Saved baseline results differ")
     baselines = scored_baselines(baselines)
     return {"sessions": sessions, "models": models, "metrics": metrics, "failures": failures,

@@ -47,7 +47,7 @@ def run_test_baselines(input_path, candidates_path, output_dir, *, code_revision
     directory.mkdir(parents=True, exist_ok=True)
     destination = directory / "baselines.json"
     if destination.exists():
-        if json.loads(destination.read_text()) != result:
+        if json.loads(destination.read_text(encoding="utf-8")) != result:
             raise ValueError("Existing baseline artifact differs; choose a new output directory")
         return result
     temporary = directory / ".baselines.tmp"
