@@ -36,7 +36,12 @@ def guard(event, args):
         if "weights" in path.parts or path.suffix in {".safetensors", ".pt", ".ckpt"} or (path.suffix in {".bin", ".pth"} and "site-packages" not in path.parts):
             raise RuntimeError("Model weights forbidden")
 sys.addaudithook(guard)
-probes = {}
+import hebrew_acronyms
+package_path = Path(hebrew_acronyms.__file__).resolve()
+portable_root = Path(os.environ["ANALYSIS_PORTABLE_ROOT"]).resolve()
+if not package_path.is_relative_to(portable_root / "src"):
+    raise AssertionError(f"Package is not installed from portable source: {package_path}")
+probes = {"package_path": str(package_path), "package_from_portable_source": True}
 with socket.socket() as sock:
     try:
         sock.connect(("127.0.0.1", 9))
@@ -102,7 +107,8 @@ def main():
                    MPLCONFIGDIR=str(run / 'matplotlib'), IPYTHONDIR=str(run / 'ipython'),
                    PYTHONDONTWRITEBYTECODE='1',
                    ANALYSIS_BLOCKED_ROOTS=json.dumps([str(p.resolve()) for p in args.blocked_root]),
-                   ANALYSIS_GUARD_RECEIPT=str(run / 'guard.json'))
+                   ANALYSIS_GUARD_RECEIPT=str(run / 'guard.json'), ANALYSIS_PORTABLE_ROOT=str(root))
+        client.on_cell_start = lambda cell, cell_index, **kwargs: print(f'Cell {cell_index + 1}/{len(nb.cells)} ({cell.cell_type})', flush=True)
         client.execute(env=env)
         probes = json.loads((run / 'guard.json').read_text())
     nbformat.validate(nb)

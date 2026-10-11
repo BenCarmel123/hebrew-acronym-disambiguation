@@ -6,6 +6,10 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
+
+from hebrew_acronyms.saved_human_review import load_review_table, REVIEW, PROVENANCE
+from hebrew_acronyms.test_evaluation import summarize_evaluation
 
 from hebrew_acronyms.dictalm_saved_audit import (
     BEN_TAGS_COMMIT, BEN_TAGS_FILE, BEN_TAGS_SHA256, RUN_ID, SOURCE,
@@ -22,10 +26,9 @@ class DictalmAuditTests(unittest.TestCase):
     def setUpClass(cls):
         cls.audit = audit_saved_dictalm(SAVED, REFERENCE)
         cls.generation_records = [r for r in cls.audit['records'] if r['task'] == 'generate']
-        with (SAVED / SOURCE / BEN_TAGS_FILE).open(encoding='utf-8-sig', newline='') as handle:
-            cls.tags = list(csv.DictReader(handle))
-        with (SAVED / SOURCE / 'dictalm_test_generate_details.csv').open(encoding='utf-8-sig', newline='') as handle:
-            cls.details = list(csv.DictReader(handle))
+        table, provenance = load_review_table(SAVED)
+        cls.tags = [r for r in table if r['layer'] == 'ben_dictalm']
+        cls.provenance = provenance['ben']
 
     def test_denominators_and_separate_diagnostic(self):
         a = self.audit
@@ -34,6 +37,7 @@ class DictalmAuditTests(unittest.TestCase):
         self.assertEqual(len(a['records']), 762)
         self.assertEqual(len({(r['item_id'], r['task']) for r in a['records']}), 762)
         self.assertEqual(a['diagnostic_selection']['leading_label_matches_gold'], 243)
+        self.assertEqual(a['diagnostic_selection']['csv_boundary_whitespace_trimmed'], 381)
         self.assertEqual(a['finish_reasons'], {'stop': 790})
         self.assertEqual(len(a['excluded_items']), 14)
         self.assertEqual(a['local_increment_ils'], 0)
@@ -78,26 +82,28 @@ class DictalmAuditTests(unittest.TestCase):
                 tags = copy.deepcopy(self.tags)
                 tags[0]['item_id'] = item_id
                 with self.assertRaisesRegex(ValueError, 'unique scored|cohort differs'):
-                    _bind_ben_tags(tags, self.details, self.generation_records)
+                    _bind_ben_tags(tags, self.generation_records, self.provenance)
 
     def test_changed_annotation_gold_response_and_labels_are_rejected(self):
-        for field, value in (('gold', 'changed gold'), ('response', 'changed response'),
-                             ('same_as_gold', 'unknown')):
+        for field, value in (('displayed_response', 'changed response'), ('label', 'unknown')):
             with self.subTest(field=field):
                 tags = copy.deepcopy(self.tags)
                 tags[0][field] = value
-                with self.assertRaisesRegex(ValueError, 'gold/response|yes or no'):
-                    _bind_ben_tags(tags, self.details, self.generation_records)
+                with self.assertRaisesRegex(ValueError, 'response differs|yes or no'):
+                    _bind_ben_tags(tags, self.generation_records, self.provenance)
         tags = copy.deepcopy(self.tags)
-        tags[0]['same_as_gold'] = 'no'
+        tags[0]['label'] = 'no'
         with self.assertRaisesRegex(ValueError, 'label counts differ'):
-            _bind_ben_tags(tags, self.details, self.generation_records)
+            _bind_ben_tags(tags, self.generation_records, self.provenance)
 
-    def test_modified_original_csv_is_rejected(self):
-        details = copy.deepcopy(self.details)
-        details[0]['response'] = 'changed source response'
-        with self.assertRaisesRegex(ValueError, 'gold/response'):
-            _bind_ben_tags(self.tags, details, self.generation_records)
+    def test_historical_id_and_attribution_cannot_change(self):
+        for field in ('judgment_id', 'annotator', 'run_id', 'system', 'task', 'label_updated_at'):
+            tags = copy.deepcopy(self.tags); tags[0][field] = 'changed'
+            with self.assertRaisesRegex(ValueError, 'identity or attribution'):
+                _bind_ben_tags(tags, self.generation_records, self.provenance)
+        provenance = copy.deepcopy(self.provenance); provenance['source_sha256'] = 'new-table-hash'
+        with self.assertRaisesRegex(ValueError, 'historical provenance'):
+            _bind_ben_tags(self.tags, self.generation_records, provenance)
 
     def test_judgments_cannot_transfer_to_other_runs_models_or_tasks(self):
         for field, value in (('run_id', 'other-run'), ('system', 'other-model'), ('task', 'select')):
@@ -108,19 +114,32 @@ class DictalmAuditTests(unittest.TestCase):
                     load_ben_dictalm_tags(SAVED, records)
         records = copy.deepcopy(self.generation_records)
         records[0]['response_sha256'] = 'altered-hash'
-        with self.assertRaisesRegex(ValueError, 'response hash mismatch'):
+        with self.assertRaisesRegex(ValueError, 'response differs|response hash mismatch|generation run journal'):
             load_ben_dictalm_tags(SAVED, records)
 
-    def test_altered_tag_file_hash_is_rejected(self):
+    def test_altered_consolidated_table_hash_is_rejected(self):
         with tempfile.TemporaryDirectory() as folder:
-            root = Path(folder) / SOURCE
-            root.mkdir(parents=True)
-            (root / BEN_TAGS_FILE).write_bytes((SAVED / SOURCE / BEN_TAGS_FILE).read_bytes() + b'\n')
-            with self.assertRaisesRegex(ValueError, 'annotation source hash mismatch'):
-                load_ben_dictalm_tags(folder, self.generation_records)
+            root = Path(folder); (root / 'human-review').mkdir()
+            import shutil
+            (root / 'files.json').write_bytes((SAVED / 'files.json').read_bytes())
+            shutil.copytree(SAVED / SOURCE / 'dictalm/full-test', root / SOURCE / 'dictalm/full-test',
+                            ignore=shutil.ignore_patterns('summary.json'))
+            (root / PROVENANCE).write_bytes((SAVED / PROVENANCE).read_bytes())
+            (root / REVIEW).write_bytes((SAVED / REVIEW).read_bytes() + b'\n')
+            inventory = json.loads((root / 'files.json').read_text())
+            # The completed inventory rejects the modified table before its own
+            # provenance link. Exercise both independent integrity boundaries.
+            if REVIEW in inventory['files']:
+                with self.assertRaisesRegex(ValueError, 'Saved review evidence differs'):
+                    load_ben_dictalm_tags(root, self.generation_records)
+            for relative in (REVIEW, PROVENANCE):
+                inventory['files'].pop(relative, None)
+            (root / 'files.json').write_text(json.dumps(inventory))
+            with self.assertRaisesRegex(ValueError, 'table hash mismatch'):
+                load_ben_dictalm_tags(root, self.generation_records)
 
     def test_bindings_preserve_journal_whitespace(self):
-        summary = json.loads((SAVED / 'local-runs/dictalm-20261010/dictalm/full-test/summary.json').read_text())
+        summary = summarize_evaluation(SAVED / 'local-runs/dictalm-20261010/dictalm/full-test')
         original = {(r['item_id'], r['task']): r for r in summary['records']}
         for record in self.audit['records']:
             original_record = original[record['item_id'], record['task']]
@@ -128,6 +147,35 @@ class DictalmAuditTests(unittest.TestCase):
             self.assertEqual(record['response_sha256'], hashlib.sha256(record['response'].encode()).hexdigest())
             self.assertIsNone(record['human_judgment'])
         self.assertEqual(sum(r['response'].startswith('\n') for r in self.audit['records'] if r['task'] == 'select'), 381)
+
+    def test_supplied_gold_valid_and_per_record_scores_match_original_journal(self):
+        for field, value in (('gold', 'corrupted-gold'), ('valid', not self.generation_records[0]['valid'])):
+            records = copy.deepcopy(self.generation_records); records[0][field] = value
+            with self.assertRaisesRegex(ValueError, 'generation run journal'):
+                load_ben_dictalm_tags(SAVED, records)
+        records = copy.deepcopy(self.generation_records)
+        # Keep aggregate automatic/human cross-tab unchanged while altering two items.
+        same_label = [j for j in self.audit['ben_annotation']['judgments'] if j['label'] == 'yes']
+        positive = next(j['item_id'] for j in same_label if j['automatic_correct'])
+        negative = next(j['item_id'] for j in same_label if not j['automatic_correct'])
+        for record in records:
+            if record['item_id'] in (positive, negative):
+                record['correct'] = not record['correct']
+        with self.assertRaisesRegex(ValueError, 'generation run journal'):
+            load_ben_dictalm_tags(SAVED, records)
+
+    def test_audit_never_reads_retired_summaries_or_review_csvs(self):
+        retired = {'summary.json', 'session-summary.json', 'dictalm_generate_human_tags.csv',
+                   'dictalm_test_generate_details.csv', 'dictalm_test_select_details.csv'}
+        original = Path.open
+        def guarded(path, *args, **kwargs):
+            if SOURCE in str(path) and path.name in retired:
+                raise AssertionError('Retired source read: ' + str(path))
+            return original(path, *args, **kwargs)
+        with patch.object(Path, 'open', guarded):
+            audit = audit_saved_dictalm(SAVED, REFERENCE)
+        self.assertFalse(any(Path(s['path']).name in retired for s in audit['sources']))
+        self.assertTrue({REVIEW, PROVENANCE} <= {s['path'] for s in audit['sources']})
 
     def test_changed_candidate_order_is_rejected(self):
         reference = json.loads(REFERENCE.read_text())

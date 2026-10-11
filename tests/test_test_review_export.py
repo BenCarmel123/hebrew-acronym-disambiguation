@@ -56,6 +56,18 @@ class ReviewExportTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'identified full-test'):
             self.export('wrong-run.json')
 
+    def test_in_memory_reconstruction_matches_default_file_export(self):
+        written = self.export('written.json')
+        files_before = set(self.root.iterdir())
+        with patch('hebrew_acronyms.test_review_export.evaluation._load_manifest', return_value=self.manifest), \
+             patch('hebrew_acronyms.test_review_export.evaluation.summarize_evaluation', return_value={'records': self.records}):
+            memory = export_review([(self.root, 'fixture-run')])
+            historical = export_review([(self.root, 'fixture-run')], include_excluded=True)
+        self.assertEqual(memory, written)
+        self.assertEqual(set(self.root.iterdir()), files_before)
+        self.assertEqual(len(historical['items']), 790)
+        self.assertEqual(len(memory['items']), 762)
+
     def test_existing_bundle_is_never_overwritten(self):
         path = self.root / 'existing.json'
         path.write_text('preserve')

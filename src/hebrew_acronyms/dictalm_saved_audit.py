@@ -11,6 +11,7 @@ from .saved_test_comparison import (
     _test_signature, _scored_metric, _finish_reason, COMPATIBLE_COLLECTOR_SHA256,
 )
 from .test_cohort import is_scored
+from .saved_human_review import load_review_table, REVIEW, PROVENANCE, _verified_bytes
 
 RUN_ID = 'c6cc64b4017547d884540a16af02a066'
 MODEL = 'hf.co/dicta-il/dictalm2.0-instruct-GGUF:Q4_K_M'
@@ -22,7 +23,7 @@ BEN_TAGS_COMMIT = 'b5cabe8ed749b5eff14de6cda48aa5ac838dc684'
 GENERATION_DETAILS_SHA256 = 'd4c95c4ad035b1a32f7d0515e86e7c91e720412d535c957c24c915dfd92bc6ef'
 
 
-def _bind_ben_tags(tags, details, generation_records):
+def _bind_ben_tags(tags, generation_records, provenance):
     """Validate semantic bindings before constructing a separate judgment layer."""
     if (len(tags) != 381 or len({r['item_id'] for r in tags}) != 381
             or not all(is_scored(r['item_id']) for r in tags)):
@@ -35,23 +36,14 @@ def _bind_ben_tags(tags, details, generation_records):
     records = {r['item_id']: r for r in generation_records}
     if {r['item_id'] for r in tags} != set(records):
         raise ValueError('Ben annotation cohort differs from original responses')
-    if len(details) != 395 or len({r['item_id'] for r in details}) != 395:
-        raise ValueError('DictaLM generation CSV coverage differs')
-    details_by_id = {r['item_id']: r for r in details}
     judgments = []
     for tag in tags:
         record = records[tag['item_id']]
-        detail = details_by_id.get(tag['item_id'])
-        if tag['same_as_gold'] not in ('yes', 'no'):
+        if tag['label'] not in ('yes', 'no'):
             raise ValueError('Ben annotation must be yes or no')
-        if (detail is None or tag['gold'] != record['gold']
-                or tag['gold'] != detail['gold']
-                or tag['response'] != detail['response']
-                or tag['response'] != record['response'].strip()
-                or detail['scored_in_381'] != 'True'
-                or detail['auto_correct'] != str(record['correct'])
-                or detail['valid'] != str(record['valid'])):
-            raise ValueError('Ben annotation gold/response differs from source CSV or journal')
+        if (tag['displayed_response'] != record['response'].strip()
+                or tag['response_sha256'] != record['response_sha256']):
+            raise ValueError('Ben annotation response differs from original journal')
         response_sha256 = hashlib.sha256(record['response'].encode()).hexdigest()
         if response_sha256 != record['response_sha256']:
             raise ValueError('Ben annotation journal response hash mismatch')
@@ -59,17 +51,24 @@ def _bind_ben_tags(tags, details, generation_records):
         identity = [BEN_TAGS_SHA256, RUN_ID, 'dictalm', 'generate',
                     tag['item_id'], response_sha256]
         judgment_id = hashlib.sha256(json.dumps(identity, ensure_ascii=False).encode()).hexdigest()
+        expected = dict(layer='ben_dictalm', judgment_id=judgment_id, answer_id='',
+            item_id=record['item_id'], run_id=RUN_ID, system='dictalm', task='generate',
+            response_sha256=response_sha256, label=tag['label'], kind='human_ben', round='',
+            group_id='', event_index='', annotator='Ben', label_updated_at='', confirmed_at='',
+            confirmed_by='', source_id='ben_dictalm', displayed_response=record['response'].strip())
+        if tag != expected:
+            raise ValueError('Ben annotation identity or attribution differs')
         judgments.append({
             'judgment_id': judgment_id, 'annotator': 'Ben',
             'source_path': f'{SOURCE}/{BEN_TAGS_FILE}',
             'source_sha256': BEN_TAGS_SHA256, 'source_commit': BEN_TAGS_COMMIT,
             'run_id': RUN_ID, 'system': 'dictalm', 'task': 'generate',
-            'item_id': tag['item_id'], 'gold': tag['gold'],
+            'item_id': tag['item_id'], 'gold': record['gold'],
             'response': record['response'], 'response_sha256': response_sha256,
-            'csv_response': tag['response'],
-            'response_match': ('exact' if tag['response'] == record['response']
+            'csv_response': tag['displayed_response'],
+            'response_match': ('exact' if tag['displayed_response'] == record['response']
                                else 'boundary_whitespace_only'),
-            'label': tag['same_as_gold'], 'human_correct': tag['same_as_gold'] == 'yes',
+            'label': tag['label'], 'human_correct': tag['label'] == 'yes',
             'automatic_correct': record['correct'],
         })
     counts = Counter(j['label'] for j in judgments)
@@ -86,7 +85,7 @@ def _bind_ben_tags(tags, details, generation_records):
         raise ValueError('Ben annotation raw response correspondence differs')
     if cross_tab != {'both_accept': 121, 'ben_only': 72, 'automatic_only': 4, 'both_reject': 184}:
         raise ValueError('Ben annotation automatic/human cross-tab differs')
-    return {'provenance': {
+    expected_provenance = {
                 'annotator': 'Ben', 'source_path': f'{SOURCE}/{BEN_TAGS_FILE}',
                 'source_sha256': BEN_TAGS_SHA256, 'source_commit': BEN_TAGS_COMMIT,
                 'source_run_id': RUN_ID,
@@ -94,7 +93,10 @@ def _bind_ben_tags(tags, details, generation_records):
                 'source_generation_csv_sha256': GENERATION_DETAILS_SHA256,
                 'recorded_rule': 'The CSV records yes/no under same_as_gold for each generation response.',
                 'limitations': 'Annotation times, blinding and a detailed decision rubric are not documented; no protocol is reconstructed.',
-            },
+            }
+    if provenance != expected_provenance:
+        raise ValueError('Ben historical provenance differs')
+    return {'provenance': provenance,
             'validation': {'n_unique_items': len(records), 'all_in_scored_cohort': True,
                            'source_csv_exact_matches': len(judgments),
                            'journal_exact_matches': matches['exact'],
@@ -106,21 +108,30 @@ def _bind_ben_tags(tags, details, generation_records):
 
 
 def load_ben_dictalm_tags(saved_root, generation_records):
-    """Load Ben's fixed CSV once per read, with deterministic IDs and no writes.
+    """Load Ben's consolidated rows, preserving original IDs and no writes.
 
     Repeated calls return the same judgment layer rather than appending to any
     review store. Only the original run's generation responses are accepted.
     """
-    root = Path(saved_root) / SOURCE
-    loaded = []
-    for name, expected in ((BEN_TAGS_FILE, BEN_TAGS_SHA256),
-                           ('dictalm_test_generate_details.csv', GENERATION_DETAILS_SHA256)):
-        path = root / name
-        if hashlib.sha256(path.read_bytes()).hexdigest() != expected:
-            raise ValueError(f'DictaLM annotation source hash mismatch: {name}')
-        with path.open(encoding='utf-8-sig', newline='') as handle:
-            loaded.append(list(csv.DictReader(handle)))
-    return _bind_ben_tags(*loaded, generation_records)
+    saved = Path(saved_root)
+    directory = saved / SOURCE / 'dictalm/full-test'
+    inventory = json.loads((saved / 'files.json').read_text())['files']
+    for path in (directory / 'manifest.json', *sorted(directory.glob('attempts*.jsonl'))):
+        relative = str(path.relative_to(saved))
+        _verified_bytes(saved, relative, inventory[relative])
+    manifest = evaluation._load_manifest(directory)
+    if manifest['run_id'] != RUN_ID:
+        raise ValueError('Ben annotations require the original DictaLM generation run')
+    rows = {r['item_id']: r for r in manifest['identity']['rows']}
+    original = {r['item_id']: r | {'gold': rows[r['item_id']]['gold_expansion'], 'run_id': RUN_ID}
+                for r in evaluation.summarize_evaluation(directory)['records'] if r['task'] == 'generate'}
+    for record in generation_records:
+        source = original.get(record['item_id'])
+        if source is None or any(record.get(k) != value for k, value in source.items()):
+            raise ValueError('Ben annotation record differs from original DictaLM generation run journal')
+    table, provenance = load_review_table(saved)
+    return _bind_ben_tags([r for r in table if r['layer'] == 'ben_dictalm'],
+                          generation_records, provenance['ben'])
 
 
 def audit_saved_dictalm(saved_root, reference_manifest):
@@ -161,11 +172,6 @@ def audit_saved_dictalm(saved_root, reference_manifest):
                 or identity['reserve_per_call_usd'] != {'dictalm': 0.0}
                 or summary['charged_or_reserved_usd'] != 0):
             raise ValueError('DictaLM local accounting changed')
-        stored = json.loads((directory / 'summary.json').read_text())
-        for field in ('records', 'by_system_task', 'n_calls', 'n_completed', 'n_records',
-                      'n_ambiguous', 'n_incomplete', 'n_identity_unverified', 'charged_or_reserved_usd'):
-            if summary[field] != stored[field]:
-                raise ValueError(f'Saved DictaLM summary differs: {field}')
         for record in summary['records']:
             metadata = record['response_metadata']
             if (metadata['digest_before'] != DIGEST or metadata['digest_after'] != DIGEST
@@ -192,16 +198,18 @@ def audit_saved_dictalm(saved_root, reference_manifest):
         current = Path(evaluation.__file__).parent / name
         if hashlib.sha256(current.read_bytes()).hexdigest() != manifest['identity']['code_sha256'][name]:
             raise ValueError('DictaLM scoring source differs')
-    for path in sorted(root.rglob('*')):
-        if path.is_file():
-            sources.append({'path': str(path.relative_to(saved_root)),
-                            'sha256': hashlib.sha256(path.read_bytes()).hexdigest(),
-                            'bytes': path.stat().st_size})
-    with (root / 'dictalm_test_select_details.csv').open(encoding='utf-8-sig', newline='') as handle:
-        details = list(csv.DictReader(handle))
-    if len(details) != 395 or len({r['item_id'] for r in details}) != 395:
-        raise ValueError('DictaLM CSV coverage differs')
-    details = {r['item_id']: r for r in details}
+    retained = [root / 'session.json']
+    for stage in ('dev-pilot', 'full-test'):
+        directory = root / 'dictalm' / stage
+        retained.extend([directory / 'manifest.json', *sorted(directory.glob('attempts*.jsonl'))])
+    for path in sorted(retained):
+        sources.append({'path': str(path.relative_to(saved_root)),
+                        'sha256': hashlib.sha256(path.read_bytes()).hexdigest(),
+                        'bytes': path.stat().st_size})
+    for relative in (REVIEW, PROVENANCE):
+        path = Path(saved_root) / relative
+        sources.append({'path': relative, 'sha256': hashlib.sha256(path.read_bytes()).hexdigest(),
+                        'bytes': path.stat().st_size})
     rows = {r['item_id']: r for r in manifest['identity']['rows']}
     records = []
     for record in summary['records']:
@@ -211,16 +219,6 @@ def audit_saved_dictalm(saved_root, reference_manifest):
             match = re.match(r'^\s*([A-Z]+)\b', record['response'])
             index = evaluation.scoring.parse_letter_choice(match[1], len(record['shown_order'])) if match else None
             choice = record['shown_order'][index] if index is not None else None
-            detail = details[record['item_id']]
-            # The supplied review CSV trims boundary whitespace. Journals remain
-            # authoritative; derived bindings retain the original leading newline.
-            if (detail['response'] != record['response'].strip()
-                    or detail['lenient_choice'] != (choice or '')
-                    or detail['lenient_correct'] != str(choice == row['gold_expansion'])
-                    or detail['auto_correct'] != str(record['correct'])
-                    or detail['valid'] != str(record['valid'])
-                    or detail['human_judgment'] != ''):
-                raise ValueError('DictaLM CSV diagnostic differs from raw response')
         if is_scored(record['item_id']):
             records.append(record | {'sentence': row['sentence'], 'gold': row['gold_expansion'],
                 'response_sha256': hashlib.sha256(record['response'].encode()).hexdigest(),
@@ -259,7 +257,7 @@ def audit_saved_dictalm(saved_root, reference_manifest):
         'attempt_counts': dict(Counter(str(r['attempts']) for r in summary['records'])),
         'local_increment_ils': 0.0, 'local_prior_ils': session['identity']['prior_spend_ils'],
         'diagnostic_selection': {'n_items': len(selections),
-            'csv_boundary_whitespace_trimmed': sum(details[r['item_id']]['response'] != r['response'] for r in selections),
+            'csv_boundary_whitespace_trimmed': sum(r['response'].strip() != r['response'] for r in selections),
             'leading_label_parsed': sum(r['diagnostic_leading_label_candidate'] is not None for r in selections),
             'leading_label_matches_gold': sum(r['diagnostic_leading_label_correct'] for r in selections),
             'human_judgments': 0, 'official_score_unchanged': True}, 'records': records}

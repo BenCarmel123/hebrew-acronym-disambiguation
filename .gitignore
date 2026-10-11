@@ -42,3 +42,6 @@ scratch/
 *.egg-info/
 build/
 dist/
+
+# Saved-analysis exports are regenerated; selected tracked tables remain versioned.
+results/submission-20261010/*

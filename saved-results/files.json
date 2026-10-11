@@ -1,6 +1,6 @@
 {
   "format_version": 1,
-  "description": "Immutable analysis inputs copied byte-for-byte; original paths are provenance, not runtime dependencies.",
+  "description": "Saved analysis inputs and consolidated human review; historical source paths are provenance, not runtime dependencies.",
   "files": {
     "colab-runs/evaluation-20261009-a319f9d/extracted/session.json": {
       "sha256": "119213642d94e7a803e01a2fe217eb56ef2db8462f6ff51448c2536147a29765",
@@ -82,11 +82,6 @@
       "bytes": 159088,
       "original_artifact": "colab-runs/evaluation-20261009-a319f9d/extracted/baselines/baselines.json"
     },
-    "collection-notebooks/evaluation-20261009-a319f9d/run_test_eval_colab_executed_snapshot.ipynb": {
-      "sha256": "63c546ed0995c4a49f1522c6210acb05dafca984b6783ed8a317ffe01d83a5c9",
-      "bytes": 221360,
-      "original_artifact": "colab-runs/evaluation-20261009-a319f9d/run_test_eval_colab_executed_snapshot.ipynb"
-    },
     "colab-runs/evaluation-gemini-retry-20261009-a319f9d/extracted/session.json": {
       "sha256": "e7fcf89301d1438e2c51d067b74e5dd3293d34e75429ee3b04a0eed5c8ee4fba",
       "bytes": 7600,
@@ -101,11 +96,6 @@
       "sha256": "8fa053f3053ce7926bf07c3233c5868afade6dba2988d0477ca7e4732cde04fe",
       "bytes": 52882,
       "original_artifact": "colab-runs/evaluation-gemini-retry-20261009-a319f9d/extracted/gemini/dev-pilot/attempts.jsonl"
-    },
-    "collection-notebooks/evaluation-gemini-retry-20261009-a319f9d/run_test_eval_gemini_retry_20261009.ipynb": {
-      "sha256": "96d0752703ae78bbc25d8f50ba0104cdd64d152fe3aee16fe27bc4e5d82c9b6b",
-      "bytes": 94104,
-      "original_artifact": "colab-runs/evaluation-gemini-retry-20261009-a319f9d/run_test_eval_gemini_retry_20261009.ipynb"
     },
     "colab-runs/evaluation-xai-qwen14-20261009-64f47b7/extracted/session.json": {
       "sha256": "edd1d74c19c92008a2e58e878cc96de9f75d783bb7b88aca52b9a2ecc89fb752",
@@ -132,16 +122,6 @@
       "bytes": 39536,
       "original_artifact": "colab-runs/evaluation-xai-qwen14-20261009-64f47b7/extracted/xai/dev-pilot/attempts.jsonl"
     },
-    "collection-notebooks/evaluation-xai-qwen14-20261009-64f47b7/executed-notebook.ipynb": {
-      "sha256": "89417f708ebb61b5d86cd176d47cdd9e467e408107bfa03f6d20a2e6f1724d58",
-      "bytes": 153371,
-      "original_artifact": "colab-runs/evaluation-xai-qwen14-20261009-64f47b7/executed-notebook.ipynb"
-    },
-    "collection-notebooks/evaluation-xai-qwen14-20261009-e9c8ef7/qwen-full-executed.ipynb": {
-      "sha256": "b60a3d4021061f47526e9bd9b7e2721d56f5e6bf49d399dc1a308e5be36de220",
-      "bytes": 157762,
-      "original_artifact": "colab-runs/evaluation-xai-qwen14-20261009-e9c8ef7/qwen-full-executed.ipynb"
-    },
     "colab-runs/evaluation-xai-qwen14-20261009-64f47b7/diagnostic/extracted/recovered-finish.json": {
       "sha256": "6b3e9430e2b9f9b5f0fb298b87447b48f4eefa8fb7c659a1b7981602297deb77",
       "bytes": 805,
@@ -152,20 +132,10 @@
       "bytes": 306,
       "original_artifact": "colab-runs/evaluation-xai-qwen14-20261009-64f47b7/diagnostic/extracted/diagnostic.jsonl"
     },
-    "study-runs/dictabert-test-20261009-f49c3b5/summary.json": {
-      "sha256": "841f25fe9dc04e574a74820722064c324264e8529f3a94a66055fda8a34a1dc5",
-      "bytes": 675,
-      "original_artifact": "study-runs/dictabert-test-20261009-f49c3b5/summary.json"
-    },
     "study-runs/dictabert-test-20261009-f49c3b5/predictions.jsonl": {
       "sha256": "51050d90e9067c50077f14cea660c3a4ceee761044f514665ad1066cd80187b8",
       "bytes": 253013,
       "original_artifact": "study-runs/dictabert-test-20261009-f49c3b5/predictions.jsonl"
-    },
-    "study-runs/dictabert-test-20261009-f49c3b5/historical-comparison.json": {
-      "sha256": "48b576ca6986a1a0dc09820f047abb28409a764ff5618241a9e570860090b099",
-      "bytes": 575,
-      "original_artifact": "study-runs/dictabert-test-20261009-f49c3b5/historical-comparison.json"
     },
     "study-runs/dictabert-test-20261009-f49c3b5/checkpoint-reconstruction.json": {
       "sha256": "4c9b5c12f4f62043f7525c4ab9a7dd0f5778e924fb9097349aa6803bf0e57cc6",
@@ -177,35 +147,10 @@
       "bytes": 337928,
       "original_artifact": "study-runs/dictabert-test-20261009-f49c3b5/inputs.json"
     },
-    "study-runs/dictabert-test-20261009-f49c3b5/validation.json": {
-      "sha256": "46c595f81768613c596ea52ff2e8358a0ff1e5d54b23494fba4a2ce39f6dd8b5",
-      "bytes": 66,
-      "original_artifact": "study-runs/dictabert-test-20261009-f49c3b5/validation.json"
-    },
     "study-runs/dictabert-test-20261009-f49c3b5/manifest.json": {
       "sha256": "1d6a006ef823b694200618dc4560f0f93199e5d02ee479f9692a4a6f0954b7e3",
       "bytes": 6433,
       "original_artifact": "study-runs/dictabert-test-20261009-f49c3b5/manifest.json"
-    },
-    "human-review-test-20261009/review-data.json": {
-      "sha256": "1c48b97c8a8fbbbd86537dc42964fdfb6265473179121c13d6410377994ae705",
-      "bytes": 9304502,
-      "original_artifact": "human-review-test-20261009/review-data.json"
-    },
-    "human-review-dictabert-test-20261009/review-data.json": {
-      "sha256": "acaea220f1c2a6b0c0e3fbdd2e9a3742e70c9dff907761cabd46c0d077467789",
-      "bytes": 1351948,
-      "original_artifact": "human-review-dictabert-test-20261009/review-data.json"
-    },
-    "human-review-qwen14-test-20261009/review-data.json": {
-      "sha256": "1f32d180e52b9b7470a1482bc6ca37d7b4e45b83ca1b99c633adc574e30c8512",
-      "bytes": 3237847,
-      "original_artifact": "human-review-qwen14-test-20261009/review-data.json"
-    },
-    "encoder-test-inputs-20261009/test-legacy-first-occurrence.csv": {
-      "sha256": "bb81dc88da77368b50a0b532bcfba241d97da92b03697b1de9ac1a0c21204cb9",
-      "bytes": 209138,
-      "original_artifact": "encoder-test-inputs-20261009/test-legacy-first-occurrence.csv"
     },
     "encoder-test-inputs-20261009/legacy-first-occurrence-policy.json": {
       "sha256": "4fe98dcf6138498a9f6fc93f9d07ade43921a93eb3d91aa9f1f39ae57b962ba8",
@@ -257,30 +202,10 @@
       "bytes": 47033,
       "original_artifact": "colab-runs/evaluation-xai-qwen14-20261009-e9c8ef7/extracted/xai/dev-pilot/attempts.jsonl"
     },
-    "colab-runs/evaluation-xai-qwen14-20261009-e9c8ef7/extracted/xai/dev-pilot/attempts-000001.jsonl": {
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "bytes": 0,
-      "original_artifact": "colab-runs/evaluation-xai-qwen14-20261009-e9c8ef7/extracted/xai/dev-pilot/attempts-000001.jsonl"
-    },
-    "human-review-xai-test-20261009/review-data.json": {
-      "sha256": "7e9a44a2fbf07f966fa004e108585ecdf5571cf42050a10921d47f2e242740e8",
-      "bytes": 3179986,
-      "original_artifact": "human-review-xai-test-20261009/review-data.json"
-    },
-    "collection-notebooks/evaluation-xai-qwen14-20261009-e9c8ef7/xai-full-executed.ipynb": {
-      "sha256": "875ae6612384000f02ca0a1cb810fb67bc781427fef63d52c1a6653ffca9da3f",
-      "bytes": 154470,
-      "original_artifact": "colab-runs/evaluation-xai-qwen14-20261009-e9c8ef7/xai-full-executed.ipynb"
-    },
     "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/session.json": {
       "sha256": "f805d6173e61b8906f4e20289e17221ed75390074fe7a2006cb0ee21834527d1",
       "bytes": 8998,
       "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/session.json"
-    },
-    "colab-runs/evaluation-gemini-381-20261010-79b767a/validation-receipt.json": {
-      "sha256": "4d87192f5a547c8f30f6cd88d735c21cb0084085a7c553ec29d3f6be69720577",
-      "bytes": 7002,
-      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/validation-receipt.json"
     },
     "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/dev-pilot/manifest.json": {
       "sha256": "e42051bd5d41404e620133c6abaccdd32405dc31a7bec03c2515431ad4488fc8",
@@ -587,16 +512,6 @@
       "bytes": 49275,
       "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/attempts.jsonl"
     },
-    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/dev-pilot/summary.json": {
-      "sha256": "233f4de55ff9cd65aa1649511082be2b015516180bb95624eb5229038e28f395",
-      "bytes": 37283,
-      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/dev-pilot/summary.json"
-    },
-    "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/summary.json": {
-      "sha256": "c955aa223eba277e8a4b909b6923f55206c288ce12f1c35f3d53ee403a29a539",
-      "bytes": 1437909,
-      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test/summary.json"
-    },
     "gemini-diagnostic-20261010-after-billing/receipt.json": {
       "sha256": "e9de33e09adc215fa5443c19a0b28a7746ce2098f6002e60e1e281257616f18c",
       "bytes": 745,
@@ -607,81 +522,10 @@
       "bytes": 3833,
       "original_artifact": "gemini-diagnostic-20261010-after-billing/diagnostic.jsonl"
     },
-    "collection-notebooks/evaluation-gemini-381-20261010-79b767a/run_test_eval_gemini381_79b767a-executed.ipynb": {
-      "sha256": "9f883c3992c09fcd69ee1c33d8f4d43be8ca47bfe239a43adcfc650f00b6e205",
-      "bytes": 159597,
-      "original_artifact": "colab-runs/evaluation-gemini-381-20261010-79b767a/run_test_eval_gemini381_79b767a-executed.ipynb"
-    },
-    "human-review-gemini381-20261010/review-data.json": {
-      "sha256": "b54f9761e58fb77d1df304c3fe96694deadd50159de93d99af635314906b6f69",
-      "bytes": 2963968,
-      "derived_from": "colab-runs/evaluation-gemini-381-20261010-79b767a/extracted/gemini/full-test",
-      "run_id": "6658d323657f4df3aced950bfe6abb07"
-    },
-    "human-review-381-20261010/review-export.json": {
-      "sha256": "01ea404fda744e10556c869d3cddccda228fcfc209ece7805a151fcad45834df",
-      "bytes": 634329,
-      "original_artifact": "human-review-381-20261010/review-export.json"
-    },
-    "human-review-focus-200-20261010/gemini-review-data.json": {
-      "sha256": "f5c4aa362720865ed40ae7c9f9edfd100d443e8d2c8303a9db569f0e4aab62de",
-      "bytes": 3088278,
-      "original_artifact": "human-review-focus-200-20261010/verified-backup-final/gemini-review-data.json"
-    },
-    "human-review-focus-200-20261010/review-export.json": {
-      "sha256": "cfde0bbc065f3fbe7a134500a3b5dfeb2bc335b3149662492ef229250c19d06f",
-      "bytes": 267346,
-      "original_artifact": "human-review-focus-200-20261010/verified-backup-final/review-export.json"
-    },
-    "human-review-final-20261010/reuse-context-evidence.json": {
-      "sha256": "53ed2f7a00429d62564d9a4fc5873603cf64a22b6048527e8f03ba19e70a901b",
-      "bytes": 19574,
-      "original_artifact": "Derived portable review evidence; see human-review-final-20261010/receipt.json"
-    },
-    "human-review-final-20261010/combined-review-coverage.json": {
-      "sha256": "7aa9b73903e779584dd53260238c113ba57e598ac33ae7ef64afd5ad5fc74b23",
-      "bytes": 706116,
-      "original_artifact": "human-review-focus-200-20261010/verified-backup-final/combined-review-coverage.json"
-    },
-    "human-review-final-20261010/selection-manifest.json": {
-      "sha256": "5fdae882d58691319e91cc930236de8a57cb106eedc85c934d7c766f28922cc4",
-      "bytes": 21184,
-      "original_artifact": "human-review-focus-200-20261010/verified-backup-final/selection-manifest.json"
-    },
-    "human-review-final-20261010/backup-sha256.json": {
-      "sha256": "0dd4513f6b01b32c5a27b19f07b6a2d39e5163239b175993a5f0b5ced3d9ef6e",
-      "bytes": 965,
-      "original_artifact": "human-review-focus-200-20261010/verified-backup-final/sha256.json"
-    },
-    "human-review-final-20261010/receipt.json": {
-      "sha256": "183b182322ae4d0041fa18ccacd89f56b184f703fbfadf9bba5468b9617b6ab3",
-      "bytes": 2371,
-      "original_artifact": "Derived portable review evidence; see human-review-final-20261010/receipt.json"
-    },
     "local-runs/dictalm-20261010/session.json": {
       "sha256": "a1b5927476232b25624c239388edb21d068fc7aec5cd94eca6047bc0625682a4",
       "bytes": 8469,
       "original_artifact": "local-runs/dictalm-20261010/session.json"
-    },
-    "local-runs/dictalm-20261010/session-summary.json": {
-      "sha256": "438128f85c13eacb800d7dd2e3fe16c0f26473647502ea9fcd8537026af394de",
-      "bytes": 1446,
-      "original_artifact": "local-runs/dictalm-20261010/session-summary.json"
-    },
-    "local-runs/dictalm-20261010/dictalm_test_select_details.csv": {
-      "sha256": "045376f8ac1a24721e7aef74119cad70b344be36b7415fa7cb935f03d30aa0f3",
-      "bytes": 234086,
-      "original_artifact": "local-runs/dictalm-20261010/dictalm_test_select_details.csv"
-    },
-    "local-runs/dictalm-20261010/dictalm_test_generate_details.csv": {
-      "sha256": "d4c95c4ad035b1a32f7d0515e86e7c91e720412d535c957c24c915dfd92bc6ef",
-      "bytes": 170496,
-      "original_artifact": "local-runs/dictalm-20261010/dictalm_test_generate_details.csv"
-    },
-    "local-runs/dictalm-20261010/dictalm/full-test/summary.json": {
-      "sha256": "c03f468f17925d27e17b1930410657510eb76bb17689c1706435a4d923d1cd67",
-      "bytes": 1572963,
-      "original_artifact": "local-runs/dictalm-20261010/dictalm/full-test/summary.json"
     },
     "local-runs/dictalm-20261010/dictalm/full-test/manifest.json": {
       "sha256": "aba266f2f766e56bd259b8632ea0a816fed67acd4f2435d4582e7efe12f7de5b",
@@ -693,11 +537,6 @@
       "bytes": 2094434,
       "original_artifact": "local-runs/dictalm-20261010/dictalm/full-test/attempts.jsonl"
     },
-    "local-runs/dictalm-20261010/dictalm/dev-pilot/summary.json": {
-      "sha256": "0976394c8d08917c501b9975a6d4b41836dabb5114326d13ace36629692113e5",
-      "bytes": 39454,
-      "original_artifact": "local-runs/dictalm-20261010/dictalm/dev-pilot/summary.json"
-    },
     "local-runs/dictalm-20261010/dictalm/dev-pilot/manifest.json": {
       "sha256": "64c3e23b238c0c157f80cd447f42dec0fc38334bc2b497e0861bf77d7a712f69",
       "bytes": 31242,
@@ -708,24 +547,21 @@
       "bytes": 52418,
       "original_artifact": "local-runs/dictalm-20261010/dictalm/dev-pilot/attempts.jsonl"
     },
-    "agent-clarifications-20261010/assessments.json": {
-      "sha256": "0ac5657299270c3adebe68272edb4c04364849a3e51aefc1981d5780b830d404",
-      "bytes": 18454,
-      "original_artifact": "agent-clarifications-20261010/assessments.json"
-    },
-    "local-runs/dictalm-20261010/dictalm_generate_human_tags.csv": {
-      "sha256": "c6cfec23d97d9b2f29eac135454c4d609f19e6aba9280060a4c8ab406c51cbf0",
-      "bytes": 31122,
-      "original_artifact": "local-runs/dictalm-20261010/dictalm_generate_human_tags.csv",
-      "source_commit": "b5cabe8ed749b5eff14de6cda48aa5ac838dc684",
-      "annotator": "Ben",
-      "run_id": "c6cc64b4017547d884540a16af02a066"
-    },
     "../results/dictabert/test_details.csv": {
       "sha256": "f0b7ba4f81d79fb734199117d09445b4d3516a8d3b102d7ee7a60d1eb9589873",
       "bytes": 136262,
       "original_artifact": "results/dictabert/test_details.csv",
       "source_commit": "4a3d0051f4ae299f492ab7263cd57bfacd1e8793"
+    },
+    "human-review/review.csv": {
+      "sha256": "f648a9b2aa25af0c39a9b0e7e17957472a3fdd392afb852fcb55f2cf57ce4a23",
+      "bytes": 422915,
+      "original_artifact": "human-review/review.csv"
+    },
+    "human-review/provenance.json": {
+      "sha256": "9256982a245b47bb902f5fee9461435b25efcef6597c9b876fcf505d513fb6e6",
+      "bytes": 598282,
+      "original_artifact": "human-review/provenance.json"
     }
   }
 }

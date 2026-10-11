@@ -1,8 +1,4 @@
-"""Reconstruct the closed, partially reviewed 381-item experiment offline.
-
-The two signed exports retain decision history. Only their explicit response
-bindings receive labels; group similarity never extends a judgment to new runs.
-"""
+"""Reconstruct closed human review from consolidated judgments and saved runs."""
 from collections import Counter
 import csv
 from datetime import datetime
@@ -11,20 +7,194 @@ from html import escape
 import json
 from pathlib import Path
 
-from .test_review_export import digest, identified_review_coverage, identified_group_id
+from .test_review_export import digest, identified_group_id, export_review, export_encoder_review
 
 EXPORTS = ('human-review-381-20261010/review-export.json',
            'human-review-focus-200-20261010/review-export.json')
-FINAL = 'human-review-final-20261010'
 NEW = 'new_human_judgment'
 REUSE = 'explicit_historical_reuse_not_new_judgment'
 CASES = ('kn4-0525', 'kn-0229', 'manual-0023', 'manual-0001')
-AGENT_CASES = 'agent-clarifications-20261010/assessments.json'
+REVIEW = 'human-review/review.csv'
+PROVENANCE = 'human-review/provenance.json'
+ROW_FIELDS = ('system', 'task', 'run_id', 'total', 'new_human_reviewed', 'historical_reused',
+              'reviewed', 'positive_total', 'positive_reviewed', 'negative_total',
+              'negative_reviewed', 'technical_failures', 'fits', 'not_fits', 'unsure',
+              'automatic_negative_human_fits', 'automatic_positive_human_not_fits',
+              'groups', 'unreviewed', 'valid_unreviewed', 'unresolved')
 
 
 def _read(path):
     return json.loads(Path(path).read_text())
 
+
+def _saved_path(saved, relative):
+    path = Path(relative)
+    if path.is_absolute() or '..' in path.parts:
+        raise ValueError('Review source must be inside saved evidence')
+    return saved / path
+
+
+def _verified_bytes(saved, relative, entry):
+    content = _saved_path(saved, relative).read_bytes()
+    if len(content) != entry['bytes'] or hashlib.sha256(content).hexdigest() != entry['sha256']:
+        raise ValueError('Saved review evidence differs: ' + relative)
+    return content
+
+
+def load_review_table(saved_root):
+    """Read the two active review sources; unknown fields remain explicitly unknown.
+
+    The table hash is always checked. When the submission inventory contains the
+    consolidated sources, both are checked against it too. This also permits the
+    pre-removal acceptance gate to retain its original source inventory.
+    """
+    saved = Path(saved_root)
+    provenance = _read(saved / PROVENANCE)
+    if provenance.get('schema_version') != 'consolidated-human-review-v1':
+        raise ValueError('Unknown consolidated review schema')
+    inventory = _read(saved / 'files.json')['files']
+    for relative in (REVIEW, PROVENANCE):
+        if relative in inventory:
+            _verified_bytes(saved, relative, inventory[relative])
+    content = (saved / REVIEW).read_bytes()
+    if hashlib.sha256(content).hexdigest() != provenance['review_sha256']:
+        raise ValueError('Consolidated review table hash mismatch')
+    rows = list(csv.DictReader(content.decode('utf-8').splitlines(keepends=True)))
+    if (len(rows) != 1122 or len({r['judgment_id'] for r in rows}) != len(rows)
+            or Counter(r['layer'] for r in rows) != {'main': 741, 'ben_dictalm': 381}):
+        raise ValueError('Duplicate judgment or consolidated layer coverage differs')
+    return rows, provenance
+
+
+def reconstruct_review_answers(saved_root, cohort_path, provenance):
+    """Build every reviewed and unreviewed answer from retained experiment sources."""
+    saved = Path(saved_root)
+    if hashlib.sha256(Path(cohort_path).read_bytes()).hexdigest() != provenance['cohort_sha256']:
+        raise ValueError('Review cohort differs')
+    inventory = _read(saved / 'files.json')['files']
+    with Path(cohort_path).open(encoding='utf-8-sig') as handle:
+        cohort = {r['item_id']: r for r in csv.DictReader(handle)}
+    answers, bundle_answers = {}, {}
+    for source in provenance['answer_sources']:
+        runs = []
+        for run in source['runs']:
+            directory = _saved_path(saved, run['directory'])
+            names = ['manifest.json', 'inputs.json', 'predictions.jsonl', 'checkpoint-reconstruction.json'] if source['kind'] == 'encoder' else ['manifest.json', *[p.name for p in sorted(directory.glob('attempts*.jsonl'))]]
+            for name in names:
+                relative = str((directory / name).relative_to(saved))
+                if relative not in inventory:
+                    raise ValueError('Unidentified experiment source: ' + relative)
+                _verified_bytes(saved, relative, inventory[relative])
+            runs.append((directory, run['run_id']))
+        if source['kind'] == 'encoder':
+            if len(runs) != 1:
+                raise ValueError('Encoder review requires one identified run')
+            run = source['runs'][0]
+            bundle = export_encoder_review(runs[0][0], cohort_path, expected_run_id=run['run_id'],
+                expected_identity=run['identity_sha256'], expected_predictions_sha256=run['predictions_sha256'],
+                include_excluded=True)
+        elif source['kind'] == 'llm':
+            bundle = export_review(runs, source_root=saved, include_excluded=True)
+        else:
+            raise ValueError('Unknown review answer source kind')
+        ids = set()
+        for item in bundle['items']:
+            row = cohort.get(item['original_item_id'])
+            if row is None:
+                continue  # Preserve historical queue ordering before the 14-item exclusion.
+            if (item['sentence'], item['acronym'], item['gold']) != (row['sentence'], row['acronym'], row['gold_expansion']):
+                raise ValueError('Review context differs from the scored cohort')
+            for answer in item['answers']:
+                if source['kind'] == 'encoder':
+                    answer['source_file'] = source['runs'][0]['directory'] + '/predictions.jsonl'
+                binding = answer['binding']; aid = answer['id']
+                if (aid in answers or aid != digest(binding) or binding['item_id'] != row['item_id']
+                        or binding['response_sha256'] != hashlib.sha256(answer['raw'].encode()).hexdigest()):
+                    raise ValueError('Duplicate or invalid response binding')
+                if binding['task'] != {'selection': 'select', 'generation': 'generate'}[answer['task']]:
+                    raise ValueError('Task binding differs')
+                answers[aid] = (item, answer); ids.add(aid)
+        if source['historical_bundle'] in bundle_answers:
+            raise ValueError('Duplicate historical bundle mapping')
+        bundle_answers[source['historical_bundle']] = ids
+    if len(answers) != 4953:
+        raise ValueError('Full review answer coverage differs')
+    return answers, bundle_answers
+
+
+def expand_review_history(provenance):
+    """Restore all original event fields from shared defaults and per-event values."""
+    rounds = provenance['rounds']
+    if [r['name'] for r in rounds] != ['previous', 'focused']:
+        raise ValueError('Review round order differs')
+    exports = [dict(r, decisions=[]) for r in rounds]
+    seen_focused = False
+    for event in provenance['decisions']:
+        if event['round'] not in ('previous', 'focused'):
+            raise ValueError('Unknown review round')
+        if event['round'] == 'focused':
+            seen_focused = True
+        elif seen_focused:
+            raise ValueError('Review round event order differs')
+        decision = provenance['decision_defaults'] | {k: v for k, v in event.items() if k not in ('round', 'judgment')}
+        decision['judgment'] = provenance['judgment_defaults'] | event['judgment']
+        exports[event['round'] == 'focused']['decisions'].append(decision)
+    reuse = {gid: dict(value, proposal=value['proposal'] | {'source_sha256': provenance['reuse_source_sha256']})
+             for gid, value in provenance['historical_reuse'].items()}
+    return exports, reuse
+
+
+def _validate_rounds(exports, answers, bundle_answers, selection):
+    selected = set(selection['reasons'])
+    known_groups = {identified_group_id(i, a) for i, a in answers.values()}
+    if not selected <= known_groups:
+        raise ValueError('Selected review group missing from source')
+    for index, export in enumerate(exports):
+        if export['protocol_version'] != 'identified-test-review-v1' or str(export['reviewer']).startswith('QA'):
+            raise ValueError('Unknown or nonhuman review protocol')
+        allowed = set().union(*(bundle_answers[p] for p in export['source_bundles']))
+        seen_decisions, seen_answers = set(), set()
+        for decision in export['decisions']:
+            identifier = decision['decision_id']; judgment = decision['judgment']
+            if identifier in seen_decisions or not decision['answer_ids']:
+                raise ValueError('Duplicate or empty decision')
+            seen_decisions.add(identifier)
+            if index and identifier not in selected:
+                raise ValueError('Foreign focused review group')
+            if (judgment.get('label') not in {'fits', 'not_fits', 'unsure'}
+                    or not judgment.get('label_updated_at') or not judgment.get('annotator')
+                    or judgment.get('origin') != export['protocol_version']):
+                raise ValueError('Missing explicit timed human judgment')
+            if len(decision['answer_ids']) != len(decision['bindings']):
+                raise ValueError('Answer binding count differs')
+            for aid, binding in zip(decision['answer_ids'], decision['bindings']):
+                if aid in seen_answers or aid not in allowed:
+                    raise ValueError('Repeated or unknown judged answer')
+                seen_answers.add(aid)
+                item, answer = answers[aid]
+                if (answer['binding'] != binding or item['original_item_id'] != decision['original_item_id']):
+                    raise ValueError('Judgment does not match its response binding')
+                if answer['technical_failure']:
+                    raise ValueError('Technical failure received a semantic judgment')
+                if identified_group_id(item, answer) != identifier:
+                    raise ValueError('Decision group differs from exact context and response')
+        if index and seen_decisions != selected:
+            raise ValueError('Focused decisions differ from selected groups')
+
+
+def _main_table_row(aid, item, answer, judgment, events, reuse):
+    new = judgment['kind'] == NEW
+    last = [(ix, e) for ix, e in enumerate(events) if aid in e['answer_ids']]
+    event_index, event = last[-1] if new else ('', None)
+    approval = reuse[judgment['group_id']] if not new else None
+    return dict(layer='main', judgment_id=aid, answer_id=aid, item_id=item['original_item_id'],
+        run_id=answer['binding']['run_id'], system=answer['system_id'], task=answer['task'],
+        response_sha256=answer['binding']['response_sha256'], label=judgment['label'],
+        kind=judgment['kind'], round=judgment['round'], group_id=judgment['group_id'],
+        event_index=str(event_index), annotator=event['judgment']['annotator'] if new else approval['proposal']['historical_sources'][0]['judgment']['annotator'],
+        label_updated_at=event['judgment']['label_updated_at'] if new else '',
+        confirmed_at='' if new else approval['confirmed_at'], confirmed_by='' if new else approval['confirmed_by'],
+        source_id=judgment['round'] if new else 'historical_reuse', displayed_response='')
 
 def _merge_decisions(exports, answers, rechecks):
     """Accept only the two explicitly documented later rechecks, once each."""
@@ -59,50 +229,16 @@ def _merge_decisions(exports, answers, rechecks):
 
 
 def load_final_review(saved_root, cohort_path):
-    """Validate source hashes, contexts, bindings, approvals and aggregate coverage."""
-    saved = Path(saved_root)
-    inventory = _read(saved / 'files.json')['files']
-    exports = [_read(saved / path) for path in EXPORTS]
-    audit = _read(saved / FINAL / 'combined-review-coverage.json')
-    proof = _read(saved / FINAL / 'reuse-context-evidence.json')
-    sources = {s['path']: s for e in exports for s in e['source_files']}
-    for relative in [*EXPORTS, *sources, f'{FINAL}/combined-review-coverage.json',
-                     f'{FINAL}/reuse-context-evidence.json', f'{FINAL}/selection-manifest.json']:
-        content = (saved / relative).read_bytes()
-        entry = inventory[relative]
-        if len(content) != entry['bytes'] or hashlib.sha256(content).hexdigest() != entry['sha256']:
-            raise ValueError('Saved review evidence differs: ' + relative)
-    selection = _read(saved / FINAL / 'selection-manifest.json')
-    identified_review_coverage(saved / EXPORTS[0], saved, cohort_path)
-    identified_review_coverage(saved / EXPORTS[1], saved, cohort_path,
-                               selected_group_ids=selection['reasons'])
-    with Path(cohort_path).open(encoding='utf-8-sig') as handle:
-        cohort = {r['item_id']: r for r in csv.DictReader(handle)}
-    answers = {}
-    for relative in sources:
-        for item in _read(saved / relative)['items']:
-            if item['original_item_id'] not in cohort:
-                continue  # Original 395-item bundles preserve the 14 excluded records.
-            row = cohort[item['original_item_id']]
-            if (item['sentence'], item['acronym'], item['gold']) != (row['sentence'], row['acronym'], row['gold_expansion']):
-                raise ValueError('Review context differs from the scored cohort')
-            for answer in item['answers']:
-                binding = answer['binding']; aid = answer['id']
-                if (aid in answers or aid != digest(binding) or binding['item_id'] != row['item_id']
-                        or binding['response_sha256'] != hashlib.sha256(answer['raw'].encode()).hexdigest()):
-                    raise ValueError('Duplicate or invalid response binding')
-                if binding['task'] != {'selection': 'select', 'generation': 'generate'}[answer['task']]:
-                    raise ValueError('Task binding differs')
-                answers[aid] = (item, answer)
-    judged, events, rechecks = _merge_decisions(exports, answers, audit['rechecks'])
-    reuse_groups = exports[0]['historical_reuse']
-    if exports[1]['historical_reuse']:
-        raise ValueError('Unexpected second-round historical reuse')
+    """Validate source hashes, reconstructed answers, event history and final labels."""
+    table_rows, provenance = load_review_table(saved_root)
+    answers, bundle_answers = reconstruct_review_answers(saved_root, cohort_path, provenance)
+    exports, reuse_groups = expand_review_history(provenance)
+    _validate_rounds(exports, answers, bundle_answers, provenance['selection'])
+    judged, events, rechecks = _merge_decisions(exports, answers, provenance['rechecks'])
     for gid, reuse in reuse_groups.items():
-        p = reuse['proposal']; context = proof['groups'][gid]
+        p = reuse['proposal']; context = provenance['reuse_contexts'][gid]
         if (reuse['kind'] != REUSE or not reuse.get('confirmed_at') or not reuse.get('confirmed_by')
-                or p['source_sha256'] != proof['source_sha256']
-                or context['historical_context'] != context['current_context']
+                or p['source_sha256'] != provenance['reuse_source_sha256']
                 or p['label'] not in {'fits', 'not_fits', 'unsure'}
                 or len(p['new_answer_ids']) != len(p['new_bindings']) or not p['historical_sources']):
             raise ValueError('Historical reuse lacks explicit approval or matching context')
@@ -110,7 +246,7 @@ def load_final_review(saved_root, cohort_path):
             item, answer = answers[aid]
             if (aid in judged or binding != answer['binding'] or identified_group_id(item, answer) != gid
                     or item['original_item_id'] != context['original_item_id']
-                    or any(item.get(k) != v for k, v in context['current_context'].items())
+                    or any(item.get(k) != v for k, v in context['context'].items())
                     or answer['technical_failure']):
                 raise ValueError('Reused answer overlaps or differs from approved binding/context')
             for old in p['historical_sources']:
@@ -123,11 +259,13 @@ def load_final_review(saved_root, cohort_path):
             judged[aid] = dict(answer_id=aid, group_id=gid, label=p['label'], kind=REUSE,
                                round='historical_reuse', source_export=EXPORTS[0],
                                confirmed_at=reuse['confirmed_at'], confirmed_by=reuse['confirmed_by'])
-    audit_judged = {r['answer_id']: r for r in audit['response_judgments']}
-    if set(judged) != set(audit_judged) or any(
-            j[k] != audit_judged[aid][k] for aid, j in judged.items()
-            for k in ('group_id', 'label', 'kind')):
-        raise ValueError('Reconstructed judgments differ from final audit')
+    table = {r['answer_id']: r for r in table_rows if r['layer'] == 'main'}
+    if set(table) != set(judged):
+        raise ValueError('Consolidated judgments differ from event/reuse history')
+    for aid, judgment in judged.items():
+        item, answer = answers[aid]
+        if table[aid] != _main_table_row(aid, item, answer, judgment, events, reuse_groups):
+            raise ValueError('Consolidated judgment attribution or response differs')
     groups, records = {}, []
     for aid, (item, answer) in answers.items():
         key = (answer['system_id'], answer['task'], answer['binding']['run_id'])
@@ -157,23 +295,18 @@ def load_final_review(saved_root, cohort_path):
             group_id=identified_group_id(item, answer), pending_clarification=(positive and bool(judgment) and judgment['label']=='not_fits')))
     rows = []
     for key, counts in sorted(groups.items()):
-        template = next(r for r in audit['coverage'] if (r['system'], r['task'], r['run_id']) == key)
-        row = {k: counts[k] for k in template}
+        row = {k: counts[k] for k in ROW_FIELDS}
         row['groups'] = len({judged[aid]['group_id'] for aid,(i,a) in answers.items()
                             if aid in judged and (a['system_id'],a['task'],a['binding']['run_id']) == key})
         row['unreviewed'] = row['total'] - row['reviewed']
         row['valid_unreviewed'] = row['unreviewed'] - row['technical_failures']
         row['unresolved'] = row['unreviewed'] + row['unsure']
-        if row != template:
-            raise ValueError('Reconstructed per-system coverage differs from final audit')
         rows.append(row)
-    totals = {k: sum(r[k] for r in rows) for k in audit['totals'] if k in rows[0] and k != 'groups'}
+    totals = {k: sum(r[k] for r in rows) for k in ROW_FIELDS if k not in ('system', 'task', 'run_id', 'groups')}
     totals.update(unique_groups_with_review=len({j['group_id'] for j in judged.values()}),
         full_source_groups=len({identified_group_id(i,a) for i,a in answers.values()}), new_decision_events=len(events),
         new_unique_groups=len({j['group_id'] for j in judged.values() if j['kind']==NEW}),
         historical_reuse_groups=len(reuse_groups), rechecked_responses=len(rechecks))
-    if totals != audit['totals']:
-        raise ValueError('Reconstructed final totals differ from audit')
     pending = [r for r in records if r['pending_clarification']]
     if {r['item_id'] for r in pending} != set(CASES) or len(pending) != 9:
         raise ValueError('Pending clarification cases differ from the approved list')
@@ -181,39 +314,6 @@ def load_final_review(saved_root, cohort_path):
                 reuse= reuse_groups, cases=[r for r in records if r['item_id'] in CASES and
                     (r['pending_clarification'] or (r['item_id']=='kn4-0525' and r['system']=='gemini_generate'))])
 
-
-def load_agent_clarifications(saved_root, review):
-    """Validate a separate delegated assessment layer; never relabel human data."""
-    saved = Path(saved_root)
-    content = (saved / AGENT_CASES).read_bytes()
-    entry = _read(saved / 'files.json')['files'][AGENT_CASES]
-    if len(content) != entry['bytes'] or hashlib.sha256(content).hexdigest() != entry['sha256']:
-        raise ValueError('Agent clarification evidence differs')
-    evidence = json.loads(content)
-    if (evidence['kind'] != 'delegated_agent_assessment_not_human_review'
-            or evidence['personally_reviewed_by_user'] is not False
-            or evidence['included_in_human_metrics'] is not False):
-        raise ValueError('Agent assessments must remain separate from human review')
-    expected = {r['answer_id']: r for r in review['cases']}
-    seen, groups, rows = set(), set(), []
-    for assessment in evidence['assessments']:
-        gid = assessment['group_id']
-        if gid in groups or assessment['label'] not in {'fits', 'not_fits', 'unsure'}:
-            raise ValueError('Duplicate group or invalid agent label')
-        groups.add(gid)
-        if not assessment['responses'] or not assessment['reason']:
-            raise ValueError('Agent assessment lacks responses or reasoning')
-        for response in assessment['responses']:
-            aid = response['answer_id']
-            if aid in seen or response != expected.get(aid) or response['group_id'] != gid:
-                raise ValueError('Agent assessment response binding differs')
-            seen.add(aid)
-            rows.append(response | dict(agent_label=assessment['label'],
-                agent_reason=assessment['reason'], assessment_kind=evidence['kind']))
-    if seen != set(expected):
-        raise ValueError('Agent clarification coverage differs')
-    return dict(provenance={k: v for k, v in evidence.items() if k != 'assessments'},
-                rows=rows, groups=len(groups), responses=len(seen))
 
 
 def write_csv(path, rows):

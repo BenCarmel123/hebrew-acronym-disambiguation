@@ -7,7 +7,8 @@ import unittest
 from unittest.mock import patch
 
 from hebrew_acronyms.saved_test_comparison import compare_saved_tests
-from hebrew_acronyms.test_review_export import export_review, review_coverage
+from hebrew_acronyms.test_review_export import export_review, review_coverage, digest
+from hebrew_acronyms.test_evaluation import summarize_evaluation
 
 ROOT = Path(__file__).resolve().parents[1] / 'saved-results'
 SESSION_NAMES = [
@@ -90,12 +91,20 @@ class GeminiSavedIntegrationTests(unittest.TestCase):
                 compare(local=(source,))
 
     def test_addon_preserves_exact_answers_and_has_no_judgments(self):
-        saved = ROOT / 'human-review-gemini381-20261010/review-data.json'
         with tempfile.TemporaryDirectory() as temp:
             rebuilt = export_review([(SESSIONS[-1][0] / 'gemini/full-test', RUNS['gemini'])],
                                     Path(temp) / 'review.json', source_root=ROOT)
-            self.assertEqual(rebuilt, json.loads(saved.read_text()))
-            coverage = review_coverage(saved, Path(temp) / 'no-annotations.json')
+            coverage = review_coverage(Path(temp) / 'review.json', Path(temp) / 'no-annotations.json')
+        records = {(r['item_id'], r['task']): r for r in summarize_evaluation(SESSIONS[-1][0] / 'gemini/full-test')['records']}
+        for item in rebuilt['items']:
+            answer = item['answers'][0]; binding = answer['binding']
+            record = records[item['original_item_id'], binding['task']]
+            self.assertEqual(answer['id'], digest(binding))
+            self.assertEqual(binding['response_sha256'], hashlib.sha256(record['response'].encode()).hexdigest())
+            self.assertEqual((answer['raw'], answer['status'], answer['auto_score'], answer['auto_valid']),
+                             (record['response'], record['status'], record['correct'], record['valid']))
+            self.assertEqual(answer['shown_order'], record['shown_order'] or [])
+            self.assertEqual(answer['decoded'], record['selected_candidate'] if record['shown_order'] else record['response'])
         self.assertEqual(len(rebuilt['items']), 762)
         self.assertEqual(rebuilt['coverage'], {'automatic_positive': 564, 'automatic_nonpositive': 196,
                                              'technical_failure': 2})
