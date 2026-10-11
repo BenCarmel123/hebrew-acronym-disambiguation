@@ -104,7 +104,7 @@ def load_colab_finetuned(checkpoint_path, *, snapshot_path, expected_sha256,
         "checkpoint_format": "colab_state_dict",
         "weights_sha256": actual_hash,
         "original_manifest": None,
-        # Historical path at the recorded revision; current copy is under notebooks/historical/.
+        # Historical path at the recorded revision; source is retained in the external archive and Git history.
         "reference_notebook": {"path": "notebooks/train_dictabert_colab.ipynb",
                                "revision": COLAB_NOTEBOOK_REVISION,
                                "sha256": COLAB_NOTEBOOK_SHA256},
