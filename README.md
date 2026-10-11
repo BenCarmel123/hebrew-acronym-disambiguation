@@ -10,7 +10,7 @@ Start with the [paper source and PDF build guide](paper/README.md) and the
 [main experimental notebook](notebooks/experimental_study.ipynb). **The notebook's
 saved tables, figures and explanations can be read without installing or running
 anything.** It presents the retained 381-item test cohort and links to the underlying
-evidence. A publication PDF link will accompany the reviewed release.
+evidence. The [planned submission PDF](https://github.com/BenCarmel123/hebrew-acronym-disambiguation/releases/download/submission-2026-10-12/hebrew-acronym-expansion.pdf) is pending publication approval.
 
 For a fresh execution, follow the single
 [saved-analysis installation and reproduction procedure](docs/reproducible_evaluation.md#reproduce-the-saved-test-analysis).

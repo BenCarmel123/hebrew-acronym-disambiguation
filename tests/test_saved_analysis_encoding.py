@@ -26,14 +26,16 @@ class SavedAnalysisEncodingTests(unittest.TestCase):
         self.assertTrue(any(any('\u0590' <= c <= '\u05ff' for c in r['raw'])
                             for r in review['records']))
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
+            root = Path(directory).resolve()
             baseline, simulated = root / 'baseline', root / 'simulated'
             baseline.mkdir(); simulated.mkdir()
             export_review_analysis(review, baseline)
             export_dictalm(audit, saved['comparison'], baseline)
             probe = root / 'probe.txt'
-            probe.write_bytes('שלום'.encode('utf-8'))
+            probe.write_bytes('ש'.encode('utf-8'))
             original_io_open, original_open = io.open, builtins.open
+            original_path_open = Path.open
+            original_read_text, original_write_text = Path.read_text, Path.write_text
 
             def wrapped(original):
                 def open_with_default(file, mode='r', buffering=-1, encoding=None,
@@ -45,11 +47,31 @@ class SavedAnalysisEncodingTests(unittest.TestCase):
                     return original(file, mode, buffering, encoding, errors, newline, closefd, opener)
                 return open_with_default
 
-            with patch('io.open', wrapped(original_io_open)), patch('builtins.open', wrapped(original_open)):
+            def path_open(path, mode='r', buffering=-1, encoding=None, errors=None, newline=None):
+                resolved = path.resolve()
+                if ('b' not in mode and encoding is None
+                        and (resolved.is_relative_to(ROOT) or resolved.is_relative_to(root))):
+                    encoding = 'cp1252'
+                return original_path_open(path, mode, buffering, encoding, errors, newline)
+
+            def text_method(original):
+                def call(path, *args, encoding=None, errors=None, **kwargs):
+                    resolved = path.resolve()
+                    if encoding is None and (resolved.is_relative_to(ROOT) or resolved.is_relative_to(root)):
+                        encoding = 'cp1252'
+                    return original(path, *args, encoding=encoding, errors=errors, **kwargs)
+                return call
+
+            with (patch.object(Path, 'open', path_open),
+                  patch.object(Path, 'read_text', text_method(original_read_text)),
+                  patch.object(Path, 'write_text', text_method(original_write_text)),
+                  patch('io.open', wrapped(original_io_open)),
+                  patch('builtins.open', wrapped(original_open))):
                 # Prove the simulated default is active, and corrupts this Hebrew probe.
                 with probe.open() as handle:
                     self.assertEqual(handle.encoding, 'cp1252')
-                    self.assertNotEqual(handle.read(), 'שלום')
+                    self.assertNotEqual(handle.read(), 'ש')
+                self.assertNotEqual(probe.read_text(), 'ש')
                 replay = load_saved_analysis(ROOT)
                 replay_review = load_final_review(ROOT / 'saved-results', ROOT / 'data/splits/test_items.csv')
                 replay_audit = audit_saved_dictalm(ROOT / 'saved-results', replay['original_manifest'])
