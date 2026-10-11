@@ -10,16 +10,19 @@ The new repository baseline is `eb2e7785dab42dc8ae3ca07372d032adafee9dba`.
 
 | Document | Source and status | SHA-256 |
 |---|---|---|
-| [Submitted proposal](209533108_209233857_315110841_NLP_Project_Proposal.pdf) | Confirmed by Shaked on 1 October 2026; byte-identical to his newly saved Downloads copy and the unchanged old `project/proposal/` file with this name. | `1e335e6baddcb699aecadcc290801785a2e62bea010e82c4a5ecb876f7e72c56` |
-| [Earlier draft](hebrew_acronym_disambiguation_proposal.pdf) | Present at new baseline; identical to old `project/proposal/hebrew_acronym_disambiguation_proposal.pdf`. | `27c92cb4ff6378418c6d0b162008453cd3885c1a893a1c42e9e5c44606da0b5f` |
 | [Guidelines](NLP_course_2025b___project_guidelines.pdf) | Present at new baseline; identical to old `project/guidelines/NLP_course_2025b___project_guidelines.pdf`. | `cc67f99fe1efb1a373d564a2332a64509772f3b166afc551769bd3a5676aaaa4` |
 
-Shaked identified the newly saved Downloads PDF as the submitted proposal on
-1 October 2026. Its SHA-256 and size (171,050 bytes) match the submitted file above.
-This resolves which proposal to use; it does not establish lecturer approval of
-later protocol changes. Both PDFs describe the same generation-versus-selection
-question. The earlier draft differs in literature and scope wording and is retained
-as history, not a competing specification. Neither PDF has been edited.
+The two historical proposal PDFs were removed from the submission tree on
+11 October 2026 at Shaked's request because their author list no longer matches
+the final project team. Byte-identical copies and a SHA-256 receipt are preserved
+outside the repository. The original documents also remain in Git history at
+`59f6ce3ad802c126e31f1108b586d28a64b31613:docs/course/`.
+
+Shaked confirmed which proposal was submitted on 1 October 2026. This does not
+establish lecturer approval of later protocol changes. Both proposals describe
+the same generation-versus-selection question; the earlier draft differs in
+literature and scope wording. The scope summary below refers to those historical
+documents, not to a new submission specification.
 
 ## Submitted scope and subsequent direction
 
@@ -44,4 +47,4 @@ It is not the submitted course scope or an active requirement. Older literature
 claims and methodological recommendations in that concept are not adopted here.
 The submitted PDF also contains an incorrect DictaBERT citation; the corrected
 attribution is already used in the [working manuscript](../../paper/manuscript.md)
-and [bibliography](../../paper/references.bib). Preserve the submitted artifact.
+and [bibliography](../../paper/references.bib). The submitted artifact is preserved in the external backup and Git history.
