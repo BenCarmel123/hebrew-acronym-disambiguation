@@ -6,11 +6,14 @@ Ben's original manuscript is retained in Git at
 The duplicate source has been removed from the active tree. For Overleaf, import the multi-file project, select `main.tex` and XeLaTeX.
 The old `manuscript.md` is a pointer, not another manuscript.
 
-The 10 October draft uses the saved **381-item test results**, retains two qualified
-conclusions, and reports DictaLM separately with four measurements. It is a review
-draft. Author contributions and personal AI reflections still require author
-content or confirmation; independent scientific review has not been performed
-on this revision. The confirmed submission date is 14 October 2026.
+The 11 October draft uses the saved **381-item test results**, retains two qualified
+conclusions, and reports DictaLM separately with four measurements. Shaked approved
+the shared AI disclosure and reflection, including proposal-stage exploration and
+AI assistance with data preparation, implementation, and writing. Ben's review of
+the full paper is planned for 12 October; it is not a prerequisite for this local
+revision. At Shaked's request, the paper uses a shared reflection and omits a
+separate individual-contributions statement. Final delivery review and publication
+remain pending. The confirmed submission date is 14 October 2026.
 
 ## Evidence and reproduction
 
