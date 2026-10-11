@@ -17,7 +17,7 @@ python3.13 -m venv "$ANALYSIS_DIR/.venv"
 "$ANALYSIS_DIR/.venv/bin/python" "$ANALYSIS_DIR/tests/run_saved_analysis.py" \
   --root "$ANALYSIS_DIR" --blocked-root "$ORIGINAL_CHECKOUT" \
   --revision "$ANALYSIS_REVISION" --receipt "$ANALYSIS_DIR/new-execution.json"
-"$ANALYSIS_DIR/.venv/bin/python" -m jupyter nbconvert --to html --no-input \
+"$ANALYSIS_DIR/.venv/bin/python" -m nbconvert --to html --no-input \
   "$ANALYSIS_DIR/notebooks/experimental_study.ipynb"
 ```
 
@@ -148,8 +148,9 @@ automatic target policy; they do not reproduce historical training. The
 [training example](../notebooks/train_dictabert.ipynb) is optional and separate.
 
 ```bash
-.venv/bin/python -B -m unittest tests.test_test_eval_notebook tests.test_test_evaluation tests.test_staged_evaluation tests.test_provider_adapters -v
-.venv/bin/python -B -m tests.run_notebook
+cd "$ANALYSIS_DIR"
+"$ANALYSIS_DIR/.venv/bin/python" -B -m unittest tests.test_test_eval_notebook tests.test_test_evaluation tests.test_staged_evaluation tests.test_provider_adapters -v
+"$ANALYSIS_DIR/.venv/bin/python" -B -m tests.run_notebook
 ```
 
 These checks use invented state or mocks, not live service performance.
