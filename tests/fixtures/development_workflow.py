@@ -1,12 +1,11 @@
-# Frozen development orchestration extracted from experimental_study.ipynb at
-# 5c6980efee34b18e3fa63e53f7fd5713938571c0 (setup and Appendix A code).
+# Development orchestration based on experimental_study.ipynb at
+# 5c6980efee34b18e3fa63e53f7fd5713938571c0; obsolete paper export removed.
 # Test-only fixture; interfaces are guarded and mocked by run_experimental_study.
 # %%
 from pathlib import Path
 from uuid import uuid4
 from IPython.display import HTML, display
 from hebrew_acronyms import experimental_study as study
-from hebrew_acronyms.paper_export import export_paper
 from hebrew_acronyms.saved_study_comparison import display_saved_comparison
 
 ROOT = Path.cwd().resolve()
@@ -24,7 +23,6 @@ settings = dict(
     gemini_generation_config={"thinkingConfig": {"thinkingLevel": "low"}},
     request_timeout=120, output_root=ROOT / "experiments/runs",
     saved_run=None, saved_run_id=None,
-    paper_source_run_id=None,  # Set the exact selected full-dev run ID to enable paper export.
 )
 
 
@@ -99,18 +97,6 @@ if RUN_DEVELOPMENT_APPENDIX:
     display(HTML(prediction_view))
     metrics = results["metrics"]
     disagreements = results["disagreements"]
-
-
-# %%
-if RUN_DEVELOPMENT_APPENDIX:
-    paper_manifest = None
-    if settings["paper_source_run_id"] is not None:
-        paper_manifest = export_paper(
-            artifact, expected_run_id=artifact["run_id"],
-            paper_source_run_id=settings["paper_source_run_id"],
-            output_dir=ROOT / "paper/generated",
-        )
-        print("Paper source:", paper_manifest["run_id"], paper_manifest["execution_status"])
 
 
 # %%

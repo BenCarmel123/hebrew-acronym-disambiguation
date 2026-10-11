@@ -1,133 +1,19 @@
 # Hebrew Acronym Disambiguation
 
-A Tel Aviv University NLP course project investigating how models resolve Hebrew
-acronyms from sentence context. The study compares **free generation** of an
-expansion with **candidate selection** from a supplied inventory. Free generation
-receives neither candidates nor the reference answer (gold). The comparison asks
-how the task formulation and model family affect disambiguation; it does not
-isolate the causal effect of model size.
+A Tel Aviv University NLP course project comparing Hebrew acronym expansion by
+language models and an encoder. The study contrasts free generation with selection
+from a supplied candidate inventory; it does not isolate the causal effect of model size.
 
-## Start here
+Read the [paper source](paper/main.tex) and the
+[experimental study notebook](notebooks/experimental_study.ipynb). The notebook
+contains saved tables, figures and interpretation for the 381-item test cohort.
+Its outputs can be read without running any code. The
+[export index](results/submission-20261010/README.md) identifies reusable results;
+the [paper guide](paper/README.md) explains PDF building.
 
-Open **[experimental_study.ipynb](notebooks/experimental_study.ipynb)** to read the
-saved study. Its opening summary and Section 3 show the main comparison; Section 4
-keeps DictaLM and measurement checks separate. Outputs are saved in the notebook.
-To rerun only this analysis, follow the
-[portable offline instructions](docs/reproducible_evaluation.md#reproduce-the-saved-test-analysis).
-The [export index](results/submission-20261010/README.md) links full-precision tables.
+## Install and check
 
-| Goal | Entry point |
-|---|---|
-| Read or reproduce saved test analysis | [Main notebook](notebooks/experimental_study.ipynb) — no weights, credentials or model calls |
-| Collect new results, when separately authorized | [Test collection](notebooks/run_test_eval_colab.ipynb) — separate from saved analysis |
-| Inspect optional training code | [Training example](notebooks/train_dictabert.ipynb) — not evidence of the historical training run |
-| Inspect historical checkpoint settings | [Historical reference](notebooks/historical/README.md) — preserved source and documented limits |
-| Edit or build the paper | [paper/main.tex](paper/main.tex) and its sections; [build guide](paper/README.md) |
-
-The former dev appendix is retained at
-`5c6980efee34b18e3fa63e53f7fd5713938571c0:notebooks/experimental_study.ipynb`.
-The 32B/72B Qwen route is outside the paper experiments and removed from the active
-tree; its source remains in Git at that commit. Neither is a current analysis entry point.
-
-## Data
-
-The corpus combines observed Wikipedia and Knesset text, Wikipedia sentences with
-substituted acronyms or removed explanations, and authored examples. Wiktionary
-also contributes candidate expansions. Text origin and label evidence are retained
-separately: natural text is not automatically a verified label, and authored text
-is not observed usage.
-
-The stored test split contains **381 items across 60 acronym types**: 253 Knesset,
-41 Wikipedia and 87 Claude-authored sentences. Fourteen earlier test items from four
-Knesset protocols that also supply training items were removed; new runs never
-collect them, and runs saved before the removal are scored without them
-([test cohort](src/hebrew_acronyms/test_cohort.py)). The research/encoder dev cohort
-(`data/study_v1/encoder_inputs/dev.csv`) contains 62 items; the test notebook's
-pilot uses the first ten of the 289 items in `data/splits/dev_items.csv`. The
-[data inventory](data/README.md) and [dataset card](data/mined/DATASET_CARD.md)
-document training inputs, construction, review evidence and limitations, including
-incomplete reconstruction of later additions.
-
-## Method and interpretation
-
-LLMs perform both tasks on the same items. Candidate order is fixed per item and
-recorded for reuse and recovery; labels beyond Z preserve all candidates, including
-the two test items with 30 candidates. The evaluation package includes Qwen2.5 7B and 14B
-and DictaLM through Ollama, Gemini, GPT-4.1 mini, Claude Haiku 5.5 and Grok 4.7 adapters.
-DictaLM, a Hebrew-specialised LLM, runs locally without fine-tuning; see the
-[local DictaLM run](docs/reproducible_evaluation.md#local-dictalm-run). Exact model IDs,
-settings, returned versions and response usage are recorded in each run.
-
-Encoder comparisons distinguish trained DictaBERT candidate scoring from a
-pretrained DictaBERT similarity baseline without task adaptation. Four deterministic
-baselines are also available. The [checkpoint documentation](docs/checkpoints.md) records loading
-requirements and the existing weights' incomplete training provenance. The new
-checkpoint inference uses an explicitly recorded first-occurrence target
-policy; these derived spans are not human annotations.
-
-## Saved results
-
-Open [experimental_study.ipynb](notebooks/experimental_study.ipynb) for the current
-methods, tables, figures, coverage and limitations. Its committed outputs are
-readable without executing cells. Default execution loads the bundled
-[saved evidence](saved-results/README.md); it makes no model requests and requires
-neither API accounts nor weights. Development and test observations remain separate.
-
-The test analysis preserves separate collection runs and full 381-item denominators,
-including technical failures. Gemini now includes all 381 items in both tasks:
-357/381 selection and 207/381 generation under the existing automatic rules,
-with two truncated generation responses retained. The closed human-review exports
-cover **638 groups / 741 of 4,953 responses**: 707 new judgments and 34 explicitly
-approved historical reuses. Human coverage remains partial and diagnostically
-prioritized; automatic scores do not replace it. Four conflicting contexts now have
-separate [delegated agent assessments](saved-results/agent-clarifications-20261010/assessments.json)
-at the user's request: five groups / ten already-reviewed responses. These are
-unblinded agent assessments, with no new human decision or additional human coverage.
-Historical labels and pending flags remain unchanged.
-[Reusable tables and figures](results/submission-20261010/README.md) include full
-response bindings, technical coverage and human-review gaps.
-Earlier measurements under [results/](results/test_results.md) remain historical
-sources and are not silently pooled with the identified collection.
-
-The notebook reports four distinct DictaLM measurements on 381 items: automatic
-generation **125/381 (32.8%)**, generation accepted by **Ben 193/381 (50.7%)**, strict
-selection **0/381 (0%)**, and diagnostic leading-label selection **243/381 (63.8%)**.
-The last is not a replacement score. Ben's labels are bound to the original generation
-responses and loaded once per identity; they do not propagate to selection or other
-models. [Annotation provenance and limits](saved-results/README.md#ben-dictalm-annotations)
-include the source commit, hash, raw-response binding and partially documented rule.
-The saved chat template omits the publisher-specified newline; its causal effect is
-unknown. The zero local API increment does not prevent reporting results: cumulative
-accounted expenditure remains 23.1276784 ILS and historical manifests remain intact.
-The paper reports these four measurements in a separate supplementary table,
-without a common ranking.
-
-[Metric coverage](results/submission-20261010/metric_coverage.csv) separates technical
-failures, stored format validity and automatic matches; human judgments are separate.
-Qwen14B generation has **10/381 (2.6%) technical failures**. The notebook also verifies
-the saved similarity baseline (**245/381, 64.3%**) against its
-[historical predictions](results/dictabert/test_details.csv), without loading weights
-or rerunning inference. Its missing run manifest and sentence snapshot limit provenance.
-
-## Project structure
-
-| Location | Purpose |
-|---|---|
-| [src/hebrew_acronyms/](src/hebrew_acronyms/) | Data processing, model adapters, prompts, scoring and resumable evaluation. |
-| [data/](data/README.md) | Source exports, candidate inventories, review evidence, splits and qualified encoder inputs. |
-| [run_test_eval_colab.ipynb](notebooks/run_test_eval_colab.ipynb) | Pilot/test collection; separate from reading or reproducing saved analysis. |
-| [experimental_study.ipynb](notebooks/experimental_study.ipynb) | Primary notebook for reading and reproducing saved test analysis. |
-| [train_dictabert.ipynb](notebooks/train_dictabert.ipynb) | Optional package-backed training example; not historical run evidence. |
-| [train_dictabert_colab.ipynb](notebooks/historical/train_dictabert_colab.ipynb) | Byte-preserved checkpoint configuration reference; see its historical status. |
-| [tests/](tests/) | Engineering checks with invented inputs and mocked services. |
-| [results/](results/) | Historical predictions and summaries, preserved with their provenance. |
-| [paper/](paper/README.md) | Working LaTeX manuscript, bibliography and build/export instructions. |
-
-<a id="install-and-check"></a>
-
-## Basic setup and execution
-
-Create an isolated environment from the repository root:
+From the repository root, create an isolated Python environment:
 
 ```bash
 python3.13 -m venv .venv
@@ -136,31 +22,37 @@ python3.13 -m venv .venv
 .venv/bin/python -m jupyter lab notebooks/experimental_study.ipynb
 ```
 
-Register it with `.venv/bin/python -m ipykernel install --user --name hebrew-acronym-analysis`,
-then select `hebrew-acronym-analysis` in Jupyter. The main notebook validates and analyzes the bundled saved results.
-Missing or altered evidence raises an error; there is no private-directory fallback. Dependencies are pinned in `requirements.txt` through
-`pyproject.toml`; the full transitive environment is not locked. Model execution
-requires explicit settings and the corresponding local model or API credentials.
-Keep secrets in local environment configuration or Colab Secrets, outside Git.
+Select this environment's kernel. If necessary, register it with
+`.venv/bin/python -m ipykernel install --user --name hebrew-acronym-analysis`.
+Dependencies are pinned in `requirements.txt` through `pyproject.toml`; the complete
+transitive environment is not locked. Use the installed package without import-path
+modifications.
 
-For a guarded portable replay and a new execution receipt, follow
+Default analysis reads bundled evidence and checks its identities. It requires no
+model weights, credentials, training or API calls. For a fresh, guarded execution
+from a commit archive, follow
 [reproduce the saved analysis](docs/reproducible_evaluation.md#reproduce-the-saved-test-analysis).
-The historical receipt remains unchanged.
+That guide also gives offline checks and explains the separate collection workflow.
 
-For Colab evaluation, follow the [reproducible execution guide](docs/reproducible_evaluation.md).
-It covers a commit-identified archive, persistent Drive output, provider setup,
-per-system pilot inspection, cumulative costs and recovery after interruption.
-Full test requires a successful matching pilot for each selected system. The guide
-also documents local development runs, checkpoint inference and training; training
-is a separate experiment rather than an implicit evaluation step.
+## Repository map
 
-Run the focused evaluation checks without live API calls:
+| Location | Contents |
+|---|---|
+| [notebooks/experimental_study.ipynb](notebooks/experimental_study.ipynb) | Main methods and saved-results analysis. |
+| [src/hebrew_acronyms/](src/hebrew_acronyms/) and [tests/](tests/) | Data preparation, models, scoring, collection and engineering checks. |
+| [data/](data/README.md) | Frozen exports, candidate inventory, review evidence and encoder inputs. |
+| [saved-results/](saved-results/README.md) | Identified response journals, annotation provenance and source signatures. |
+| [results/submission-20261010/](results/submission-20261010/README.md) | Tables derived from the saved evidence. |
+| [paper/](paper/README.md) | LaTeX manuscript, bibliography and figures. |
 
-```bash
-.venv/bin/python -B -m unittest tests.test_test_eval_notebook tests.test_test_evaluation tests.test_staged_evaluation tests.test_provider_adapters -v
-```
+The optional [collection notebook](notebooks/run_test_eval_colab.ipynb) and
+[training example](notebooks/train_dictabert.ipynb) perform separate operations;
+they are not needed for saved analysis. New collection needs explicit inputs,
+provider access and budget settings. Checkpoint retrieval and the limits of
+historical training evidence are documented in [checkpoints](docs/checkpoints.md).
 
-For data preparation and additional checks, see [data processing](docs/data_processing.md),
-[local pipelines](docs/pipelines.md) and the execution guide's offline checks.
-AI assistance contributed code, checks and draft prose; it does not establish
-human annotation or scientific validation.
+The [dataset card](data/mined/DATASET_CARD.md) distinguishes observed, transformed
+and authored text and explains incomplete annotation and reconstruction evidence.
+Human review is partial and diagnostically selected. AI assistance contributed code,
+checks, draft prose and the explicitly identified data work; it does not establish
+independent human annotation. Development observations remain separate from test results.
