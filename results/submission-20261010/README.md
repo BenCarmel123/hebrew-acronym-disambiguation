@@ -20,10 +20,12 @@ or API calls. Ten exported files are tracked:
 The notebook also produces untracked coverage, event/recheck, agreement, cost,
 pilot and similarity-provenance exports, plus figures and clarification views.
 There are 23 generated CSV/JSON analysis exports, of which 10 are tracked.
-Historical audits compared all 23 against external accepted outputs; the runner
-itself executes the notebook and records provenance but does not automatically
-compare exports. New acceptance requires a separate byte-for-byte comparison of
-all 23. The agent-assessment export has been retired. Execution receipts are
+Public reproduction can compare the 10 tracked references with copies saved
+before execution or retrieved from the same fixed Git revision. The other 13
+are generated without distributed reference copies. Our release audit compared
+all 23 byte-for-byte against an external accepted baseline; this is separate
+from public reproduction. The runner records provenance but does not automatically
+compare exports. The agent-assessment export has been retired. Execution receipts are
 saved outside Git and identify their actual notebook and package sources.
 
 The primary review remains 741/4,953 responses: 707 new judgments and 34 approved
