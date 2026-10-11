@@ -7,9 +7,9 @@ import unittest
 from unittest.mock import patch
 
 from hebrew_acronyms.saved_human_review import (
-    load_final_review, load_agent_clarifications, _merge_decisions, EXPORTS, FINAL,
+    load_final_review, load_review_table, reconstruct_review_answers, expand_review_history,
+    _merge_decisions, _validate_rounds, PROVENANCE, REVIEW,
 )
-from hebrew_acronyms.test_review_export import identified_review_coverage
 
 ROOT = Path(__file__).resolve().parents[1]
 SAVED = ROOT/'saved-results'
@@ -17,6 +17,16 @@ COHORT = ROOT/'data/splits/test_items.csv'
 
 
 class FinalReviewTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.table, cls.provenance = load_review_table(SAVED)
+        cls.answers, cls.bundle_answers = reconstruct_review_answers(SAVED, COHORT, cls.provenance)
+        cls.exports, cls.reuse = expand_review_history(cls.provenance)
+
+    def validate(self, exports=None, answers=None, selection=None):
+        _validate_rounds(exports or self.exports, answers or self.answers, self.bundle_answers,
+                         selection or self.provenance['selection'])
+
     def setUp(self):
         network = patch('socket.socket.connect', side_effect=AssertionError('Network forbidden'))
         network.start(); self.addCleanup(network.stop)
@@ -77,58 +87,114 @@ class FinalReviewTests(unittest.TestCase):
             checked+=1
         self.assertEqual(checked,4953)
 
-    def test_delegated_assessments_preserve_human_history_and_exact_bindings(self):
-        review = load_final_review(SAVED, COHORT)
-        original = copy.deepcopy(review)
-        result = load_agent_clarifications(SAVED, review)
-        self.assertEqual((result['groups'], result['responses']), (5, 10))
-        self.assertEqual(review, original)
-        self.assertEqual(review['totals']['reviewed'], 741)
-        self.assertFalse(result['provenance']['personally_reviewed_by_user'])
-        self.assertFalse(result['provenance']['included_in_human_metrics'])
-        changed = [r for r in result['rows'] if r['agent_label'] != r['human_label']]
-        self.assertEqual(len(changed), 6)
-        self.assertTrue(all(r['item_id'] == 'kn4-0525' and r['agent_label'] == 'fits' for r in changed))
-        for field in ('raw', 'option_mapping', 'run_id', 'human_label'):
-            wrong = copy.deepcopy(review)
-            wrong['cases'][0][field] = 'altered'
-            with self.assertRaisesRegex(ValueError, 'binding differs'):
-                load_agent_clarifications(SAVED, wrong)
+    def test_focused_denominator_requires_exact_selection(self):
+        self.validate()
+        selection = copy.deepcopy(self.provenance['selection'])
+        selection['reasons']['unknown'] = 'foreign group'
+        with self.assertRaisesRegex(ValueError, 'Selected review group missing'):
+            self.validate(selection=selection)
+        selection = copy.deepcopy(self.provenance['selection'])
+        selection['reasons'].pop(next(iter(selection['reasons'])))
+        with self.assertRaisesRegex(ValueError, 'Foreign focused'):
+            self.validate(selection=selection)
 
-    def test_focused_denominator_requires_explicit_selection(self):
-        with self.assertRaisesRegex(ValueError,'coverage differs'):
-            identified_review_coverage(SAVED/EXPORTS[1],SAVED,COHORT)
-        selection=json.loads((SAVED/FINAL/'selection-manifest.json').read_text())['reasons']
-        result=identified_review_coverage(SAVED/EXPORTS[1],SAVED,COHORT,selected_group_ids=selection)
-        self.assertEqual((result['decisions'],result['covered_answers']),(200,239))
-        with self.assertRaisesRegex(ValueError,'Selected review group missing'):
-            identified_review_coverage(SAVED/EXPORTS[1],SAVED,COHORT,selected_group_ids=[*selection,'unknown'])
+    def test_duplicate_decision_and_answer_are_rejected(self):
+        wrong = copy.deepcopy(self.exports)
+        wrong[0]['decisions'].append(wrong[0]['decisions'][0])
+        with self.assertRaisesRegex(ValueError, 'Duplicate'):
+            self.validate(exports=wrong)
+        wrong = copy.deepcopy(self.exports)
+        decision = wrong[0]['decisions'][0]
+        decision['answer_ids'].append(decision['answer_ids'][0])
+        decision['bindings'].append(decision['bindings'][0])
+        with self.assertRaisesRegex(ValueError, 'Repeated'):
+            self.validate(exports=wrong)
 
-    def test_undocumented_duplicate_or_wrong_binding_is_rejected(self):
-        exports=[json.loads((SAVED/p).read_text()) for p in EXPORTS]
-        audit=json.loads((SAVED/FINAL/'combined-review-coverage.json').read_text())
-        sources={s['path'] for e in exports for s in e['source_files']}
-        answers={a['id']:(i,a) for s in sources for i in json.loads((SAVED/s).read_text())['items'] for a in i['answers']}
-        with self.assertRaisesRegex(ValueError,'Undocumented'):
-            _merge_decisions(exports,answers,[])
-        wrong=copy.deepcopy(exports);wrong[1]['decisions'][0]['decision_id']='wrong'
-        with self.assertRaisesRegex(ValueError,'group differs'):
-            _merge_decisions(wrong,answers,audit['rechecks'])
+    def test_foreign_run_binding_is_rejected(self):
+        wrong = copy.deepcopy(self.exports)
+        wrong[0]['decisions'][0]['bindings'][0]['run_id'] = 'foreign-run'
+        with self.assertRaisesRegex(ValueError, 'response binding'):
+            self.validate(exports=wrong)
+
+    def test_technical_failure_cannot_receive_a_judgment(self):
+        wrong = copy.deepcopy(self.answers)
+        aid = self.exports[0]['decisions'][0]['answer_ids'][0]
+        wrong[aid][1]['technical_failure'] = True
+        with self.assertRaisesRegex(ValueError, 'Technical failure'):
+            self.validate(answers=wrong)
+
+    def test_undocumented_recheck_and_wrong_context_are_rejected(self):
+        with self.assertRaisesRegex(ValueError, 'Undocumented'):
+            _merge_decisions(self.exports, self.answers, [])
+        wrong = copy.deepcopy(self.exports)
+        wrong[1]['decisions'][0]['decision_id'] = 'wrong'
+        with self.assertRaisesRegex(ValueError, 'group differs'):
+            _merge_decisions(wrong, self.answers, self.provenance['rechecks'])
+
+    def test_recheck_must_follow_original_judgment(self):
+        exports = copy.deepcopy(self.exports)
+        rechecks = copy.deepcopy(self.provenance['rechecks'])
+        recheck = rechecks[0]
+        wrong_time = recheck['previous']['label_updated_at']
+        recheck['latest']['label_updated_at'] = wrong_time
+        event = next(d for d in exports[1]['decisions'] if recheck['answer_id'] in d['answer_ids'])
+        event['judgment']['label_updated_at'] = wrong_time
+        with self.assertRaisesRegex(ValueError, 'Recheck must be later'):
+            _merge_decisions(exports, self.answers, rechecks)
 
     def test_reuse_needs_approval_and_matching_context(self):
         from hebrew_acronyms import saved_human_review as module
-        original=module._read
-        for field in ('confirmed_by','new_bindings'):
-            def changed(path):
-                data=original(path)
-                if str(path).endswith(EXPORTS[0]):
-                    reuse=next(iter(data['historical_reuse'].values()))
-                    if field=='confirmed_by': reuse[field]=''
-                    else: reuse['proposal'][field][0]['response_sha256']='wrong'
-                return data
-            with patch.object(module,'_read',side_effect=changed), self.assertRaises(ValueError):
-                load_final_review(SAVED,COHORT)
+        for field in ('confirmed_by', 'new_bindings', 'context'):
+            data = copy.deepcopy(self.provenance)
+            reuse = next(iter(data['historical_reuse'].values()))
+            if field == 'confirmed_by':
+                reuse[field] = ''
+            elif field == 'new_bindings':
+                reuse['proposal'][field][0]['response_sha256'] = 'wrong'
+            else:
+                next(iter(data['reuse_contexts'].values()))['context']['sentence'] = 'changed'
+            with patch.object(module, 'load_review_table', return_value=(self.table, data)), self.assertRaises(ValueError):
+                load_final_review(SAVED, COHORT)
+
+    def test_table_fields_must_match_full_event_attribution(self):
+        from hebrew_acronyms import saved_human_review as module
+        for field in ('label', 'run_id', 'response_sha256', 'annotator', 'label_updated_at', 'event_index'):
+            table = copy.deepcopy(self.table)
+            table[0][field] = 'changed'
+            with patch.object(module, 'load_review_table', return_value=(table, self.provenance)), self.assertRaisesRegex(ValueError, 'attribution or response'):
+                load_final_review(SAVED, COHORT)
+
+    def test_table_hash_and_duplicate_judgment_are_rejected(self):
+        import tempfile
+        import hashlib
+        import csv
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder); (root/'human-review').mkdir()
+            (root/'files.json').write_text(json.dumps({'files': {}}))
+            (root/PROVENANCE).write_text(json.dumps(self.provenance))
+            (root/REVIEW).write_bytes((SAVED/REVIEW).read_bytes() + b'\n')
+            with self.assertRaisesRegex(ValueError, 'table hash mismatch'):
+                load_review_table(root)
+            rows = copy.deepcopy(self.table); rows[1] = rows[0]
+            with (root/REVIEW).open('w', newline='') as f:
+                writer = csv.DictWriter(f, fieldnames=list(rows[0])); writer.writeheader(); writer.writerows(rows)
+            provenance = copy.deepcopy(self.provenance)
+            provenance['review_sha256'] = hashlib.sha256((root/REVIEW).read_bytes()).hexdigest()
+            (root/PROVENANCE).write_text(json.dumps(provenance))
+            with self.assertRaisesRegex(ValueError, 'Duplicate judgment'):
+                load_review_table(root)
+
+    def test_history_preserves_attribution_and_explicit_confirmation(self):
+        result = load_final_review(SAVED, COHORT)
+        self.assertEqual(len(result['decisions']), 620)
+        self.assertEqual(len({e['judgment']['label_updated_at'] for e in result['decisions']}), 620)
+        self.assertEqual(len({e['judgment']['batch_id'] for e in result['decisions']}), 32)
+        for event in result['decisions']:
+            self.assertEqual(event['judgment']['annotator'], 'שקד')
+            self.assertEqual(event['judgment']['interaction_mode'], 'explicit_table_confirmation')
+            self.assertEqual(event['judgment']['exposure_evidence']['status'], 'unknown')
+        self.assertEqual(result['totals']['automatic_negative_human_fits'], 338)
 
 
-if __name__=='__main__':
+if __name__ == '__main__':
     unittest.main()

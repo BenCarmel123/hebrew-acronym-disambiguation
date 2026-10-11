@@ -19,10 +19,10 @@ def digest(value):
                                     separators=(",", ":")).encode()).hexdigest()
 
 
-def export_review(run_sources, output_path, *, source_root=None):
-    """Write a fresh immutable input bundle for (directory, expected run ID) pairs."""
-    output_path = Path(output_path)
-    if output_path.exists():
+def export_review(run_sources, output_path=None, *, source_root=None, include_excluded=False):
+    """Reconstruct identified answers; optionally write a fresh immutable bundle."""
+    output_path = Path(output_path) if output_path is not None else None
+    if output_path is not None and output_path.exists():
         raise FileExistsError(output_path)
     items, systems, sources, seen = [], [], [], set()
     for directory, expected_id in run_sources:
@@ -51,7 +51,7 @@ def export_review(run_sources, output_path, *, source_root=None):
                             'bytes': path.stat().st_size})
         for record in summary['records']:
             # Items that share a document with training are never scored, so never queued.
-            if not is_scored(record['item_id']):
+            if not include_excluded and not is_scored(record['item_id']):
                 continue
             row = rows[record['item_id']]
             raw = record['response']
@@ -116,9 +116,10 @@ def _write_review_bundle(items, systems, sources, seen, output_path):
               'queues': queues, 'sampling': {'warning': '20 תשובות למדידת קצב; לאחריהן תור כל השליליים וביקורת כל החיוביים. זה אינו מדגם מייצג.',
                                             'size': len(calibration), 'stage': 'calibration'},
               'items': items, 'coverage': dict(Counter(x['sampling_stratum'] for x in items))}
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    with output_path.open('x', encoding='utf-8') as handle:
-        json.dump(bundle, handle, ensure_ascii=False, indent=2)
+    if output_path is not None:
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        with output_path.open('x', encoding='utf-8') as handle:
+            json.dump(bundle, handle, ensure_ascii=False, indent=2)
     return bundle
 
 
@@ -201,19 +202,20 @@ def review_coverage(data_path, annotations_path):
             'source_identity': dataset['source_identity']}
 
 
-def export_encoder_review(directory, test_path, output_path, *, expected_run_id,
-                          expected_identity, expected_predictions_sha256):
+def export_encoder_review(directory, test_path, output_path=None, *, expected_run_id,
+                          expected_identity, expected_predictions_sha256, include_excluded=False):
     """Queue identified encoder candidate choices; this is selection, not generation."""
     from hebrew_acronyms.encoder_test_results import load_encoder_test
-    output_path, directory = Path(output_path), Path(directory)
-    if output_path.exists():
+    output_path = Path(output_path) if output_path is not None else None
+    directory = Path(directory)
+    if output_path is not None and output_path.exists():
         raise FileExistsError(output_path)
     saved = load_encoder_test(directory, test_path, expected_run_id=expected_run_id,
                               expected_identity=expected_identity,
                               expected_predictions_sha256=expected_predictions_sha256)
     items = []
     for row, record in zip(saved['rows'], saved['records']):
-        if not is_scored(row['item_id']):
+        if not include_excluded and not is_scored(row['item_id']):
             continue
         raw = record['selected_candidate'] or ''
         binding = {'item_id': row['item_id'], 'task': 'select', 'run_id': expected_run_id,
