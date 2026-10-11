@@ -32,10 +32,13 @@ Observed reads from a particular audit are empirical evidence, not a guarantee
 that every possible access is blocked. The runner probes representative hooks
 and records imported package location, versions, hashes and real execution counts. Keep its new receipt and outputs; do not overwrite historical receipts.
 The runner executes and records provenance; it does not automatically compare
-exports. Separately compare all 23 generated CSV/JSON files byte-for-byte against
-the accepted external outputs, including the 13 untracked files (see the
-[export index](../results/submission-20261010/README.md)), and inspect Hebrew,
-plots, tables and links in the rendered notebook. HTML generation
+exports. For public reproduction, compare the 10 tracked CSV/JSON reference files
+with copies saved before execution or retrieved from the same fixed Git revision
+(see the [export index](../results/submission-20261010/README.md)). The other 13
+CSV/JSON files are generated too, but their reference copies are not distributed.
+Our release audit compared all 23 byte-for-byte against an external accepted
+baseline; that audit is separate from the public reproduction procedure.
+Inspect Hebrew, plots, tables and links in the rendered notebook; HTML generation
 alone is not visual verification. Dependencies are directly pinned; the complete
 transitive environment is not locked.
 
