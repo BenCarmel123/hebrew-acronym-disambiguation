@@ -22,13 +22,20 @@ python3.13 -m venv "$ANALYSIS_DIR/.venv"
 ```
 
 An archive excludes uncommitted changes. Installation may use the network; execution
-uses a fresh kernel and empty model cache with guards against network, weights,
-child processes and the original checkout. Add `--blocked-root` for every other
-research copy. These Python audit hooks are not an operating-system sandbox. The
-runner probes them and records imported package location, versions, hashes and real
-execution counts. Keep its new receipt and outputs; do not overwrite historical receipts.
-Compare numerical outputs with the [export index](../results/submission-20261010/README.md)
-and inspect Hebrew, plots, tables and links in the rendered notebook. HTML generation
+uses a fresh kernel and empty model cache. Kernel Python audit hooks reject
+`socket.connect`, `socket.getaddrinfo`, `socket.sendto`, `subprocess.Popen`, and
+`open` events under enumerated blocked roots or weight-like paths (`weights` path
+components; `.safetensors`, `.pt`, `.ckpt`; `.bin`/`.pth` outside `site-packages`).
+Add `--blocked-root` for every other research copy. This is **not a security
+sandbox**: other process/network routes and directory access are not covered.
+Observed reads from a particular audit are empirical evidence, not a guarantee
+that every possible access is blocked. The runner probes representative hooks
+and records imported package location, versions, hashes and real execution counts. Keep its new receipt and outputs; do not overwrite historical receipts.
+The runner executes and records provenance; it does not automatically compare
+exports. Separately compare all 23 generated CSV/JSON files byte-for-byte against
+the accepted external outputs, including the 13 untracked files (see the
+[export index](../results/submission-20261010/README.md)), and inspect Hebrew,
+plots, tables and links in the rendered notebook. HTML generation
 alone is not visual verification. Dependencies are directly pinned; the complete
 transitive environment is not locked.
 
@@ -54,8 +61,11 @@ package. Restart if a changed dependency was already loaded, then rerun setup.
 Select providers with `SELECTED_SYSTEMS`. Put only their keys in Colab Secrets,
 using `GEMINI_API_KEY`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `XAI_API_KEY`.
 The recorded API configurations are Gemini `gemini-3.8-flash`, OpenAI
-`gpt-4.1-mini-2025-04-14`, Anthropic `claude-haiku-5-5` and xAI `grok-4.7`
-(low reasoning, no tools, 1,024 output tokens). Exact identifiers are checked before
+`gpt-4.1-mini-2025-04-14`, Anthropic `claude-haiku-5-5` and xAI `grok-4.7`.
+Saved GPT settings use temperature 0 and 512 output tokens; Claude uses effort
+`low` and 1,024 output tokens; Grok uses low reasoning, no tools and 1,024 output
+tokens. These are unequal inference budgets. Truncated responses remain automatic
+failures in the denominator. Exact identifiers are checked before
 requests; a key or successful model lookup does not guarantee credit or inference.
 A blocked provider is not silently replaced.
 
@@ -122,11 +132,16 @@ leading-label parsing remain separate measurements; no combined score is defined
 
 Historical 395-item journals remain immutable. Scoring excludes the documented
 14 overlapping Knesset items, while accounting includes all collected calls.
+Gemini was collected directly on the retained 381; other saved runs can contain
+395 items and are scored on the retained cohort.
 The test contains observed and AI-authored text; candidate labels beyond Z retain
 the two 30-candidate items. Automatic scores, format validity, technical failures and
 human judgments remain distinct. The [human-review evidence](../saved-results/README.md)
 contains 741 main-review response bindings and 381 separately bound Ben labels;
-selective coverage is not benchmark-wide human accuracy.
+`fits` means matching the displayed reference, not independent contextual
+correctness; selective coverage is not benchmark-wide human accuracy. Known
+reference errors and the optimistic most-mined reference are disclosed in the
+[data guide](../data/README.md); frozen primary scores retain the historical labels.
 
 [Encoder inference and retrieval](checkpoints.md) use identified weights and a recorded
 automatic target policy; they do not reproduce historical training. The

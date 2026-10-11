@@ -1,8 +1,10 @@
 """Execute the saved-analysis notebook in a portable checkout, with scoped guards.
 
 Adapted from the historical source-intake nbclient runner. Installation happens
-before this command; the kernel cannot use the network, weights or blocked roots.
-This is a Python I/O guard, not an operating-system security sandbox.
+before this command. Kernel audit hooks reject socket.connect/getaddrinfo/sendto,
+subprocess.Popen, and open events under enumerated roots or weight-like paths.
+Other network/process routes and directory access are outside these hooks; this
+is not a security sandbox.
 """
 import argparse
 from datetime import datetime, timezone
@@ -26,15 +28,15 @@ from pathlib import Path
 blocked = [Path(p).resolve() for p in json.loads(os.environ["ANALYSIS_BLOCKED_ROOTS"])]
 def guard(event, args):
     if event in {"socket.connect", "socket.getaddrinfo", "socket.sendto"}:
-        raise RuntimeError("Network forbidden during saved analysis")
+        raise RuntimeError("Guarded socket operation forbidden during saved analysis")
     if event == "subprocess.Popen":
-        raise PermissionError("Child processes forbidden during saved analysis")
+        raise PermissionError("subprocess.Popen forbidden during saved analysis")
     if event == "open" and isinstance(args[0], (str, bytes, os.PathLike)):
         path = Path(os.fsdecode(args[0])).resolve()
         if any(path.is_relative_to(p) for p in blocked):
-            raise RuntimeError("Original research checkout forbidden")
+            raise RuntimeError("Open under enumerated blocked root forbidden")
         if "weights" in path.parts or path.suffix in {".safetensors", ".pt", ".ckpt"} or (path.suffix in {".bin", ".pth"} and "site-packages" not in path.parts):
-            raise RuntimeError("Model weights forbidden")
+            raise RuntimeError("Open of weight-like path forbidden")
 sys.addaudithook(guard)
 import hebrew_acronyms
 package_path = Path(hebrew_acronyms.__file__).resolve()
@@ -62,7 +64,7 @@ except RuntimeError:
     probes["weights_probe_blocked"] = True
 else:
     raise AssertionError("Weights guard inactive")
-Path(os.environ["ANALYSIS_GUARD_RECEIPT"]).write_text(json.dumps(probes))
+Path(os.environ["ANALYSIS_GUARD_RECEIPT"]).write_text(json.dumps(probes), encoding="utf-8")
 '''
 
 
@@ -92,7 +94,7 @@ def main():
         run = Path(directory)
         startup = run / 'ipython/profile_default/startup'
         startup.mkdir(parents=True)
-        (startup / '00-offline.py').write_text(GUARD)
+        (startup / '00-offline.py').write_text(GUARD, encoding="utf-8")
         km = KernelManager()
         km._kernel_spec = KernelSpec(
             argv=[sys.executable, '-m', 'ipykernel_launcher', '-f', '{connection_file}'],
@@ -110,7 +112,7 @@ def main():
                    ANALYSIS_GUARD_RECEIPT=str(run / 'guard.json'), ANALYSIS_PORTABLE_ROOT=str(root))
         client.on_cell_start = lambda cell, cell_index, **kwargs: print(f'Cell {cell_index + 1}/{len(nb.cells)} ({cell.cell_type})', flush=True)
         client.execute(env=env)
-        probes = json.loads((run / 'guard.json').read_text())
+        probes = json.loads((run / 'guard.json').read_text(encoding="utf-8"))
     nbformat.validate(nb)
     nbformat.write(nb, notebook)
     receipt = {
@@ -119,7 +121,7 @@ def main():
         'python': platform.python_version(), 'platform': platform.platform(),
         'packages': dict(sorted((d.metadata['Name'], d.version) for d in importlib.metadata.distributions())),
         'execution': 'all cells top to bottom; saved analysis only; no development collection cells',
-        'guard_scope': 'kernel Python audit hooks; network, child processes, model weights and specified original checkouts blocked',
+        'guard_scope': 'kernel audit hooks reject socket.connect/getaddrinfo/sendto, subprocess.Popen, and open under enumerated roots or weight-like paths; not a security sandbox; other network/process routes and directory access are not covered',
         'blocked_checkout_names': [p.name for p in args.blocked_root],
         'guard_verification': probes,
         'cells': len(nb.cells),
@@ -130,7 +132,7 @@ def main():
         'analysis_code_sha256': {str(p.relative_to(root)): sha(p) for p in sorted((root / 'src').rglob('*.py'))},
         'evidence_inventory_sha256': sha(root / 'saved-results/files.json'),
     }
-    with receipt_path.open('x') as handle:
+    with receipt_path.open('x', encoding='utf-8') as handle:
         handle.write(json.dumps(receipt, ensure_ascii=False, indent=2) + '\n')
     print(json.dumps({k: receipt[k] for k in ('cells', 'executed_code_cells', 'errors', 'guard_verification')}, indent=2))
 

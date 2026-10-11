@@ -20,10 +20,24 @@ The primary review covers 638 groups / 741 of 4,953 responses: 707 newly judged
 occurrences and 34 explicitly approved historical reuses. Provenance retains all
 620 decision events, two later rechecks, annotators, times, exposure information
 and focused-selection reasons. All responses, including the unreviewed ones, are
-reconstructed from experiment sources. Review was selective; system identity was
-visible, a negative default required explicit confirmation, and prior exposure is
-unknown. Nine automatic-positive / `not_fits` occurrences across four items remain
-unresolved. These judgments do not estimate overall human accuracy. The final
+reconstructed from experiment sources. The primary review had one annotator, Shaked Schnarch (S.S.). System identity
+was visible and a negative default required explicit confirmation. Coverage of technically complete automatic negatives was selective: about
+24–79% across the six main generation systems. The historical
+provenance records prior exposure as unknown. In a retrospective author
+clarification on 12 October 2026, Shaked states that he had not seen AI
+evaluations of the model answers before annotating; the historical record is
+preserved. He clarifies that `fits` meant matching the reference answer shown,
+not independently judging contextual correctness. Consequently, the 338
+automatic-negative / `fits` response occurrences are diagnostic, not global
+accuracy or cross-system human rankings, and review cannot validate erroneous
+references. Selection exceeds generation under the automatic metrics, not under
+an established common human semantic evaluation.
+
+Nine automatic-positive / `not_fits` response judgments across four items remain
+unresolved; six share a grouped decision on `kn4-0525`. These are not nine
+independently adjudicated gold errors. Default-confirmed judgments and grouped
+decisions remain in the provenance; batch timestamps do not measure per-item
+reading time. These judgments do not estimate overall human accuracy. The final
 backup's export differed from the working export only in `annotation_sha256`, not
 in decisions or coverage; both historical source identities are retained in the
 external conversion archive.
@@ -47,7 +61,10 @@ rationale, annotation time and blinding are undocumented. This is a separate
 layer, not an additional primary-review sample. DictaLM retains automatic
 generation 125/381, Ben generation 193/381, strict selection 0/381 and diagnostic
 leading-label selection 243/381. The template's missing newline remains a
-protocol limitation with unknown causal effect.
+protocol limitation with unknown causal effect. The empty `human_judgment`
+column in the DictaLM response export is a retained schema field; the actual
+judgments are in [review.csv](human-review/review.csv), under the separate
+`ben_dictalm` layer.
 
 See [reproduction instructions](../docs/reproducible_evaluation.md) for offline
 analysis and separately authorized collection, and [checkpoint evidence](../docs/checkpoints.md)

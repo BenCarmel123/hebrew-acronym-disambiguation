@@ -24,7 +24,7 @@ ROW_FIELDS = ('system', 'task', 'run_id', 'total', 'new_human_reviewed', 'histor
 
 
 def _read(path):
-    return json.loads(Path(path).read_text())
+    return json.loads(Path(path).read_text(encoding="utf-8"))
 
 
 def _saved_path(saved, relative):
@@ -350,11 +350,11 @@ def export_review_analysis(review, output):
     write_csv(output/'clarification_cases.csv', review['cases'])
     write_csv(output/'review_summary.csv', [review['totals']])
     for name in ('decisions', 'rechecks'):
-        (output/f'human_review_{name}.json').write_text(json.dumps(review[name],ensure_ascii=False,indent=2)+'\n')
+        (output/f'human_review_{name}.json').write_text(json.dumps(review[name],ensure_ascii=False,indent=2)+'\n', encoding='utf-8')
     html = '<!doctype html><meta charset="utf-8"><title>Human review: clarification cases</title><style>'
     html += 'body{font-family:Arial,sans-serif;max-width:1200px;margin:40px auto;padding:20px;color:#222}'
     html += 'td,th{padding:10px;border:1px solid #ddd;text-align:start}table{border-collapse:collapse}section{margin:40px 0}p{line-height:1.7}</style>'
-    (output/'clarification_cases.html').write_text(html+'<h1>Cases for discussion</h1>'+clarification_html(review['cases']))
+    (output/'clarification_cases.html').write_text(html+'<h1>Cases for discussion</h1>'+clarification_html(review['cases']), encoding='utf-8')
 
 
 def review_coverage_figure(review, model_labels, output):

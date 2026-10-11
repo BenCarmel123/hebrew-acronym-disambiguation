@@ -24,18 +24,77 @@ Legacy item IDs collide across files and sometimes within the aggregate. Join on
 content and source references, not those IDs alone. The aggregate has 850 content
 records beyond the current split union. Historical splits have disjoint exact types
 and acronym/sentence pairs but overlapping document keys: 24 train/dev and 60
-train/test, zero dev/test. These facts do not establish checkpoint training exposure.
+train/test, zero dev/test. Those 60 historical train/test protocols cover 97 test
+items. Current encoder train/dev files have no non-empty document key in common
+with the retained test. Historical checkpoint inputs remain unknown; neither
+observation establishes actual training exposure. Exact-string type separation
+also does not imply unseen acronym families: final-letter variants אג״ם/אג״מ
+and מל״ם/מל״מ cross the split in seven test items, alongside prefix variants.
+No absence from model pretraining is established.
 Fourteen earlier test items from four overlapping Knesset protocols were removed;
 [test_cohort.py](../src/hebrew_acronyms/test_cohort.py) preserves the exclusion list.
 Saved 395-item collection records remain unchanged; scoring uses 381 items.
+Gemini was collected directly on those 381 items; this does not apply to every
+saved collection run.
+
+## Candidate inventory and measurement limits
+
+The 2,702 candidate rows comprise 1,685 Wiktionary, 270 Wikipedia, 47 both,
+636 gematria and 64 human-review additions. Additions were made during Knesset
+review, including test-related review. Thus 100% oracle coverage is coverage of
+the completed inventory, not an independently complete untouched dictionary.
+Intended mining filters avoided explicit definitions and additional acronyms;
+retained data, later authored additions and observed exceptions do not universally
+satisfy those filters. The 87 authored test sentences cover 29 types, of which
+28 have retained Knesset test examples. The 221 confirmed and 32 corrected
+Knesset test labels are recorded review categories: the original labels for the
+32 are not recoverable, so verified before/after corrections cannot be asserted.
+
+Three known reference errors remain frozen in the primary evaluation:
+`kn4-0299` explicitly defines מח״ל as overseas volunteers, and `nat-0041` also
+concerns those volunteers; both store the political-party expansion
+`מפלגת חרות לאומית`. In `kn4-0207`, `דף ס״ב` means page 62, not the stored
+`סודי ביותר`. A recorded clean/confirmed review is not proof of correctness.
+A separate, post-hoc three-reference alternative, using original strict
+selection parsing, gives encoder 274/381 and Qwen14 269/381, versus primary
+273/381 and 266/381. The encoder is competitive with the tested local Qwen
+configurations and close to Qwen14; this is not stable superiority. Suspected
+עכו״ם variants remain unresolved; alternate-label scenarios indicate ranking
+fragility rather than established corrections. No historical labels were changed.
+
+A post-hoc wording diagnostic identifies 67/381 references with parentheses.
+Across the six main LLMs, these yield 1/402 automatic generation matches and
+339/402 selection matches: 402 response occurrences on 67 shared items, not
+402 independent items. References include meta-descriptions such as
+`ראשי תיבות שם פרטי ומשפחה (זהות חסויה)` and gematria wording. This documents
+reference-wording/scoring mismatch; parentheses neither make matching impossible
+nor establish semantic invalidity or a causal share of the generation–selection
+gap. On the other 314 items selection still exceeds generation for all six
+systems (Gemini: 294 versus 207). The full-cohort table remains primary; no
+aggregate semantic-accuracy measure is inferred.
+
+The most-mined reference remains 183/381 (48.0%). It is optimistic and
+non-held-out: mining counts are influenced by test-containing data. The direct
+count-equality check matches pairs for 32 of the 41 Wikipedia test items; the
+original count producer is absent, so inclusion of every test sentence is not
+proven. Count-subtraction diagnostics of 156/381 and 135/381 are counterfactuals,
+not recovered leakage-free baselines, and do not replace the plotted reference.
+
+Stored data-generation records identify `claude-sonnet-5` only for the records
+it labels. The author's retrospective clarification identifies Claude Opus 4.6
+through Claude Science for pre-proposal source discovery and feasibility work;
+it is a distinct attribution. AI assisted scraping, but the scraping model
+identity was not recovered. The [review guide](../saved-results/README.md)
+separates reference-relative human judgments from contextual correctness and
+preserves the historical exposure record alongside the author's clarification.
 
 ## Encoder preparation
 
 The retained preparation produces 2,665 train and 62 dev items. Ben's later addition
-of 164 training rows produced the stored 2,829: 126 authored rows without source
-documents, ten resolved boundaries and 28 repeated-target contexts truncated to one
-occurrence. The earlier manifest/trace are archived; they do not document those later
-changes or prove the actual historical training inputs. Do not overwrite stored
+of 164 training rows produced the stored 2,829: 136 authored rows and 28
+repeated-target contexts truncated to one occurrence. The historical dataset
+card's 142 authored rows describes its earlier file, not the current train file.
+The earlier manifest/trace are archived; they do not document those later changes or prove the actual historical training inputs. Do not overwrite stored
 train/dev to conceal this reconstruction limit.
 
 Preparation reads [item_audit.csv](study_v1/review/item_audit.csv), the 16 populated
@@ -56,7 +115,13 @@ in seven `בד״ר` items with `דוקטור` and eleven `רמב״ם` hospital/s
 No global alias/type merge or new gold candidate is inferred. The separate approved
 `ד״ר`/`בד״ר` separation holds eleven otherwise eligible training rows regardless of label.
 Five dev types have one item and each type has one observed gold; this limits claims
-about contextual discrimination. Earlier uncertainty survives unless explicitly superseded.
+about within-type contextual discrimination. At least two retained dev מט״ח
+items have defective references; small dev is not proof of label correctness.
+Earlier uncertainty survives unless explicitly superseded. The 18
+`human_question` strings in the local policy are restored verbatim from commit
+`6baa8f2`, including the rule against AI-only dev gold; decisions and other
+fields are unchanged. This changes input/trace hashes, not prepared train/dev
+rows; fresh receipts retain the actual hashes.
 
 From the repository root, with the package installed, write a fresh external output:
 

@@ -68,7 +68,8 @@ def dedupe_expansions(rows: Sequence[BulletRow]) -> list[BulletRow]:
 # "על ידי" vs "על יד" (different meanings). That distinction requires reading
 # the Hebrew, so the script's job stops at flagging candidates; a person makes
 # the merge/keep call. See `review_near_duplicates` and `apply_review_decisions`
-# below, and `docs/near_duplicate_review.md` for the workflow.
+# below; the `flag-duplicates` and `apply-review` collection commands expose
+# their input and output arguments through `--help`.
 
 import csv
 import difflib

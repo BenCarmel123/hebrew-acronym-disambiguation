@@ -23,7 +23,7 @@ def load_saved_analysis(root):
     import json
 
     import hashlib
-    inventory = json.loads((SAVED_ARTIFACTS / "files.json").read_text())
+    inventory = json.loads((SAVED_ARTIFACTS / "files.json").read_text(encoding="utf-8"))
     for relative, evidence in inventory["files"].items():
         saved_file = SAVED_ARTIFACTS / relative
         if hashlib.sha256(saved_file.read_bytes()).hexdigest() != evidence["sha256"]:
@@ -73,7 +73,7 @@ def load_saved_analysis(root):
     import csv
     from hebrew_acronyms.test_cohort import DOCUMENT_OVERLAP_IDS
     original_manifest = TEST_SESSIONS[0][0] / "qwen/full-test/manifest.json"
-    original_rows = json.loads(original_manifest.read_text())["identity"]["rows"]
+    original_rows = json.loads(original_manifest.read_text(encoding="utf-8"))["identity"]["rows"]
     with (ROOT / "data/splits/test_items.csv").open(encoding="utf-8-sig") as handle:
         scored_rows = list(csv.DictReader(handle))
     assert len(original_rows) == 395 and len(scored_rows) == 381
@@ -82,7 +82,7 @@ def load_saved_analysis(root):
     assert {r["item_id"] for r in removed_rows} == DOCUMENT_OVERLAP_IDS
     title_sets = {}
     for split in ("train", "dev"):
-        with (ROOT / f"data/study_v1/encoder_inputs/{split}.csv").open() as handle:
+        with (ROOT / f"data/study_v1/encoder_inputs/{split}.csv").open(encoding="utf-8") as handle:
             title_sets[split] = {r["page_title"] for r in csv.DictReader(handle)} - {""}
     assert {r["page_title"] for r in removed_rows} <= title_sets["train"]
     assert all(not ({r["page_title"] for r in scored_rows} & titles) for titles in title_sets.values())
@@ -158,7 +158,7 @@ def export_dictalm(dictalm_audit, test_comparison, SUBMISSION_EXPORTS):
     audit_metadata = {k: v for k, v in dictalm_audit.items() if k not in {"records", "ben_annotation"}}
     audit_metadata["ben_annotation"] = {k: v for k, v in ben.items() if k != "judgments"}
     (SUBMISSION_EXPORTS / "dictalm_audit.json").write_text(
-        json.dumps(audit_metadata, ensure_ascii=False, indent=2) + "\n")
+        json.dumps(audit_metadata, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 def export_comparison(ROOT, SUBMISSION_EXPORTS, test_comparison, combined_test_metrics, metric_coverage, baseline_rows):
     for name, rows in {

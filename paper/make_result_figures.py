@@ -2,7 +2,6 @@
 
 Run from the repository root: python paper/make_result_figures.py
 The default regenerates the two-panel figure used by the manuscript.
-arm_comparison remains available as the historical selection-only helper.
 Reads only saved CSV files; it calls no model and changes no result. DictaLM's
 four measurements belong to the separate supplementary manuscript table.
 """
@@ -86,34 +85,6 @@ def style_axis(ax):
 def save_figure(fig, path):
     fig.savefig(path, metadata={"CreationDate": None, "ModDate": None})
     plt.close(fig)
-
-
-def arm_comparison(scores, baselines, path):
-    # Only candidate-selection outcomes share this panel; generation has a
-    # different scoring rule and is shown separately in generate_vs_select.
-    bars = [("Random", baselines["random"], BASELINE),
-            ("Most frequent", baselines["most_frequent"], BASELINE),
-            ("Most mined", baselines["most_mined"], BASELINE),
-            ("Pretrained similarity", scores[("dictabert_similarity", "select")], SIMILARITY),
-            ("Task-trained encoder", scores[("dictabert", "select")], TRAINED)]
-    bars.extend((name, scores[(key, "select")], SELECT_LOCAL if key in LOCAL else SELECT_API)
-                for key, name in LLMS)
-    fig, ax = plt.subplots(figsize=(3.35, 3.25))
-    for position, (name, value, color) in enumerate(bars):
-        ax.barh(position, value, color=color, height=0.65)
-        ax.text(value + 0.015, position, f"{value:.1%}", va="center", fontsize=6.5,
-                bbox={"facecolor": "white", "edgecolor": "none", "pad": 0.1}, zorder=3)
-    ax.set_yticks(range(len(bars)), [bar[0] for bar in bars])
-    ax.invert_yaxis()
-    for boundary in (2.5, 4.5, 6.5):
-        ax.axhline(boundary, color="#dddddd", linewidth=0.6)
-    ax.axvline(baselines["oracle"], color="#666666", linestyle=":", linewidth=0.8)
-    ax.text(baselines["oracle"], -0.95, "Oracle", ha="center", fontsize=6.5)
-    style_axis(ax)
-    ax.set_xlabel("Candidate-selection accuracy", fontsize=7.5)
-    ax.set_title(f"Candidate selection (n = {N_ITEMS})", fontsize=8, pad=13)
-    fig.tight_layout(pad=0.5)
-    save_figure(fig, path)
 
 
 def generate_vs_select(scores, baselines, path):

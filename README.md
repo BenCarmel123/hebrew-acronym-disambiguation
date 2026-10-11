@@ -1,58 +1,32 @@
 # Hebrew Acronym Disambiguation
 
-A Tel Aviv University NLP course project comparing Hebrew acronym expansion by
-language models and an encoder. The study contrasts free generation with selection
-from a supplied candidate inventory; it does not isolate the causal effect of model size.
+This Tel Aviv University NLP course project studies how models resolve Hebrew
+acronyms in context. Its evaluation pipeline compares free generation and selection
+from a supplied candidate inventory on the same occurrences, using prompted language
+models and a task-trained Hebrew encoder. Ben Carmel and Shaked Schnarch are the
+authors.
 
-Read the [paper source](paper/main.tex) and the
-[experimental study notebook](notebooks/experimental_study.ipynb). The notebook
-contains saved tables, figures and interpretation for the 381-item test cohort.
-Its outputs can be read without running any code. The
-[export index](results/submission-20261010/README.md) identifies reusable results;
-the [paper guide](paper/README.md) explains PDF building.
+Start with the [paper source and PDF build guide](paper/README.md) and the
+[main experimental notebook](notebooks/experimental_study.ipynb). **The notebook's
+saved tables, figures and explanations can be read without installing or running
+anything.** It presents the retained 381-item test cohort and links to the underlying
+evidence. A publication PDF link will accompany the reviewed release.
 
-## Install and check
+For a fresh execution, follow the single
+[saved-analysis installation and reproduction procedure](docs/reproducible_evaluation.md#reproduce-the-saved-test-analysis).
+It creates an isolated environment from a committed source archive, checks the
+installed package location and executes the notebook. Execution needs no model
+weights, credentials, training or API calls. Dependencies are pinned directly;
+the complete transitive environment is not locked.
 
-From the repository root, create an isolated Python environment:
+The [data guide](data/README.md) explains corpus construction and known reference
+errors; the [saved-evidence guide](saved-results/README.md) records response and
+review provenance. The [export index](results/submission-20261010/README.md) describes
+reusable tables. Selection exceeds generation under the task-specific automatic
+metrics; selective, reference-relative human review does not establish a common
+semantic ranking. The encoder is competitive with the tested local Qwen
+configurations, subject to the documented comparison limits.
 
-```bash
-python3.13 -m venv .venv
-.venv/bin/python -m pip install -e . jupyterlab ipykernel
-.venv/bin/python -m pip check
-.venv/bin/python -m jupyter lab notebooks/experimental_study.ipynb
-```
-
-Select this environment's kernel. If necessary, register it with
-`.venv/bin/python -m ipykernel install --user --name hebrew-acronym-analysis`.
-Dependencies are pinned in `requirements.txt` through `pyproject.toml`; the complete
-transitive environment is not locked. Use the installed package without import-path
-modifications.
-
-Default analysis reads bundled evidence and checks its identities. It requires no
-model weights, credentials, training or API calls. For a fresh, guarded execution
-from a commit archive, follow
-[reproduce the saved analysis](docs/reproducible_evaluation.md#reproduce-the-saved-test-analysis).
-That guide also gives offline checks and explains the separate collection workflow.
-
-## Repository map
-
-| Location | Contents |
-|---|---|
-| [notebooks/experimental_study.ipynb](notebooks/experimental_study.ipynb) | Main methods and saved-results analysis. |
-| [src/hebrew_acronyms/](src/hebrew_acronyms/) and [tests/](tests/) | Data preparation, models, scoring, collection and engineering checks. |
-| [data/](data/README.md) | Frozen exports, candidate inventory, review evidence and encoder inputs. |
-| [saved-results/](saved-results/README.md) | Identified response journals, annotation provenance and source signatures. |
-| [results/submission-20261010/](results/submission-20261010/README.md) | Tables derived from the saved evidence. |
-| [paper/](paper/README.md) | LaTeX manuscript, bibliography and figures. |
-
-The optional [collection notebook](notebooks/run_test_eval_colab.ipynb) and
-[training example](notebooks/train_dictabert.ipynb) perform separate operations;
-they are not needed for saved analysis. New collection needs explicit inputs,
-provider access and budget settings. Checkpoint retrieval and the limits of
-historical training evidence are documented in [checkpoints](docs/checkpoints.md).
-
-The [dataset card](data/mined/DATASET_CARD.md) distinguishes observed, transformed
-and authored text and explains incomplete annotation and reconstruction evidence.
-Human review is partial and diagnostically selected. AI assistance contributed code,
-checks, draft prose and the explicitly identified data work; it does not establish
-independent human annotation. Development observations remain separate from test results.
+Optional collection and training notebooks are separate from this reading and
+reproduction path; their requirements and historical limitations are linked from
+the reproduction guide.
