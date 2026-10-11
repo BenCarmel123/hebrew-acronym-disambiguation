@@ -14,3 +14,6 @@ make -C paper check
 This creates `paper/build/main.pdf` and checks template hashes, references, glyphs,
 layout warnings and the eight-page body limit. Inspect all PDF pages visually
 after building. Build products are ignored by Git.
+
+The [planned English PDF](https://github.com/BenCarmel123/hebrew-acronym-disambiguation/releases/download/submission-2026-10-12/hebrew-acronym-expansion.pdf)
+is pending publication approval.
