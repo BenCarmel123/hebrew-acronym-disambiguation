@@ -3,6 +3,12 @@ Hebrew acronyms are common in news, parliamentary and everyday text. Usually wri
 
 A language model can resolve an acronym by writing its expansion freely or by selecting from supplied candidates. Generation permits answers outside a dictionary; selection constrains the answer space and depends on the available entries. We ask how these formats compare on the same Hebrew occurrences, and how a small task-trained Hebrew encoder compares with prompted language models at selection.
 
-Our contribution is an assembled data and evaluation pipeline linking candidate inventories, contextual examples, saved model responses and transparent scoring. We compare three open LLMs, including the Hebrew-specialised DictaLM, four proprietary LLMs and two uses of DictaBERT: pretrained similarity and task-trained candidate ranking. The test set combines natural parliamentary and Wikipedia text with authored examples that broaden sense coverage (Section~\ref{sec:data}). The analysis notebook reproduces the saved-result comparisons without new model calls.
+We build a data and evaluation pipeline that links a candidate inventory of 2,702 expansions for 638 acronym types, contextual sentences, saved model responses and transparent scoring. The test set has 381 items, mostly natural parliamentary and Wikipedia sentences, with authored examples that broaden sense coverage (Section~\ref{sec:data}). We compare six main LLMs, two local Qwen models and four API models, with two uses of the Hebrew encoder DictaBERT: pretrained similarity and task-trained candidate ranking. The Hebrew-specialised DictaLM 2.0 is reported separately (Section~\ref{sec:eval}). An analysis notebook reproduces every comparison from the saved responses.
 
-The trained encoder is competitive with the tested local Qwen configurations, while API models score higher. For all six main LLMs, selection exceeds generation under the automatic metrics. These findings concern the tested configurations and answer formats: reference wording, unequal scoring rules and imperfect labels limit stronger conclusions. DictaLM is reported separately because of a saved input-template limitation.
+We find that:
+\begin{itemize}
+\item a 184M-parameter encoder trained on fewer than 3,000 examples reaches 71.7\% in selection, above Qwen 7B and close to Qwen 14B, while the API models score higher;
+\item selection beats generation for every LLM, by 39 to 58 points under the automatic metrics;
+\item automatic string matching underrates generation: hand judgment raises DictaLM's generation score from 32.8\% to 50.7\%.
+\end{itemize}
+Section~\ref{sec:limitations} discusses what these results do not show.

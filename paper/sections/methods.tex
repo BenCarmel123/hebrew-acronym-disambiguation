@@ -1,6 +1,6 @@
 \section{Systems and Experimental Design}
 \label{sec:systems}
-The encoder ranks candidates; each LLM performs both generation and selection. Only the ranker receives task-specific supervised training. All LLMs get the same prompt for each task, and selection shows the candidates in the same seeded, shuffled order for every item. DictaBERT has 184 million parameters in the saved reconstruction, compared with approximately 7B and 14B for Qwen; proprietary model sizes are unavailable. These controls do not make the systems equivalent.
+The encoder ranks candidates; each LLM performs both generation and selection. Only the ranker receives task-specific supervised training. All LLMs get the same prompt for each task, and selection shows the candidates in the same seeded, shuffled order for every item. DictaBERT has 184 million parameters, compared with about 7B and 14B for the Qwen models; proprietary model sizes are not public.
 
 \subsection{Supervised Hebrew candidate ranker}
 DictaBERT is a pretrained Hebrew encoder \citep{shmidman2023dictabert}. Our implementation is a \emph{cross-encoder}: the marked sentence and one candidate are encoded jointly, so their tokens can attend to each other. A dropout layer and a linear head turn the pooled representation into a scalar score. Candidates are scored independently, and prediction chooses the highest score within the item's candidates.
@@ -9,14 +9,34 @@ For each training item, the reference candidate is positive and the other candid
 \begin{equation}
 \mathcal{L}=-\frac{1}{M}\sum_{j=1}^{M}\big[z_j\log p_j+(1-z_j)\log(1-p_j)\big].
 \end{equation}
-Here $p_j=\sigma(u_j)$ is the sigmoid of pair score $u_j$, and $z_j$ is 1 for the reference candidate and 0 otherwise. AdamW updates the whole model, with no adapter.
+Here $p_j=\sigma(u_j)$ is the sigmoid of pair score $u_j$, and $z_j$ is 1 for the reference candidate and 0 otherwise. All model weights are updated with AdamW, a variant of the Adam gradient-based optimizer that applies weight decay separately from the gradient update.
 
-The reference Colab notebook specifies dropout 0.1, learning rate $2\times10^{-5}$, pair batch size 16, one epoch and checkpoint selection by lowest development pair loss. The authors attribute the supplied weights to Ben's Colab run based on \texttt{dicta-il/dictabert}. The historical training manifest is incomplete: the executed seed, exact input snapshot and selected epoch/loss are unknown. The checkpoint documentation records these historical gaps (Section~\ref{sec:artifacts}).
+Training uses dropout 0.1, learning rate $2\times10^{-5}$, pair batch size 16 and one epoch, keeping the checkpoint with the lowest development pair loss. The checkpoint was trained by one of the authors (B.C.) in Google Colab, starting from \texttt{dicta-il/dictabert}, with seed 43. The training code set this seed only after creating the model, so it did not fix the scoring head's initial weights.
 
-The saved inference reconstruction verifies the full state dictionary, including its scoring head. Each pair joins the marked sentence and candidate with BERT special tokens. Context is cropped from the outside toward a nominal 256-token limit while retaining the target and candidate. Required tokens can exceed that limit in the historical Colab encoder. Test spans use the recorded first quote-normalized occurrence, with attached letters outside the marked span; these are automatic spans, not human annotations. The LLMs receive the full original sentence.
+For inference we reload the trained weights, including the scoring head, and verify them in full. Each pair joins the marked sentence and candidate with BERT special tokens, and long contexts are cropped to 256 tokens around the target. In test sentences the first occurrence of the acronym is marked automatically. The LLMs receive the full original sentence.
 
-The similarity baseline also uses pretrained DictaBERT, without task adaptation. Its implementation encodes the marked context and each candidate separately and chooses the highest cosine similarity between their \texttt{[CLS]} vectors. Comparison with the cross-encoder changes representation and decision rule as well as training. The similarity predictions are preserved, but their original run manifest and sentence snapshot are unavailable.
+As a baseline without task training, we use pretrained DictaBERT as a similarity scorer: it encodes the marked context and each candidate separately and picks the candidate whose \texttt{[CLS]} vector is most similar to the context's. This baseline differs from the ranker in architecture as well as in training.
 
 \subsection{Prompted language models}
-The generation prompt, written in Hebrew, gives the original sentence and names the acronym separately, asking for its expansion in a few words without explanation. It supplies neither candidates nor the reference. The selection prompt adds the candidate list and requests one label, such as A or AA, with no extra text. Neither prompt includes worked examples. We use \texttt{qwen2.5:7b} and \texttt{qwen2.5:14b} \citep{qwen2025technical} through Ollama with Q4\_K\_M quantization, the Hebrew-specialised DictaLM 2.0 Instruct \citep{shmidman2024dictalm} (7.25B parameters, \texttt{dictalm2.0-instruct-GGUF}, Q4\_K\_M) through Ollama with temperature 0 and seed 42,
-\texttt{gemini-3.8-flash} with low thinking, \texttt{gpt-4.1-mini-2025-04-14}, \texttt{claude-haiku-5-5}, and \texttt{grok-4.7} with low reasoning and no tools. Each item has one scored response per task; collection logs retain technical attempts. The saved Qwen 7B settings explicitly record temperature 0, seed 42 and \texttt{num\_predict=512}; Qwen 14B records the same options. GPT records temperature 0 and a 512-token output limit; Claude records low effort and a 1,024-token limit. Inference budgets are unequal, and truncated responses score zero. These settings do not establish full determinism, and low thinking is not disabled thinking. Full prompts, response identities and run settings are preserved in the saved-result exports.
+The generation prompt, written in Hebrew, gives the original sentence and names the acronym separately, asking for its expansion in a few words without explanation. It supplies neither candidates nor the reference. The selection prompt adds the candidate list and requests one label, such as A or AA, with no extra text. Neither prompt includes worked examples. Every LLM received exactly the same prompt text for each item and task, verified from the saved requests, although chat templates and APIs differ. Table~\ref{tab:llms} lists the models and recorded settings.
+
+\begin{table}[t]
+\centering\small
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}lll@{}}
+\toprule
+Model & Access & Recorded settings \\
+\midrule
+Qwen 2.5 7B, 14B \citep{qwen2025technical} & Ollama, Q4\_K\_M & temp.\ 0, seed 42 \\
+DictaLM 2.0 Instruct \citep{shmidman2024dictalm} & Ollama, Q4\_K\_M & temp.\ 0, seed 42 \\
+GPT-4.1 mini & API & temp.\ 0 \\
+Claude Haiku 5.5 & API & low effort \\
+Gemini 3.8 Flash & API & low thinking \\
+Grok 4.7 & API & low reasoning \\
+\bottomrule
+\end{tabular}
+\caption{Prompted LLMs. Local models and GPT-4.1 mini allow 512 output tokens; Claude, Gemini and Grok allow 1,024. DictaLM 2.0 has 7.25B parameters. Exact model identifiers are in the saved-result exports.}
+\label{tab:llms}
+\end{table}
+
+Each item has one scored response per task. Output budgets differ, and truncated responses score zero. Full prompts, responses and run settings are in the saved-result exports.
