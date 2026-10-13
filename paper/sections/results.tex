@@ -37,13 +37,37 @@ Grok 4.7 & 48.3 & 92.1 \\
 
 \subsection{The task-trained encoder}
 \label{sec:res-encoder}
-The trained encoder selects the reference in 273 of 381 items (71.7\%). It beats Qwen 7B by 13.1 points and trails the weakest API model, GPT-4.1 mini, by 11.5 points. Against Qwen 14B the margin is small: the encoder leads by seven items (1.8 points), and correcting three known reference errors (Section~\ref{sec:limitations}) gives 274 versus 269. The pretrained similarity baseline scores 245 (64.3\%); the trained ranker adds 28 correct items (7.3 points), although the two also differ in architecture. Like AcroBERT \citep{chen2023gladis}, the ranker scores context--candidate pairs, so it can rank candidates for acronyms it never saw in training.
+The trained encoder selects the reference in 273 of 381 items (71.7\%). It beats Qwen 7B by 13.1 points and trails the weakest API model, GPT-4.1 mini, by 11.5 points. Against Qwen 14B the encoder leads by seven items (1.8 points) with only about 1.2\% of its parameters (184M versus 14.8B, roughly 80 times fewer), although the margin is small, and correcting three known reference errors (Section~\ref{sec:limitations}) gives 274 versus 269. The pretrained similarity baseline scores 245 (64.3\%); the trained ranker adds 28 correct items (7.3 points), although the two also differ in architecture. Like AcroBERT \citep{chen2023gladis}, the ranker scores context--candidate pairs, so it can rank candidates for acronyms it never saw in training.
 
 \subsection{Generation versus selection}
 \label{sec:res-formats}
 Selection scores exceed generation scores for each of the six LLMs (Figure~\ref{fig:generate-vs-select}b), by 39.4 points for Gemini to 58.3 points for Qwen 14B. The two formats differ in more than candidate access: generation is checked by string inclusion, while selection must return a valid label, and the inventory contains every test reference (100\% oracle coverage), partly through review-time additions. The gap therefore does not isolate the effect of seeing candidates.
 
 Reference wording explains part of the gap. In 67 of the 381 items the reference contains parentheses, such as \heb{שמונה עשרה (גימטריה)} (eighteen, gematria) for \heb{י״ח} in \texttt{kn4-0499}. Across the six LLMs, these items yield 1 of 402 automatic generation matches against 339 of 402 selection matches; Grok's \heb{שמונה עשר (18)} is rejected by the string rule but judged to fit by the reviewer. On the remaining 314 items selection still leads for all six systems (Gemini: 207 versus 294 matches). The selective review also marks 338 automatically rejected generated answers as fitting the context, so the generation scores are likely underestimates; a common semantic assessment of both formats is needed to compare answer correctness.
+
+\begin{table}[!htbp]
+\centering\small
+\begin{tabular}{@{}p{0.24\columnwidth}p{0.68\columnwidth}@{}}
+\toprule
+Item / system & Saved evidence \\
+\midrule
+\texttt{kn-0002}\newline DictaLM &
+Context excerpt: \heb{עודף של 650 מיליון ש"ח.}\newline
+Reference: \heb{שקל חדש} (new shekel).\newline
+Generation: \heb{ש"ח = שקלים חדשים.}\newline
+Automatic: no; author (B.C.): yes.\newline
+Selection: \texttt{C.} \heb{שקל חדש}. Strict: no; leading-label diagnostic: yes. \\
+\midrule
+\texttt{kn4-0048}\newline DictaBERT ranker &
+Context excerpt: \heb{18 תומכים, ח"י תומכים}\newline
+Reference: \heb{שמונה עשרה בגימטריה} (eighteen in gematria).\newline
+Selected: \heb{חוק יסוד} (Basic Law).\newline
+Exact candidate match: no. \\
+\bottomrule
+\end{tabular}
+\caption{Two Knesset test items with saved responses (Section~\ref{sec:artifacts}).}
+\label{tab:res-examples}
+\end{table}
 
 \subsection{Results by kind of sentence}
 \label{sec:res-source}
@@ -81,7 +105,7 @@ Grok, sel. & 94.1 & 95.1 & 85.1 \\
 \label{sec:res-measurement}
 Hand judgment changes DictaLM's generation score substantially (Table~\ref{tab:dictalm-supplement}). The automatic rule accepts 125 answers and B.C. accepts 193; they agree on 121, while 72 are accepted only by hand and four only automatically. In selection, all 381 answers add text after the label and fail the strict rule; reading the leading label gives 243 correct (63.8\%), between Qwen 7B and Qwen 14B.
 
-\begin{table}[t]
+\begin{table}[!htbp]
 \centering\small
 \begin{tabular}{@{}lrr@{}}
 \toprule
@@ -101,35 +125,12 @@ Selection: leading label & 243/381 & 63.8 \\
 \label{sec:res-errors}
 Table~\ref{tab:res-examples} shows a correct generated answer that the string rule rejects, a selection answer that fails the strict format, and an encoder error.
 
-\begin{table}[t]
-\centering\small
-\begin{tabular}{@{}p{0.24\columnwidth}p{0.68\columnwidth}@{}}
-\toprule
-Item / system & Saved evidence \\
-\midrule
-\texttt{kn-0002}\newline DictaLM &
-Context excerpt: \heb{עודף של 650 מיליון ש"ח.}\newline
-Reference: \heb{שקל חדש} (new shekel).\newline
-Generation: \heb{ש"ח = שקלים חדשים.}\newline
-Automatic: no; author (B.C.): yes.\newline
-Selection: \texttt{C.} \heb{שקל חדש}. Strict: no; leading-label diagnostic: yes. \\
-\midrule
-\texttt{kn4-0048}\newline DictaBERT ranker &
-Context excerpt: \heb{18 תומכים, ח"י תומכים}\newline
-Reference: \heb{שמונה עשרה בגימטריה} (eighteen in gematria).\newline
-Selected: \heb{חוק יסוד} (Basic Law).\newline
-Exact candidate match: no. \\
-\bottomrule
-\end{tabular}
-\caption{Two Knesset test items with saved responses (Section~\ref{sec:artifacts}).}
-\label{tab:res-examples}
-\end{table}
 
 \subsection{Conclusions}
 \label{sec:conclusions}
 We draw three conclusions.
 
-\emph{A small task-trained encoder is competitive with local LLMs when a candidate list exists.} DictaBERT, with 184M parameters and fewer than 3,000 training items, reaches 71.7\% in selection. It beats Qwen 7B, is close to Qwen 14B, and scores 7.9 points above DictaLM 2.0, a 7.25B Hebrew-specialised LLM, read leniently (63.8\%). The margins over Qwen 14B and DictaLM are small for a single run. The four API models remain ahead (83.2--93.7\%).
+\emph{A small task-trained encoder is competitive with local LLMs when a candidate list exists.} DictaBERT, with 184M parameters and fewer than 3,000 training items, reaches 71.7\% in selection. It beats Qwen 7B, matches Qwen 14B with about 1.2\% of its parameters, and scores 7.9 points above DictaLM 2.0, a 7.25B Hebrew-specialised LLM, read leniently (63.8\%). The margins over Qwen 14B and DictaLM are small for a single run. The four API models remain ahead (83.2--93.7\%).
 
 \emph{Choosing from candidates scores higher than writing the expansion freely.} Selection beats generation for all six main LLMs, by 39.4 to 58.3 points. Part of this gap comes from the different scoring rules and from reference wording, not only from seeing the candidates.
 
