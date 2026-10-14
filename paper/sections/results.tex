@@ -139,7 +139,7 @@ We draw two conclusions.
 
 \subsection{Future work}
 \label{sec:future}
-\paragraph{More and cleaner training data.} The encoder learned from fewer than 3,000 items, most of them weakly labeled substituted sentences. Mining more natural sentences, for example from the Knesset corpus that supplied our reviewed test items, and cleaning their labels would show how far task training can take a small encoder, and whether its gap to the API models narrows.
+\paragraph{More and cleaner training data.} The encoder learned from fewer than 3,000 items, most of them weakly labeled substituted sentences. Mining more natural sentences and cleaning their labels would show how far task training can take a small encoder, and whether its gap to the API models narrows. Our sentences come from only two sources, Wikipedia and parliamentary transcripts. Mining other kinds of Hebrew text, such as news, legal rulings, medical and military writing, informal social-media posts and Rabbinic literature, the domain of HAADS \citep{hacohenkerner2010haads}, would add senses that our sources rarely use and test whether the encoder generalizes beyond them.
 
 \paragraph{Training the LLMs too.} We compare a fine-tuned encoder with LLMs used without task training, so training and model type change together. Fine-tuning an open LLM such as DictaLM 2.0 on the same training data, for example with a parameter-efficient method, would separate the effect of task training from that of architecture and size.
 
