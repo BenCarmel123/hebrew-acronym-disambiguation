@@ -2,8 +2,9 @@
 
 Run from the repository root: python paper/make_result_figures.py
 The default regenerates the two-panel figure used by the manuscript.
-Reads only saved CSV files; it calls no model and changes no result. DictaLM's
-four measurements belong to the separate supplementary manuscript table.
+Reads only saved CSV files; it calls no model and changes no result. DictaLM uses
+its automatic generation score and the leading-label selection reading, the rule
+applied to every LLM in the manuscript (it changes no other LLM's score).
 """
 import csv
 from pathlib import Path
@@ -64,6 +65,13 @@ def load_scores():
         raise ValueError("expected the identified pretrained similarity metric")
     scores[("dictabert_similarity", "select")] = saved_accuracy(
         similarity_rows[0], "exact_candidate_match")
+    dictalm = {row["metric"]: row for row in read_csv(SUBMISSION / "dictalm_reported_metrics.csv")}
+    for task, metric in (("generate", "automatic_generation"),
+                         ("select", "diagnostic_leading_label_selection")):
+        row = dictalm[metric]
+        if int(row["n_items"]) != N_ITEMS or row["system"] != "dictalm":
+            raise ValueError(f"unexpected DictaLM metric: {row}")
+        scores[("dictalm", task)] = int(row["n_correct"]) / N_ITEMS
     baselines = {}
     for row in read_csv(SUBMISSION / "baselines.csv"):
         if int(row["n_items"]) != N_ITEMS:
@@ -89,8 +97,8 @@ def save_figure(fig, path):
 
 def generate_vs_select(scores, baselines, path):
     """Stack the two comparisons, showing only applicable systems in each."""
-    systems = ["qwen", "qwen14", "gemini", "openai", "anthropic", "xai"]
-    llm_labels = ["Qwen 2.5\n7B", "Qwen 2.5\n14B", "Gemini\n3.8 Flash",
+    systems = ["qwen", "qwen14", "dictalm", "gemini", "openai", "anthropic", "xai"]
+    llm_labels = ["Qwen 2.5\n7B", "Qwen 2.5\n14B", "DictaLM\n2.0", "Gemini\n3.8 Flash",
                   "GPT-4.1\nmini", "Claude\nHaiku 5.5", "Grok\n4.7"]
     selection = ["dictabert_similarity", "dictabert", *systems]
     selection_labels = ["DictaBERT\nsimilarity", "DictaBERT\nranker", *llm_labels]
@@ -140,6 +148,8 @@ def generate_vs_select(scores, baselines, path):
             ax.set_axisbelow(True)
             for side in ("top", "right", "left"):
                 ax.spines[side].set_visible(False)
+        for ax in (top, bottom):
+            ax.tick_params(axis="x", labelsize=8.5)
         save_figure(fig, path)
 
 

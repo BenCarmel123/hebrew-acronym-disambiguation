@@ -1,11 +1,11 @@
 \section{Results and Discussion}
 \label{sec:results}
-Figure~\ref{fig:generate-vs-select} and Table~\ref{tab:test-results} give the main comparison, and Table~\ref{tab:dictalm-supplement} reports DictaLM. Three results stand out: the trained encoder matches or beats both local LLMs at selection, selection beats generation for every LLM, and hand judgment changes generation scores substantially.
+Figure~\ref{fig:generate-vs-select} and Table~\ref{tab:test-results} give the main comparison. Three results stand out: the trained encoder matches or beats all three local LLMs at selection, selection beats generation for every LLM, and the Hebrew-specialised LLM stands out in generation.
 
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{figures/generate_vs_select.pdf}
-\caption{Test scores on 381 items, failures counted as wrong. (a) Candidate selection, with reference points; most mined is optimistic (Section~\ref{sec:eval}). (b) Generation and selection for the six main LLMs; generation uses reference-substring matching and selection strict label matching. Exact values: Table~\ref{tab:test-results}; DictaLM: Table~\ref{tab:dictalm-supplement}.}
+\caption{Test scores on 381 items, failures counted as wrong. (a) Candidate selection, with reference points; most mined is optimistic (Section~\ref{sec:eval}). (b) Generation and selection for the seven LLMs; generation uses reference-substring matching and selection the leading label. Exact values: Table~\ref{tab:test-results}.}
 \label{fig:generate-vs-select}
 \end{figure*}
 
@@ -25,6 +25,7 @@ DictaBERT ranker & -- & 71.7 \\
 \midrule
 Qwen 2.5 7B & 8.1 & 58.5 \\
 Qwen 2.5 14B & 11.5 & 69.8 \\
+DictaLM 2.0 & 32.8 & 63.8 \\
 Gemini & 54.3 & 93.7 \\
 GPT-4.1 mini & 33.9 & 83.2 \\
 Claude Haiku 5.5 & 43.3 & 89.0 \\
@@ -41,9 +42,9 @@ The trained encoder selects the reference in 273 of 381 items (71.7\%). It beats
 
 \subsection{Generation versus selection}
 \label{sec:res-formats}
-Selection scores exceed generation scores for each of the six LLMs (Figure~\ref{fig:generate-vs-select}b), by 39.4 points for Gemini to 58.3 points for Qwen 14B. The two formats differ in more than candidate access: generation is checked by string inclusion, while selection must return a valid label, and the inventory contains every test reference (100\% oracle coverage), partly through review-time additions. The gap therefore does not isolate the effect of seeing candidates.
+Selection scores exceed generation scores for each of the seven LLMs (Figure~\ref{fig:generate-vs-select}b), by 31.0 points for DictaLM to 58.3 points for Qwen 14B. The two formats differ in more than candidate access: generation is checked by string inclusion, while selection must return a valid label, and the inventory contains every test reference (100\% oracle coverage), partly through review-time additions. The gap therefore does not isolate the effect of seeing candidates.
 
-Reference wording explains part of the gap. In 67 of the 381 items the reference contains parentheses, such as \heb{שמונה עשרה (גימטריה)} (eighteen, gematria) for \heb{י״ח} in \texttt{kn4-0499}. Across the six LLMs, these items yield 1 of 402 automatic generation matches against 339 of 402 selection matches; Grok's \heb{שמונה עשר (18)} is rejected by the string rule but judged to fit by the reviewer. On the remaining 314 items selection still leads for all six systems (Gemini: 207 versus 294 matches). The selective review also marks 338 automatically rejected generated answers as fitting the context, so the generation scores are likely underestimates; a common semantic assessment of both formats is needed to compare answer correctness.
+Reference wording explains part of the gap. In 67 of the 381 items the reference contains parentheses, such as \heb{שמונה עשרה (גימטריה)} (eighteen, gematria) for \heb{י״ח} in \texttt{kn4-0499}. Across the seven LLMs, these items yield 1 of 469 automatic generation matches against 366 of 469 selection matches; Grok's \heb{שמונה עשר (18)} is rejected by the string rule but judged to fit by the reviewer. On the remaining 314 items selection still leads for all seven systems (Gemini: 207 versus 294 matches). The selective review also marks 338 automatically rejected generated answers as fitting the context, so the generation scores are likely underestimates; a common semantic assessment of both formats is needed to compare answer correctness.
 
 \begin{table}[!htbp]
 \centering\small
@@ -56,7 +57,7 @@ Context excerpt: \heb{עודף של 650 מיליון ש"ח.}\newline
 Reference: \heb{שקל חדש} (new shekel).\newline
 Generation: \heb{ש"ח = שקלים חדשים.}\newline
 Automatic: no; author (B.C.): yes.\newline
-Selection: \texttt{C.} \heb{שקל חדש}. Strict: no; leading-label diagnostic: yes. \\
+Selection: \texttt{C.} \heb{שקל חדש}, read as C: correct. \\
 \midrule
 \texttt{kn4-0048}\newline DictaBERT ranker &
 Context excerpt: \heb{18 תומכים, ח"י תומכים}\newline
@@ -87,6 +88,8 @@ Qwen 7B, gen. & 8.7 & 12.2 & 4.6 \\
 Qwen 7B, sel. & 54.5 & 70.7 & 64.4 \\
 Qwen 14B, gen. & 13.0 & 17.1 & 4.6 \\
 Qwen 14B, sel. & 65.6 & 78.0 & 78.2 \\
+DictaLM 2.0, gen. & 33.2 & 48.8 & 24.1 \\
+DictaLM 2.0, sel. & 64.4 & 75.6 & 56.3 \\
 Gemini, gen. & 47.8 & 78.0 & 62.1 \\
 Gemini, sel. & 94.9 & 95.1 & 89.7 \\
 GPT-4.1 mini, gen. & 32.8 & 51.2 & 28.7 \\
@@ -101,9 +104,9 @@ Grok, sel. & 94.1 & 95.1 & 85.1 \\
 \label{tab:res-source}
 \end{table}
 
-\subsection{DictaLM and measurement}
+\subsection{Hebrew specialisation and hand judgment}
 \label{sec:res-measurement}
-Hand judgment changes DictaLM's generation score substantially (Table~\ref{tab:dictalm-supplement}). The automatic rule accepts 125 answers and B.C. accepts 193; they agree on 121, while 72 are accepted only by hand and four only automatically. In selection, all 381 answers add text after the label and fail the strict rule; reading the leading label gives 243 correct (63.8\%), between Qwen 7B and Qwen 14B.
+DictaLM 2.0 and Qwen 7B have similar sizes (7.25B and 7.6B) and run with the same local setup. DictaLM generates the reference four times as often (32.8\% versus 8.1\%) but gains only 5.3 points in selection (63.8\% versus 58.5\%), consistent with Hebrew-specialised training helping most when no candidates are given, although the two models also differ in base model. To see how much the generation rule matters, B.C. judged all 381 DictaLM generated answers by hand (Table~\ref{tab:dictalm-supplement}). The automatic rule accepts 125 answers and B.C. 193; they agree on 121, while 72 are accepted only by hand and four only automatically.
 
 \begin{table}[!htbp]
 \centering\small
@@ -112,28 +115,28 @@ Hand judgment changes DictaLM's generation score substantially (Table~\ref{tab:d
 DictaLM measurement & Count & \% \\
 \midrule
 Generation: automatic & 125/381 & 32.8 \\
-Generation: author (B.C.) & 193/381 & 50.7 \\
-Selection: strict & 0/381 & 0.0 \\
+Generation: by hand (B.C.) & 193/381 & 50.7 \\
+Selection: bare label only & 0/381 & 0.0 \\
 Selection: leading label & 243/381 & 63.8 \\
 \bottomrule
 \end{tabular}
-\caption{DictaLM 2.0 results on 381 items. ``Author'' is B.C.'s hand judgment; the leading-label row is a lenient reading of answers that fail the strict rule.}
+\caption{DictaLM 2.0 under different scoring rules (381 items). Main results use the automatic generation and leading-label selection rows, the rules applied to every LLM.}
 \label{tab:dictalm-supplement}
 \end{table}
 
 \subsection{Examples and errors}
 \label{sec:res-errors}
-Table~\ref{tab:res-examples} shows a correct generated answer that the string rule rejects, a selection answer that fails the strict format, and an encoder error.
+Table~\ref{tab:res-examples} shows a correct generated answer that the string rule rejects, a selection answer with extra text after the label, and an encoder error.
 
 
 \subsection{Conclusions}
 \label{sec:conclusions}
 We draw three conclusions.
 
-\emph{A small task-trained encoder is competitive with local LLMs when a candidate list exists.} DictaBERT, with 184M parameters and fewer than 3,000 training items, reaches 71.7\% in selection. It beats Qwen 7B, matches Qwen 14B with about 1.2\% of its parameters, and scores 7.9 points above DictaLM 2.0, a 7.25B Hebrew-specialised LLM, read leniently (63.8\%). The margins over Qwen 14B and DictaLM are small for a single run. The four API models remain ahead (83.2--93.7\%).
+\emph{A small task-trained encoder is competitive with local LLMs when a candidate list exists.} DictaBERT, with 184M parameters and fewer than 3,000 training items, reaches 71.7\% in selection. It beats Qwen 7B and DictaLM 2.0 and matches Qwen 14B with about 1.2\% of its parameters. The margins over Qwen 14B and DictaLM are small for a single run, and the four API models remain ahead (83.2--93.7\%).
 
-\emph{Choosing from candidates scores higher than writing the expansion freely.} Selection beats generation for all six main LLMs, by 39.4 to 58.3 points. Part of this gap comes from the different scoring rules and from reference wording, not only from seeing the candidates.
+\emph{Choosing from candidates scores higher than writing the expansion freely.} Selection beats generation for all seven LLMs, by 31.0 to 58.3 points. Part of this gap comes from the different scoring rules and reference wording: judged by hand, DictaLM's generation rises from 32.8\% to 50.7\%, and the selective review marks 338 automatically rejected answers of the other models as fitting. Future evaluations should judge both formats by the same semantic criterion.
 
-\emph{Automatic scoring of free generation is too strict.} Judged by hand, DictaLM's generation rises from 32.8\% to 50.7\%, and the selective review marks 338 automatically rejected answers of the other models as fitting. Future evaluations should validate references independently and judge generated and selected answers by the same semantic criterion.
+\emph{The Hebrew-specialised LLM stands out in generation, not selection.} At a similar size, DictaLM 2.0 generates the reference four times as often as Qwen 7B, but gains only 5.3 points in selection and stays below the trained encoder. In our runs, when candidates are available, a small task-trained encoder outperformed a much larger Hebrew-pretrained LLM.
 
 Two focused future tests could clarify these issues. Newly coined acronym--meaning mappings in informative contexts could probe contextual interpretation versus familiar associations; coinage alone cannot prove absence from pretraining, and arbitrary mappings require contextual evidence. A separate test could vary candidate-set size, plausible hard distractors and option order while retaining the correct answer and a common semantic score. Our lists already include wrong candidates and a random reference. Since chance is $1/k$ for an item with $k$ candidates, changing $k$ changes both chance and difficulty; adding distractors alone would not isolate a statistical effect.
