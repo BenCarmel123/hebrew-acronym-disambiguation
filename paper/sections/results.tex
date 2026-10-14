@@ -100,9 +100,9 @@ Table~\ref{app:res-examples} in Appendix~\ref{app:tables} shows a correct genera
 \label{sec:conclusions}
 We draw two conclusions.
 
-\emph{A small task-trained encoder is competitive with local LLMs when a candidate list exists.} DictaBERT, with 184M parameters and fewer than 3,000 training items, reaches 71.7\% in selection. It beats Qwen 7B and the Hebrew-specialised DictaLM 2.0, a 7.25B LLM, and matches Qwen 14B with about 1.2\% of its parameters. The margins over Qwen 14B and DictaLM are small for a single run, and the four API models remain ahead (83.2--93.7\%).
+\emph{A small task-trained encoder is competitive with local LLMs when a candidate list exists.} DictaBERT, with 184M parameters and fewer than 3,000 training items, reaches 71.7\% in selection. It beats Qwen 7B and the Hebrew-specialised DictaLM 2.0, a 7.25B LLM, and matches Qwen 14B with about 1.2\% of its parameters. The margins over Qwen 14B and DictaLM are small for a single run, and the four API models remain ahead (83.2--93.7\%). In practice, when a Hebrew acronym inventory is available, a small trained ranker is a strong alternative to a local LLM.
 
-\emph{Choosing from candidates scores higher than writing the expansion freely.} Selection beats generation for all seven LLMs, by 31.0 to 58.3 points. Part of this gap comes from the different scoring rules and reference wording: judged by hand, DictaLM's generation rises from 32.8\% to 50.7\%, and the selective review marks 338 automatically rejected answers of the other models as fitting. Future evaluations should judge both formats by the same semantic criterion.
+\emph{Choosing from candidates scores higher than writing the expansion freely.} Selection beats generation for all seven LLMs, by 31.0 to 58.3 points. Part of this gap comes from the different scoring rules and reference wording: judged by hand, DictaLM's generation rises from 32.8\% to 50.7\%, and the selective review marks 338 automatically rejected answers of the other models as fitting. Future evaluations should judge both formats by the same semantic criterion. Selection is therefore the safer choice when an inventory exists, while generation remains necessary for acronyms or senses missing from any list, and its real quality is likely higher than string matching shows.
 
 \subsection{Future work}
 \label{sec:future}
