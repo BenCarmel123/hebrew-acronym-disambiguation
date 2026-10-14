@@ -63,7 +63,7 @@ configurations and close to Qwen14; this is not stable superiority. Suspected
 fragility rather than established corrections. No historical labels were changed.
 
 A post-hoc wording diagnostic identifies 67/381 references with parentheses.
-Across the six main LLMs, these yield 1/402 automatic generation matches and
+Across the six LLMs other than DictaLM, these yield 1/402 automatic generation matches and
 339/402 selection matches: 402 response occurrences on 67 shared items, not
 402 independent items. References include meta-descriptions such as
 `ראשי תיבות שם פרטי ומשפחה (זהות חסויה)` and gematria wording. This documents

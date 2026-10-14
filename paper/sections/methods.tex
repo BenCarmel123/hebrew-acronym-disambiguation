@@ -1,6 +1,6 @@
 \section{Systems and Experimental Design}
 \label{sec:systems}
-The encoder ranks candidates, while each LLM performs both generation and selection. Only the ranker receives task-specific supervised training. All LLMs get the same prompt for each task, and selection shows the candidates in the same seeded, shuffled order for every item. DictaBERT has 184 million parameters, compared with about 7B and 14B for the Qwen models, while proprietary model sizes are not public.
+The encoder ranks candidates, while each LLM performs both generation and selection. Only the ranker receives task-specific supervised training. All LLMs get the same prompt for each task, and selection shows the candidates in one seeded, shuffled order per item, shared by all LLMs. DictaBERT has 184 million parameters, compared with about 7B and 14B for the Qwen models, while proprietary model sizes are not public.
 
 \subsection{Supervised Hebrew candidate ranker}
 DictaBERT is a pretrained Hebrew encoder \citep{shmidman2023dictabert}. Our implementation is a \emph{cross-encoder}: the marked sentence and one candidate are encoded jointly, so their tokens can attend to each other. A dropout layer and a linear head turn the pooled representation into a scalar score. Candidates are scored independently, and prediction chooses the highest score within the item's candidates.
@@ -35,7 +35,7 @@ Gemini 3.8 Flash & API & low thinking \\
 Grok 4.7 & API & low reasoning \\
 \bottomrule
 \end{tabular}
-\caption{Prompted LLMs: Qwen 2.5 \citep{qwen2025technical} and DictaLM 2.0 \citep{shmidman2024dictalm}, 7.25B parameters, run locally with Q4\_K\_M quantization. Local models and GPT-4.1 mini allow 512 output tokens, while Claude, Gemini and Grok allow 1,024. Exact model identifiers are in the saved-result exports.}
+\caption{Prompted LLMs: Qwen 2.5 \citep{qwen2025technical} and DictaLM 2.0 (7.25B parameters) \citep{shmidman2024dictalm} run locally with Q4\_K\_M quantization. Local models and GPT-4.1 mini allow 512 output tokens, while Claude, Gemini and Grok allow 1,024. Exact model identifiers are in the saved-result exports.}
 \label{tab:llms}
 \end{table}
 
