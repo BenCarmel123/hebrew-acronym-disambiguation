@@ -137,4 +137,14 @@ We draw two conclusions.
 
 \emph{Choosing from candidates scores higher than writing the expansion freely.} Selection beats generation for all seven LLMs, by 31.0 to 58.3 points. Part of this gap comes from the different scoring rules and reference wording: judged by hand, DictaLM's generation rises from 32.8\% to 50.7\%, and the selective review marks 338 automatically rejected answers of the other models as fitting. Future evaluations should judge both formats by the same semantic criterion.
 
-Two future tests could clarify these results: newly coined acronym--meaning pairs in informative contexts, which would separate contextual interpretation from familiar associations, and varying candidate-set size, hard distractors and option order under a common semantic score.
+\subsection{Future work}
+\label{sec:future}
+\paragraph{More and cleaner training data.} The encoder learned from fewer than 3,000 items, most of them weakly labeled substituted sentences. Mining more natural sentences, for example from the Knesset corpus that supplied our reviewed test items, and cleaning their labels would show how far task training can take a small encoder, and whether its gap to the API models narrows.
+
+\paragraph{Training the LLMs too.} We compare a fine-tuned encoder with LLMs used without task training, so training and model type change together. Fine-tuning an open LLM such as DictaLM 2.0 on the same training data, for example with a parameter-efficient method, would separate the effect of task training from that of architecture and size.
+
+\paragraph{A common semantic score.} Generation and selection are now scored by different rules. Judging every answer of every model by the same semantic criterion, with two annotators and an agreement estimate, would measure the true gap between the formats. An LLM judge could reduce this effort if it is first validated against those human labels.
+
+\paragraph{Variability and robustness.} Each system ran once. Training the encoder with several seeds set before initialization, and running the LLMs with several candidate orders and prompt wordings, would show how stable the differences are.
+
+\paragraph{Harder and cleaner tests.} Newly coined acronym--meaning pairs in informative contexts would separate contextual interpretation from familiar associations. Varying candidate-set size, hard distractors and option order would test how selection depends on the list; since chance is $1/k$ for $k$ candidates, such a test must control for chance. Finally, independently validating the test references would remove known errors, such as the three wrong labels in Section~\ref{sec:limitations}.
