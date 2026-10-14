@@ -15,4 +15,9 @@ This creates `paper/build/main.pdf` and checks template hashes, references, glyp
 layout warnings and the eight-page body limit. Inspect all PDF pages visually
 after building. Build products are ignored by Git.
 
-The final version (14 October 2026) is built from this source with the command above.
+The [14 October submission PDF](https://github.com/BenCarmel123/hebrew-acronym-disambiguation/releases/download/submission-2026-10-14/hebrew-acronym-expansion.pdf)
+is built from this source with the command above.
+Its seven-LLM comparison uses a uniform post-hoc leading-label reanalysis of saved
+responses. Original strict-label scores remain available as sensitivity evidence;
+human generation judgments are reported separately. The 12 October release is an
+earlier archived paper and does not contain this comparison.

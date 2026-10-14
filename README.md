@@ -10,8 +10,16 @@ Start with the [paper source and PDF build guide](paper/README.md) and the
 [main experimental notebook](notebooks/experimental_study.ipynb). **The notebook's
 saved tables, figures and explanations can be read without installing or running
 anything.** It presents the retained 381-item test cohort and links to the underlying
-evidence. The final paper (14 October 2026) is [paper/main.tex](paper/main.tex) with its
+evidence. Read the [14 October submission PDF](https://github.com/BenCarmel123/hebrew-acronym-disambiguation/releases/download/submission-2026-10-14/hebrew-acronym-expansion.pdf).
+Its maintained source is [paper/main.tex](paper/main.tex) with its
 [sections](paper/sections/); the [build guide](paper/README.md) produces the PDF.
+The [12 October release](https://github.com/BenCarmel123/hebrew-acronym-disambiguation/releases/tag/submission-2026-10-12)
+is an earlier archive.
+
+The main comparison uses one uniform, post-hoc leading-label rule for all seven
+LLMs, recomputed from saved responses. The original strict scores and source
+exports remain unchanged as historical sensitivity evidence; the notebook keeps
+DictaLM's human generation review separate from automatic scores.
 
 For a fresh execution, follow the single
 [saved-analysis installation and reproduction procedure](docs/reproducible_evaluation.md#reproduce-the-saved-test-analysis).

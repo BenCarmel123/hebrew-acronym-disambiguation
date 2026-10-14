@@ -11,7 +11,7 @@ For each training item, the reference candidate is positive and the other candid
 \end{equation}
 Here $p_j=\sigma(u_j)$ is the sigmoid of pair score $u_j$, and $z_j$ is 1 for the reference candidate and 0 otherwise. All model weights are updated with AdamW, a variant of the Adam gradient-based optimizer that applies weight decay separately from the gradient update.
 
-Training uses dropout 0.1, learning rate $2\times10^{-5}$, pair batch size 16 and one epoch, keeping the checkpoint with the lowest development pair loss. The checkpoint was trained by one of the authors (B.C.) in Google Colab, starting from \texttt{dicta-il/dictabert}, with seed 43. The training code set this seed only after creating the model, so it did not fix the scoring head's initial weights.
+The archived training code specifies dropout 0.1, learning rate $2\times10^{-5}$, pair batch size 16 and one epoch, selecting the lowest development pair loss. B.C. trained the checkpoint in Google Colab from \texttt{dicta-il/dictabert}. The exact historical input, seed and selected epoch are not established by the saved records (Section~\ref{sec:limitations}). The filename suggests seed 43, but the reference code specifies 42 and sets it after model creation, leaving the scoring head's initialization uncontrolled.
 
 For inference we reload the trained weights, including the scoring head, and verify them in full. Each pair joins the marked sentence and candidate with BERT special tokens, and long contexts are cropped to 256 tokens around the target. In test sentences the first occurrence of the acronym is marked automatically. The LLMs receive the full original sentence.
 
