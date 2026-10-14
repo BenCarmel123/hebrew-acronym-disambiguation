@@ -18,6 +18,13 @@ B.C. also judged all 381 DictaLM generated answers by hand, accepting those with
 \subsection{Reference points and variability}
 We report four reference points: random choice among the candidates; the candidate with the most Wikipedia hits (most frequent); the candidate that yielded the most mined sentences (most mined); and an oracle that is right whenever the reference is among the candidates. Most mined (48.0\%) is optimistic, because its counts include sentences mined for the test set. Candidate order is shuffled with seed 42 and kept fixed per item. Each system ran once, with one prompt per task and one candidate order, so we report no variability estimates; option order can affect LLM choices \citep{zheng2024selection}. Items from the same type or document are not independent, so small differences should not be over-read.
 
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/generate_vs_select.pdf}
+\caption{Test scores on 381 items, failures counted as wrong. (a) Candidate selection, with reference points; most mined is optimistic (Section~\ref{sec:eval}). (b) Generation and selection for the seven LLMs; generation uses reference-substring matching and selection the leading label. Exact values: Table~\ref{tab:test-results}.}
+\label{fig:generate-vs-select}
+\end{figure*}
+
 \subsection{Reproducibility artifacts}
 \label{sec:artifacts}
 The \repo{notebooks/experimental_study.ipynb}{analysis notebook} and \repo{saved-results/README.md}{saved-evidence guide} target source revision \texttt{d5f9b9d}. The notebook recomputes every table from hash-identified saved responses, without model requests or weights. \path{results/submission-20261010/README.md} maps tables to predictions, review records, prompts and settings, and \path{docs/checkpoints.md} documents the encoder checkpoint.
