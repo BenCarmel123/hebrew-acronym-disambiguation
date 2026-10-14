@@ -20,14 +20,16 @@ The primary review covers 638 groups / 741 of 4,953 responses: 707 newly judged
 occurrences and 34 explicitly approved historical reuses. Provenance retains all
 620 decision events, two later rechecks, annotators, times, exposure information
 and focused-selection reasons. All responses, including the unreviewed ones, are
-reconstructed from experiment sources. The primary review had one annotator, Shaked Schnarch (S.S.). System identity
-was visible and a negative default required explicit confirmation. Coverage of technically complete automatic negatives was selective: about
-24–79% across the six historically reviewed generation systems. The historical
-provenance records prior exposure as unknown. In a retrospective author
-clarification on 12 October 2026, Shaked states that he had not seen AI
-evaluations of the model answers before annotating; the historical record is
-preserved. He clarifies that `fits` meant matching the reference answer shown,
-not independently judging contextual correctness. Consequently, the 338
+reconstructed from experiment sources. The primary review used a single annotator,
+with a negative default requiring explicit confirmation. The annotator reviewed
+the responses without seeing the identity of the system that produced them and
+had not seen AI evaluations of those responses. These statements reflect
+retrospective annotator clarifications on 12 and 14 October 2026. The historical
+provenance records prior exposure as unknown and remains unchanged. Coverage of
+technically complete automatic negatives was selective: about 24–79% across the
+six historically reviewed generation systems. The annotator clarifies that `fits`
+meant matching the reference answer shown, not independently judging contextual
+correctness. Consequently, the 338
 automatic-negative / `fits` response occurrences are diagnostic, not global
 accuracy or cross-system human rankings, and review cannot validate erroneous
 references. Selection exceeds generation under the automatic metrics, not under
