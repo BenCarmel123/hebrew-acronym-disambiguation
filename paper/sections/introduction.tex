@@ -5,7 +5,14 @@ A language model can resolve an acronym by writing its expansion freely or by se
 
 We build a data and evaluation pipeline that links a candidate inventory of 2,702 expansions for 638 acronym types, contextual sentences, saved model responses and transparent scoring. The test set has 381 items, mostly natural parliamentary and Wikipedia sentences, with authored examples that broaden sense coverage (Section~\ref{sec:data}). We compare seven LLMs, three local (two Qwen models and the Hebrew-specialised DictaLM 2.0) and four API models, with two uses of the Hebrew encoder DictaBERT: pretrained similarity and task-trained candidate ranking. An analysis notebook reproduces every comparison from the saved responses.
 
-We find that:
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/generate_vs_select.pdf}
+\caption{Test scores on 381 items, failures counted as wrong. (a) Candidate selection, with reference points; most mined is optimistic (Section~\ref{sec:eval}). (b) Generation and selection for the seven LLMs; generation uses reference-substring matching and selection the leading label. Exact values: Table~\ref{tab:test-results}.}
+\label{fig:generate-vs-select}
+\end{figure*}
+
+We find that (Figure~\ref{fig:generate-vs-select}):
 \begin{itemize}
 \item a 184M-parameter encoder trained on fewer than 3,000 examples reaches 71.7\% in selection, above Qwen 7B and DictaLM 2.0 and close to Qwen 14B, while the API models score higher;
 \item selection beats generation for every LLM, by 31 to 58 points under the automatic metrics, although automatic matching underrates generation.
