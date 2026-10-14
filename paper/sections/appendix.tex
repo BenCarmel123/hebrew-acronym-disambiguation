@@ -1,3 +1,77 @@
+\section{Additional result tables}
+\label{app:tables}
+Table~\ref{app:res-source} breaks down scores by kind of sentence, Table~\ref{app:dictalm-supplement} gives DictaLM 2.0 under each scoring rule, and Table~\ref{app:res-examples} shows two saved responses discussed in Section~\ref{sec:res-errors}.
+
+\begin{table}[!htbp]
+\centering\small
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+System & Knesset & Wikipedia & Authored \\
+\midrule
+DictaBERT similarity & 57.7 & 75.6 & 78.2 \\
+DictaBERT ranker & 70.0 & 73.2 & 75.9 \\
+\midrule
+Qwen 7B, gen. & 8.7 & 12.2 & 4.6 \\
+Qwen 7B, sel. & 54.5 & 70.7 & 64.4 \\
+Qwen 14B, gen. & 13.0 & 17.1 & 4.6 \\
+Qwen 14B, sel. & 65.6 & 78.0 & 78.2 \\
+DictaLM 2.0, gen. & 33.2 & 48.8 & 24.1 \\
+DictaLM 2.0, sel. & 64.4 & 75.6 & 56.3 \\
+Gemini, gen. & 47.8 & 78.0 & 62.1 \\
+Gemini, sel. & 94.9 & 95.1 & 89.7 \\
+GPT-4.1 mini, gen. & 32.8 & 51.2 & 28.7 \\
+GPT-4.1 mini, sel. & 83.0 & 90.2 & 80.5 \\
+Claude Haiku, gen. & 39.5 & 73.2 & 40.2 \\
+Claude Haiku, sel. & 89.7 & 92.7 & 85.1 \\
+Grok, gen. & 44.3 & 68.3 & 50.6 \\
+Grok, sel. & 94.1 & 95.1 & 85.1 \\
+\bottomrule
+\end{tabular}
+\caption{Test scores (\%) by source (253, 41 and 87 items), with the rules of Table~\ref{tab:test-results}.}
+\label{app:res-source}
+\end{table}
+
+\begin{table}[!htbp]
+\centering\small
+\begin{tabular}{@{}lrr@{}}
+\toprule
+DictaLM measurement & Count & \% \\
+\midrule
+Generation: automatic & 125/381 & 32.8 \\
+Generation: by hand (B.C.) & 193/381 & 50.7 \\
+Selection: bare label only & 0/381 & 0.0 \\
+Selection: leading label & 243/381 & 63.8 \\
+\bottomrule
+\end{tabular}
+\caption{DictaLM 2.0 under different scoring rules (381 items). Main results use the automatic generation and leading-label selection rows, the rules applied to every LLM.}
+\label{app:dictalm-supplement}
+\end{table}
+
+\begin{table}[!htbp]
+\centering\small
+\begin{tabular}{@{}p{0.24\columnwidth}p{0.68\columnwidth}@{}}
+\toprule
+Item / system & Saved evidence \\
+\midrule
+\texttt{kn-0002}\newline DictaLM &
+Context excerpt: \heb{עודף של 650 מיליון ש"ח.}\newline
+Reference: \heb{שקל חדש} (new shekel).\newline
+Generation: \heb{ש"ח = שקלים חדשים.}\newline
+Automatic: no; author (B.C.): yes.\newline
+Selection: \texttt{C.} \heb{שקל חדש}, read as C: correct. \\
+\midrule
+\texttt{kn4-0048}\newline DictaBERT ranker &
+Context excerpt: \heb{18 תומכים, ח"י תומכים}\newline
+Reference: \heb{שמונה עשרה בגימטריה} (eighteen in gematria).\newline
+Selected: \heb{חוק יסוד} (Basic Law).\newline
+Exact candidate match: no. \\
+\bottomrule
+\end{tabular}
+\caption{Two Knesset test items with saved responses (Section~\ref{sec:artifacts}).}
+\label{app:res-examples}
+\end{table}
+
 \section{Prompts}
 \label{app:prompts}
 Every LLM received the same prompt text (Section~\ref{sec:systems}). Below are both prompts for test item \texttt{kn-0002}, with our English translation. The selection prompt lists the candidates in the item's fixed shuffled order.

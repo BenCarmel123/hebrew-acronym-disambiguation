@@ -40,86 +40,15 @@ Reference wording explains part of the gap. In 67 of the 381 items the reference
 
 \subsection{Results by kind of sentence}
 \label{sec:res-source}
-The trained encoder's gain over the similarity baseline comes from Knesset items (146 to 177 of 253); on Wikipedia (31 to 30 of 41) and authored items (68 to 66 of 87) the two are close (Table~\ref{tab:res-source}). Against Qwen 14B, the encoder leads on Knesset items (177 versus 166) and trails slightly on Wikipedia (30 versus 32) and authored items (66 versus 68). The sources also differ in acronym mix, so these differences are not effects of source alone.
-
-\begin{table}[t]
-\centering\small
-\setlength{\tabcolsep}{3pt}
-\begin{tabular}{@{}lrrr@{}}
-\toprule
-System & Knesset & Wikipedia & Authored \\
-\midrule
-DictaBERT similarity & 57.7 & 75.6 & 78.2 \\
-DictaBERT ranker & 70.0 & 73.2 & 75.9 \\
-\midrule
-Qwen 7B, gen. & 8.7 & 12.2 & 4.6 \\
-Qwen 7B, sel. & 54.5 & 70.7 & 64.4 \\
-Qwen 14B, gen. & 13.0 & 17.1 & 4.6 \\
-Qwen 14B, sel. & 65.6 & 78.0 & 78.2 \\
-DictaLM 2.0, gen. & 33.2 & 48.8 & 24.1 \\
-DictaLM 2.0, sel. & 64.4 & 75.6 & 56.3 \\
-Gemini, gen. & 47.8 & 78.0 & 62.1 \\
-Gemini, sel. & 94.9 & 95.1 & 89.7 \\
-GPT-4.1 mini, gen. & 32.8 & 51.2 & 28.7 \\
-GPT-4.1 mini, sel. & 83.0 & 90.2 & 80.5 \\
-Claude Haiku, gen. & 39.5 & 73.2 & 40.2 \\
-Claude Haiku, sel. & 89.7 & 92.7 & 85.1 \\
-Grok, gen. & 44.3 & 68.3 & 50.6 \\
-Grok, sel. & 94.1 & 95.1 & 85.1 \\
-\bottomrule
-\end{tabular}
-\caption{Test scores (\%) by source (253, 41 and 87 items), with the rules of Table~\ref{tab:test-results}.}
-\label{tab:res-source}
-\end{table}
+The trained encoder's gain over the similarity baseline comes from Knesset items (146 to 177 of 253); on Wikipedia (31 to 30 of 41) and authored items (68 to 66 of 87) the two are close (Table~\ref{app:res-source} in Appendix~\ref{app:tables}). Against Qwen 14B, the encoder leads on Knesset items (177 versus 166) and trails slightly on Wikipedia (30 versus 32) and authored items (66 versus 68). The sources also differ in acronym mix, so these differences are not effects of source alone.
 
 \subsection{Hebrew specialisation and hand judgment}
 \label{sec:res-measurement}
-DictaLM 2.0 and Qwen 7B have similar sizes (7.25B and 7.6B) and run with the same local setup. DictaLM generates the reference four times as often (32.8\% versus 8.1\%) but gains only 5.3 points in selection (63.8\% versus 58.5\%), consistent with Hebrew-specialised training helping most when no candidates are given, although the two models also differ in base model. To see how much the generation rule matters, B.C. judged all 381 DictaLM generated answers by hand (Table~\ref{tab:dictalm-supplement}). The automatic rule accepts 125 answers and B.C. 193; they agree on 121, while 72 are accepted only by hand and four only automatically.
-
-\begin{table}[H]
-\centering\small
-\begin{tabular}{@{}lrr@{}}
-\toprule
-DictaLM measurement & Count & \% \\
-\midrule
-Generation: automatic & 125/381 & 32.8 \\
-Generation: by hand (B.C.) & 193/381 & 50.7 \\
-Selection: bare label only & 0/381 & 0.0 \\
-Selection: leading label & 243/381 & 63.8 \\
-\bottomrule
-\end{tabular}
-\caption{DictaLM 2.0 under different scoring rules (381 items). Main results use the automatic generation and leading-label selection rows, the rules applied to every LLM.}
-\label{tab:dictalm-supplement}
-\end{table}
+DictaLM 2.0 and Qwen 7B have similar sizes (7.25B and 7.6B) and run with the same local setup. DictaLM generates the reference four times as often (32.8\% versus 8.1\%) but gains only 5.3 points in selection (63.8\% versus 58.5\%), consistent with Hebrew-specialised training helping most when no candidates are given, although the two models also differ in base model. To see how much the generation rule matters, B.C. judged all 381 DictaLM generated answers by hand (Table~\ref{app:dictalm-supplement} in Appendix~\ref{app:tables}). The automatic rule accepts 125 answers and B.C. 193; they agree on 121, while 72 are accepted only by hand and four only automatically.
 
 \subsection{Examples and errors}
 \label{sec:res-errors}
-Table~\ref{tab:res-examples} shows a correct generated answer that the string rule rejects, a selection answer with extra text after the label, and an encoder error; Appendix~\ref{app:examples} gives more examples, and Appendix~\ref{app:prompts} gives both prompts.
-
-
-\begin{table}[H]
-\centering\small
-\begin{tabular}{@{}p{0.24\columnwidth}p{0.68\columnwidth}@{}}
-\toprule
-Item / system & Saved evidence \\
-\midrule
-\texttt{kn-0002}\newline DictaLM &
-Context excerpt: \heb{עודף של 650 מיליון ש"ח.}\newline
-Reference: \heb{שקל חדש} (new shekel).\newline
-Generation: \heb{ש"ח = שקלים חדשים.}\newline
-Automatic: no; author (B.C.): yes.\newline
-Selection: \texttt{C.} \heb{שקל חדש}, read as C: correct. \\
-\midrule
-\texttt{kn4-0048}\newline DictaBERT ranker &
-Context excerpt: \heb{18 תומכים, ח"י תומכים}\newline
-Reference: \heb{שמונה עשרה בגימטריה} (eighteen in gematria).\newline
-Selected: \heb{חוק יסוד} (Basic Law).\newline
-Exact candidate match: no. \\
-\bottomrule
-\end{tabular}
-\caption{Two Knesset test items with saved responses (Section~\ref{sec:artifacts}).}
-\label{tab:res-examples}
-\end{table}
+Table~\ref{app:res-examples} in Appendix~\ref{app:tables} shows a correct generated answer that the string rule rejects, a selection answer with extra text after the label, and an encoder error; Appendix~\ref{app:examples} gives more examples, and Appendix~\ref{app:prompts} gives both prompts.
 
 \subsection{Conclusions}
 \label{sec:conclusions}

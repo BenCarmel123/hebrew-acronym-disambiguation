@@ -3,7 +3,7 @@
 \subsection{The unit of prediction}
 Each item contains a sentence $x$, an acronym $a$, a candidate inventory $C$ and a reference answer $y\in C$. For the encoder, the target is marked in the sentence with \texttt{[ACR]} and \texttt{[/ACR]}; LLM prompts name the acronym alongside the original sentence (Section~\ref{sec:systems}).
 
-Generation predicts an answer from sentence context and target information, without candidates. Selection picks one member of $C$ for the same item. We use \emph{expansion} as shorthand for the stored inventory answer: besides ordinary spelled-out expressions, it includes numerical interpretations in gematria (the use of Hebrew letters as numbers) and conventional or named uses that are not literal expansions. For example, the reference for \heb{ח״י} in one test sentence is \heb{שמונה עשרה בגימטריה} (eighteen in gematria; Table~\ref{tab:res-examples}). Evaluation therefore measures agreement with this inventory and its reference labels, not only recovery of the words that formed an acronym.
+Generation predicts an answer from sentence context and target information, without candidates. Selection picks one member of $C$ for the same item. We use \emph{expansion} as shorthand for the stored inventory answer: besides ordinary spelled-out expressions, it includes numerical interpretations in gematria (the use of Hebrew letters as numbers) and conventional or named uses that are not literal expansions. For example, the reference for \heb{ח״י} in one test sentence is \heb{שמונה עשרה בגימטריה} (eighteen in gematria; Table~\ref{app:res-examples}). Evaluation therefore measures agreement with this inventory and its reference labels, not only recovery of the words that formed an acronym.
 
 The output spaces are:
 \begin{equation}
