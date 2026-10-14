@@ -22,7 +22,7 @@ occurrences and 34 explicitly approved historical reuses. Provenance retains all
 and focused-selection reasons. All responses, including the unreviewed ones, are
 reconstructed from experiment sources. The primary review had one annotator, Shaked Schnarch (S.S.). System identity
 was visible and a negative default required explicit confirmation. Coverage of technically complete automatic negatives was selective: about
-24–79% across the six main generation systems. The historical
+24–79% across the six historically reviewed generation systems. The historical
 provenance records prior exposure as unknown. In a retrospective author
 clarification on 12 October 2026, Shaked states that he had not seen AI
 evaluations of the model answers before annotating; the historical record is
@@ -60,7 +60,11 @@ The source records yes/no under `same_as_gold`; a detailed rubric, per-item
 rationale, annotation time and blinding are undocumented. This is a separate
 layer, not an additional primary-review sample. DictaLM retains automatic
 generation 125/381, Ben generation 193/381, strict selection 0/381 and diagnostic
-leading-label selection 243/381. The template's missing newline remains a
+leading-label selection 243/381. The current notebook and paper apply that same
+post-hoc leading-label rule uniformly to all seven LLMs, without changing these
+historical records. The other six LLMs change no item-level correctness decision.
+The primary comparison uses automatic generation, not Ben's human labels.
+The template's missing newline remains a
 protocol limitation with unknown causal effect. The empty `human_judgment`
 column in the DictaLM response export is a retained schema field; the actual
 judgments are in [review.csv](human-review/review.csv), under the separate

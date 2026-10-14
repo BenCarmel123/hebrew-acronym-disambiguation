@@ -7,7 +7,7 @@ from hebrew_acronyms.saved_analysis import comparison_table, dictalm_table, fail
 class SavedAnalysisDisplayTests(unittest.TestCase):
     def test_comparison_keeps_counts_and_omits_generation_for_encoder(self):
         metrics = [dict(system=s, task=t, n_correct=1, n_items=3, accuracy=1/3)
-                   for s in ('dictabert', 'qwen', 'qwen14', 'openai', 'anthropic', 'xai', 'gemini')
+                   for s in ('dictabert', 'qwen', 'qwen14', 'dictalm', 'openai', 'anthropic', 'xai', 'gemini')
                    for t in ('generate', 'select') if s != 'dictabert' or t == 'select']
         before = deepcopy(metrics)
         similarity = {'metric': dict(n_correct=2, n_items=3, accuracy=2/3)}

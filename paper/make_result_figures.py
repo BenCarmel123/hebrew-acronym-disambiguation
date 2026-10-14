@@ -2,9 +2,9 @@
 
 Run from the repository root: python paper/make_result_figures.py
 The default regenerates the two-panel figure used by the manuscript.
-Reads only saved CSV files; it calls no model and changes no result. DictaLM uses
-its automatic generation score and the leading-label selection reading, the rule
-applied to every LLM in the manuscript (it changes no other LLM's score).
+Reads verified saved journals and CSV files; it calls no model and changes no
+source result. The post-hoc leading-label rule is applied uniformly to all seven
+LLMs, using the same derived comparison as the notebook.
 """
 import csv
 from pathlib import Path
@@ -20,14 +20,6 @@ SUBMISSION = ROOT / "results" / "submission-20261010"
 FIGURES = ROOT / "paper" / "figures"
 N_ITEMS = 381
 
-LLMS = [("qwen", "Qwen 2.5 7B"), ("qwen14", "Qwen 2.5 14B"),
-        ("openai", "GPT-4.1 mini"), ("anthropic", "Claude Haiku 5.5"),
-        ("xai", "Grok 4.7"), ("gemini", "Gemini 3.8 Flash")]
-LOCAL = {"qwen", "qwen14"}
-GENERATE, SELECT_LOCAL, SELECT_API = "#8c8c8c", "#5a9bd5", "#2b6cb0"
-TRAINED, SIMILARITY, BASELINE = "#2e8b57", "#a0aec0", "#cccccc"
-EXPECTED_RULES = {"generate": "historical_quote_normalized_gold_substring",
-                  "select": "strict_candidate_label_v1"}
 
 
 def read_csv(path):
@@ -46,32 +38,14 @@ def saved_accuracy(row, rule):
 
 
 def load_scores():
-    scores = {}
-    llm_keys = {key for key, _ in LLMS}
-    for row in read_csv(SUBMISSION / "automatic_metrics.csv"):
-        system, task = row["system"], row["task"]
-        if system not in llm_keys | {"dictabert"}:
-            continue
-        rule = "exact_candidate_match" if system == "dictabert" else EXPECTED_RULES[task]
-        key = (system, task)
-        if key in scores:
-            raise ValueError(f"duplicate saved metric: {key}")
-        scores[key] = saved_accuracy(row, rule)
-    expected = {(key, task) for key in llm_keys for task in EXPECTED_RULES}
-    if set(scores) != expected | {("dictabert", "select")}:
-        raise ValueError("missing or unexpected automatic metric")
+    from hebrew_acronyms.leading_label_analysis import derive_saved_comparison
+    derived = derive_saved_comparison(ROOT)
+    scores = {(row["system"], row["task"]): row["accuracy"] for row in derived["metrics"]}
     similarity_rows = read_csv(SUBMISSION / "similarity_metric.csv")
     if len(similarity_rows) != 1 or similarity_rows[0]["system"] != "dictabert_similarity":
         raise ValueError("expected the identified pretrained similarity metric")
     scores[("dictabert_similarity", "select")] = saved_accuracy(
         similarity_rows[0], "exact_candidate_match")
-    dictalm = {row["metric"]: row for row in read_csv(SUBMISSION / "dictalm_reported_metrics.csv")}
-    for task, metric in (("generate", "automatic_generation"),
-                         ("select", "diagnostic_leading_label_selection")):
-        row = dictalm[metric]
-        if int(row["n_items"]) != N_ITEMS or row["system"] != "dictalm":
-            raise ValueError(f"unexpected DictaLM metric: {row}")
-        scores[("dictalm", task)] = int(row["n_correct"]) / N_ITEMS
     baselines = {}
     for row in read_csv(SUBMISSION / "baselines.csv"):
         if int(row["n_items"]) != N_ITEMS:

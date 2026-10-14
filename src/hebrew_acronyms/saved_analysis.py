@@ -1,7 +1,8 @@
 """Saved test notebook helpers: evidence loading, exports and reader-facing tables.
 
 The source identities and calculations come from the notebook at 5c6980e.
-Presentation formatting never changes the rows supplied to numerical exports.
+Historical exports retain these calculations; the primary display uses the separate
+post-hoc leading-label analysis for all seven LLMs.
 """
 from collections import Counter
 from html import escape
@@ -136,7 +137,7 @@ def automatic_score_figure(test_comparison, combined_test_metrics, TEST_RUN_IDS,
             ax.set_axisbelow(True)
         fig.supxlabel("Automatic match rate (all 381 items)", fontsize=9, y=0.10)
         fig.text(0.23, 0.025,
-                 f"All {test_comparison['n_scored_items']} items per arm; technical failures included. Strict labels for LLM selection.",
+                 f"All {test_comparison['n_scored_items']} items per arm; technical failures included. Post-hoc leading labels for all seven LLMs.",
                  fontsize=7.5, color="#444444")
         for extension in ("png", "pdf", "svg"):
             fig.savefig(SUBMISSION_EXPORTS / f"automatic_scores.{extension}", dpi=200, bbox_inches="tight")
@@ -193,7 +194,7 @@ def comparison_table(metrics, similarity):
         return f'{m["n_correct"]}/{m["n_items"]} ({100 * m["accuracy"]:.1f}%)'
     rows = [dict(model="DictaBERT similarity", generation="Not applicable",
                  selection=score(similarity["metric"]))]
-    for system in ("dictabert", "qwen", "qwen14", "openai", "anthropic", "xai", "gemini"):
+    for system in ("dictabert", "qwen", "qwen14", "dictalm", "openai", "anthropic", "xai", "gemini"):
         rows.append(dict(model=MODEL_LABELS[system],
                          generation=score(lookup[(system, "generate")]) if (system, "generate") in lookup else "Not applicable",
                          selection=score(lookup[(system, "select")])))
@@ -205,7 +206,7 @@ def dictalm_table(metrics):
     names = {"automatic_generation": "Generation: automatic substring match",
              "ben_generation": "Generation: author annotation (B.C.)",
              "strict_selection": "Selection: strict label + reference match",
-             "diagnostic_leading_label_selection": "Selection: leading-label diagnostic"}
+             "diagnostic_leading_label_selection": "Selection: post-hoc leading label (historical diagnostic)"}
     rows = [dict(measurement=names[m["metric"]], count=f'{m["n_correct"]}/{m["n_items"]}',
                  percent=f'{100 * m["accuracy"]:.1f}%') for m in metrics]
     return reading_table(rows, {"measurement": "Separate measurement", "count": "Accepted / all items", "percent": "Rate"})

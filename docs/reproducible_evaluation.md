@@ -32,12 +32,18 @@ Observed reads from a particular audit are empirical evidence, not a guarantee
 that every possible access is blocked. The runner probes representative hooks
 and records imported package location, versions, hashes and real execution counts. Keep its new receipt and outputs; do not overwrite historical receipts.
 The runner executes and records provenance; it does not automatically compare
-exports. For public reproduction, compare the 10 tracked CSV/JSON reference files
+exports. The notebook preserves the 23 historical exports and adds the derived
+`uniform_automatic_metrics.csv` (24 CSV/JSON files, 11 tracked in total). The primary
+table and figure apply a uniform post-hoc leading-label rule to all seven LLMs; the
+historical strict records and scores are unchanged. This is saved-response reanalysis,
+not a prespecified protocol. The derived file records strict and changed-decision
+counts beside each LLM selection score. For public reproduction, compare all 11 tracked CSV/JSON reference files
 with copies saved before execution or retrieved from the same fixed Git revision
 (see the [export index](../results/submission-20261010/README.md)). The other 13
 CSV/JSON files are generated too, but their reference copies are not distributed.
-Our release audit compared all 23 byte-for-byte against an external accepted
-baseline; that audit is separate from the public reproduction procedure.
+The earlier release audit compared the 23 historical files byte-for-byte against an
+external accepted baseline. That baseline is not overwritten by the derived view;
+acceptance of the updated view must verify the new export separately.
 Inspect Hebrew, plots, tables and links in the rendered notebook; HTML generation
 alone is not visual verification. Dependencies are directly pinned; the complete
 transitive environment is not locked.
@@ -128,8 +134,12 @@ pilot identity. The local Ollama server must already be running; this command
 starts no server and downloads no model. Record the digest/template. Settings are
 temperature 0, seed 42 and 512 output tokens; no API charge is assigned. The saved
 DictaLM template omits a publisher-specified newline; its causal effect is unknown.
-Automatic generation, Ben's generation labels, strict selection and diagnostic
-leading-label parsing remain separate measurements; no combined score is defined.
+Automatic generation, Ben's generation labels and historical strict selection remain
+separate measurements. The current primary comparison uses automatic generation
+and the post-hoc leading-label selection rule applied to all seven LLMs. It yields
+243/381 for DictaLM versus 0/381 strict, and changes no correctness decision in the
+other six models. It never credits technical failures or unverified identities.
+The missing-newline limitation remains; no human/automatic combined score is defined.
 
 ## Interpretation and offline checks
 
