@@ -38,7 +38,7 @@ Grok 4.7 & 48.3 & 92.1 \\
 
 \subsection{The task-trained encoder}
 \label{sec:res-encoder}
-The trained encoder selects the reference in 273 of 381 items (71.7\%). It beats Qwen 7B by 13.1 points and trails the weakest API model, GPT-4.1 mini, by 11.5 points. Against Qwen 14B the encoder leads by seven items (1.8 points) with only about 1.2\% of its parameters (184M versus 14.8B, roughly 80 times fewer), although the margin is small, and correcting three known reference errors (Section~\ref{sec:limitations}) gives 274 versus 269. The pretrained similarity baseline scores 245 (64.3\%); the trained ranker adds 28 correct items (7.3 points), although the two also differ in architecture. Like AcroBERT \citep{chen2023gladis}, the ranker scores context--candidate pairs, so it can rank candidates for acronyms it never saw in training.
+The trained encoder selects the reference in 273 of 381 items (71.7\%). It beats Qwen 7B by 13.1 points and the Hebrew-specialised DictaLM 2.0 by a small margin of 7.9 points (273 versus 243 items), and trails the weakest API model, GPT-4.1 mini, by 11.5 points. Against Qwen 14B the encoder leads by seven items (1.8 points) with only about 1.2\% of its parameters (184M versus 14.8B, roughly 80 times fewer), although the margin is small, and correcting three known reference errors (Section~\ref{sec:limitations}) gives 274 versus 269. The pretrained similarity baseline scores 245 (64.3\%); the trained ranker adds 28 correct items (7.3 points), although the two also differ in architecture. Like AcroBERT \citep{chen2023gladis}, the ranker scores context--candidate pairs, so it can rank candidates for acronyms it never saw in training.
 
 \subsection{Generation versus selection}
 \label{sec:res-formats}
@@ -126,7 +126,7 @@ Selection: leading label & 243/381 & 63.8 \\
 
 \subsection{Examples and errors}
 \label{sec:res-errors}
-Table~\ref{tab:res-examples} shows a correct generated answer that the string rule rejects, a selection answer with extra text after the label, and an encoder error.
+Table~\ref{tab:res-examples} shows a correct generated answer that the string rule rejects, a selection answer with extra text after the label, and an encoder error; Appendix~\ref{app:examples} gives more examples, and Appendix~\ref{app:prompts} gives both prompts.
 
 
 \subsection{Conclusions}

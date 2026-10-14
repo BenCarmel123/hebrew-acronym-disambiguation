@@ -1,0 +1,65 @@
+\section{Prompts}
+\label{app:prompts}
+Every LLM received the same prompt text (Section~\ref{sec:systems}). Below are both prompts for test item \texttt{kn-0002}, with our English translation. The selection prompt lists the candidates in the item's fixed shuffled order.
+
+\paragraph{Generation.}
+\heb{בהתחשב במשפט הבא בעברית, מהו הפירוש של ראשי התיבות "ש״ח"?}\\
+\heb{ענה במילים ספורות בלבד, ללא הסבר.}\\
+\heb{משפט: ומשום שהעולים לא מגיעים נוצר בתקציב משרד הקליטה עודף של 650 מיליון ש"ח.}\\
+\heb{פירוש:}
+
+\noindent\emph{Translation:} ``Given the following Hebrew sentence, what is the meaning of the acronym `\heb{ש״ח}'? Answer in a few words only, without explanation. Sentence: \ldots{} Meaning:''
+
+\paragraph{Selection.}
+\heb{בהתחשב במשפט הבא בעברית, מהו הפירוש של ראשי התיבות "ש״ח"?}\\
+\heb{ענה בסימון של אפשרות אחת בלבד (למשל: \LR{A} או \LR{AA}), בלי שום טקסט נוסף.}\\
+\heb{משפט: ומשום שהעולים לא מגיעים נוצר בתקציב משרד הקליטה עודף של 650 מיליון ש"ח.}\\
+A. \heb{ש.ח.} \quad B. \heb{שטר חוב} \quad C. \heb{שקל חדש}\\
+D. \heb{שידור חוזר} \quad E. \heb{שלוש מאות ושמונה (גימטריה)}\\
+F. \heb{שומר חינם}\\
+\heb{תשובה:}
+
+\noindent\emph{Translation of the second line:} ``Answer with the label of one option only (for example: A or AA), without any additional text.'' The last line means ``Answer:''.
+
+\section{Test label distribution}
+\label{app:labels}
+Test items have between 2 and 30 candidates (median 4, mean 5.0); seven items have two candidates and two items have 30. Of the 60 acronym types, 22 have a single reference sense in the test set, 37 have two and one has three. The most common test sense of each type covers 306 of the 381 items (80.3\%). This share is computed from test labels, so it describes the label distribution and is not a baseline.
+
+\section{Further examples}
+\label{app:examples}
+Table~\ref{app:examples-table} adds four saved responses: a correct answer rejected by the string rule, two clear generation errors, and an item with a known wrong reference (Section~\ref{sec:limitations}).
+
+\begin{table}[!htbp]
+\centering\small
+\begin{tabular}{@{}p{0.24\columnwidth}p{0.68\columnwidth}@{}}
+\toprule
+Item / system & Saved evidence \\
+\midrule
+\texttt{kn4-0499}\newline Grok, gen. &
+Context excerpt: \heb{מחר, יום רביעי, י"ח בחודש טבת}\newline
+Reference: \heb{שמונה עשרה (גימטריה)} (eighteen, gematria).\newline
+Generation: \heb{שמונה עשר (18)}.\newline
+Automatic: no; human review: fits. \\
+\midrule
+\texttt{kn-0022}\newline Qwen 7B, gen. &
+Context excerpt: \heb{בעלות ממוצעת של כ-42 ש"ח לצו}\newline
+Reference: \heb{שקל חדש} (new shekel).\newline
+Generation: \heb{שטרות חשמל} (electricity bills).\newline
+Automatic: no; human review: does not fit. \\
+\midrule
+\texttt{kn4-0554}\newline Qwen 7B, gen. &
+Context excerpt: \heb{טקס ההשבעה של ארגון "אי"ל"}\newline
+Reference: \heb{ארגון יהודי לוחם} (fighting Jewish organization).\newline
+Generation: \heb{ארגון איסלאמי} (Islamic organization).\newline
+Automatic: no; human review: does not fit. \\
+\midrule
+\texttt{kn4-0207}\newline Gemini, sel. &
+Context excerpt: \heb{מסכת בבא מציעא, דף ס"ב}\newline
+Reference: \heb{סודי ביותר} (top secret), a known wrong label.\newline
+Selected: \heb{שישים ושתיים (גימטריה)} (sixty-two, gematria), the page number.\newline
+Automatic: no. \\
+\bottomrule
+\end{tabular}
+\caption{Further saved responses. Human review refers to the selective review of Section~\ref{sec:eval}.}
+\label{app:examples-table}
+\end{table}
