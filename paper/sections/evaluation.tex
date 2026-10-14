@@ -1,13 +1,13 @@
 \section{Evaluation}
 \label{sec:eval}
 \subsection{Scoring}
-All scores use the same 381 test items, and failures count as wrong. In selection, the chosen candidate must equal the reference expansion. Labels run A--Z, then AA, AB, and so on. Two items have 30 candidates. In a post-hoc reanalysis of the saved responses, we apply the same leading-label rule to all seven LLMs. We read the leading label of an answer, so ``A.'' or ``A.'' followed by the candidate counts as A. An answer that does not begin with a valid label is invalid. The original strict-label scores are retained as a sensitivity check. The new rule changes only DictaLM's outcomes: it writes the candidate after the label and scores 0\% under the original rule. The other six models' item-level outcomes are unchanged.
+All scores use the same 381 test items, and failures count as wrong. In selection, the chosen candidate must equal the reference expansion. Labels run A--Z, then AA, AB, and so on, allowing for the two items with 30 candidates. In a post-hoc reanalysis of the saved responses, we apply the same leading-label rule to all seven LLMs. We read the leading label of an answer, so ``A.'' or ``A.'' followed by the candidate counts as A. An answer that does not begin with a valid label is invalid. The original strict-label scores are retained as a sensitivity check. The new rule changes only DictaLM's outcomes: it writes the candidate after the label and scores 0\% under the original rule, while the other six models' item-level outcomes are unchanged.
 
 In generation, an answer is correct when the reference expansion appears in it as a substring after normalizing quotation marks. This rule can accept a longer answer that contains the reference and reject a valid variant, such as \heb{שקלים חדשים} for \heb{שקל חדש}. Generation thus measures string agreement with the reference, and selection measures exact choice of the reference. For either rule we report
 \begin{equation}
 \mathrm{Score}=\frac{1}{N}\sum_{i=1}^{N}c_i,
 \end{equation}
-where $c_i=1$ when the response passes the rule and $N=381$. Technical failures and truncated responses score zero. Qwen 14B, for example, has 10 failed generation responses (2.6\%).
+where $c_i=1$ when the response passes the rule and $N=381$. Technical failures and truncated responses score zero, including Qwen 14B's 10 failed generation responses (2.6\%).
 
 \subsection{Human review}
 A single annotator reviewed 741 of the 4,953 responses of the six LLMs other than DictaLM and the trained encoder, focusing mostly on generated answers that the automatic rule rejected. An answer \texttt{fits} when it agrees in meaning with the displayed reference. The annotator reviewed the responses without seeing the identity of the system that produced them and had not seen AI evaluations of those responses. Nine judgments on four items, where the reference itself may be wrong, remain unresolved. Because coverage is selective, we use this review to find disagreements with the automatic rules, not to estimate accuracy.

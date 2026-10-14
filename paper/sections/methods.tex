@@ -1,6 +1,6 @@
 \section{Systems and Experimental Design}
 \label{sec:systems}
-The encoder ranks candidates, while each LLM performs both generation and selection. Only the ranker receives task-specific supervised training. All LLMs get the same prompt for each task, and selection shows the candidates in the same seeded, shuffled order for every item. DictaBERT has 184 million parameters, compared with about 7B and 14B for the Qwen models. Proprietary model sizes are not public.
+The encoder ranks candidates, while each LLM performs both generation and selection. Only the ranker receives task-specific supervised training. All LLMs get the same prompt for each task, and selection shows the candidates in the same seeded, shuffled order for every item. DictaBERT has 184 million parameters, compared with about 7B and 14B for the Qwen models, while proprietary model sizes are not public.
 
 \subsection{Supervised Hebrew candidate ranker}
 DictaBERT is a pretrained Hebrew encoder \citep{shmidman2023dictabert}. Our implementation is a \emph{cross-encoder}: the marked sentence and one candidate are encoded jointly, so their tokens can attend to each other. A dropout layer and a linear head turn the pooled representation into a scalar score. Candidates are scored independently, and prediction chooses the highest score within the item's candidates.
@@ -11,9 +11,9 @@ For each training item, the reference candidate is positive and the other candid
 \end{equation}
 Here $p_j=\sigma(u_j)$ is the sigmoid of pair score $u_j$, and $z_j$ is 1 for the reference candidate and 0 otherwise. All model weights are updated with AdamW, a variant of the Adam gradient-based optimizer that applies weight decay separately from the gradient update.
 
-The archived training code specifies dropout 0.1, learning rate $2\times10^{-5}$, pair batch size 16 and one epoch, selecting the lowest development pair loss. B.C. trained the checkpoint in Google Colab from \texttt{dicta-il/dictabert}. The exact historical input, seed and selected epoch are not established by the saved records (Section~\ref{sec:limitations}). The filename suggests seed 43, but the reference code specifies 42 and sets it after model creation, leaving the scoring head's initialization uncontrolled.
+The archived training code specifies dropout 0.1, learning rate $2\times10^{-5}$, pair batch size 16 and one epoch, selecting the lowest development pair loss. B.C. trained the checkpoint in Google Colab from \texttt{dicta-il/dictabert}, but the saved records do not establish the exact historical input, seed or selected epoch (Section~\ref{sec:limitations}). The filename suggests seed 43, but the reference code specifies 42 and sets it after model creation, leaving the scoring head's initialization uncontrolled.
 
-For inference we reload the trained weights, including the scoring head, and verify them in full. Each pair joins the marked sentence and candidate with BERT special tokens, and long contexts are cropped to 256 tokens around the target. In test sentences the first occurrence of the acronym is marked automatically. The LLMs receive the full original sentence.
+For inference we reload the trained weights, including the scoring head, and verify them in full. Each pair joins the marked sentence and candidate with BERT special tokens, and long contexts are cropped to 256 tokens around the target. In test sentences the first occurrence of the acronym is marked automatically, whereas the LLMs receive the full original sentence.
 
 As a baseline without task training, we use pretrained DictaBERT as a similarity scorer: it encodes the marked context and each candidate separately and picks the candidate whose \texttt{[CLS]} vector is most similar to the context's. This baseline differs from the ranker in architecture as well as in training.
 
@@ -35,7 +35,7 @@ Gemini 3.8 Flash & API & low thinking \\
 Grok 4.7 & API & low reasoning \\
 \bottomrule
 \end{tabular}
-\caption{Prompted LLMs: Qwen 2.5 \citep{qwen2025technical} and DictaLM 2.0 \citep{shmidman2024dictalm}, 7.25B parameters, run locally with Q4\_K\_M quantization. Local models and GPT-4.1 mini allow 512 output tokens. Claude, Gemini and Grok allow 1,024. Exact model identifiers are in the saved-result exports.}
+\caption{Prompted LLMs: Qwen 2.5 \citep{qwen2025technical} and DictaLM 2.0 \citep{shmidman2024dictalm}, 7.25B parameters, run locally with Q4\_K\_M quantization. Local models and GPT-4.1 mini allow 512 output tokens, while Claude, Gemini and Grok allow 1,024. Exact model identifiers are in the saved-result exports.}
 \label{tab:llms}
 \end{table}
 

@@ -30,7 +30,7 @@ Grok 4.7 & 48.3 & 92.1 \\
 
 \subsection{The task-trained encoder}
 \label{sec:res-encoder}
-The trained encoder selects the reference in 273 of 381 items (71.7\%). It beats Qwen 7B by 13.1 points and the Hebrew-specialised DictaLM 2.0 by a small margin of 7.9 points (273 versus 243 items), and trails the weakest API model, GPT-4.1 mini, by 11.5 points. Against Qwen 14B the encoder leads by seven items (1.8 points) with only about 1.2\% of its parameters (184M versus 14.8B, roughly 80 times fewer), although the margin is small, and correcting three known reference errors (Section~\ref{sec:limitations}) gives 274 versus 269. The pretrained similarity baseline scores 245 (64.3\%). The trained ranker adds 28 correct items (7.3 points), although the two also differ in architecture. Like AcroBERT \citep{chen2023gladis}, the ranker scores context--candidate pairs, so it can rank candidates for acronyms it never saw in training.
+The trained encoder selects the reference in 273 of 381 items (71.7\%). It beats Qwen 7B by 13.1 points and the Hebrew-specialised DictaLM 2.0 by a small margin of 7.9 points (273 versus 243 items), and trails the weakest API model, GPT-4.1 mini, by 11.5 points. Against Qwen 14B the encoder leads by seven items (1.8 points) with only about 1.2\% of its parameters (184M versus 14.8B, roughly 80 times fewer), although the margin is small, and correcting three known reference errors (Section~\ref{sec:limitations}) gives 274 versus 269. Compared with the pretrained similarity baseline's 245 correct items (64.3\%), the trained ranker adds 28 (7.3 points), although the two also differ in architecture. Like AcroBERT \citep{chen2023gladis}, the ranker scores context--candidate pairs, so it can rank candidates for acronyms it never saw in training.
 
 \subsection{Generation versus selection}
 \label{sec:res-formats}
@@ -40,7 +40,7 @@ Reference wording explains part of the gap. In 67 of the 381 items the reference
 
 \subsection{Results by kind of sentence}
 \label{sec:res-source}
-The trained encoder's gain over the similarity baseline comes from Knesset items (146 to 177 of 253). On Wikipedia (31 to 30 of 41) and authored items (68 to 66 of 87) the two are close (Table~\ref{tab:res-source}). Against Qwen 14B, the encoder leads on Knesset items (177 versus 166) and trails slightly on Wikipedia (30 versus 32) and authored items (66 versus 68). The sources also differ in acronym mix, so these differences are not effects of source alone.
+The trained encoder's gain over the similarity baseline comes from Knesset items (146 to 177 of 253), while the two are close on Wikipedia (31 to 30 of 41) and authored items (68 to 66 of 87) (Table~\ref{tab:res-source}). Against Qwen 14B, the encoder leads on Knesset items (177 versus 166) and trails slightly on Wikipedia (30 versus 32) and authored items (66 versus 68). The sources also differ in acronym mix, so these differences are not effects of source alone.
 
 \begin{table}[t]
 \centering\small
@@ -74,7 +74,7 @@ Grok, sel. & 94.1 & 95.1 & 85.1 \\
 
 \subsection{Hebrew specialisation and hand judgment}
 \label{sec:res-measurement}
-DictaLM 2.0 and Qwen 7B have similar sizes (7.25B and 7.6B) and run with the same local inference settings. DictaLM generates the reference four times as often (32.8\% versus 8.1\%) but gains only 5.3 points in selection (63.8\% versus 58.5\%). Hebrew-specialised training is one possible explanation, but base-model and chat-template differences prevent attributing the gap to specialisation. To see how much the generation rule matters, B.C. judged all 381 DictaLM generated answers by hand (Table~\ref{tab:dictalm-supplement}). The automatic rule accepts 125 answers and B.C. 193. They agree on 121, while 72 are accepted only by hand and four only automatically.
+DictaLM 2.0 and Qwen 7B have similar sizes (7.25B and 7.6B) and run with the same local inference settings. DictaLM generates the reference four times as often (32.8\% versus 8.1\%) but gains only 5.3 points in selection (63.8\% versus 58.5\%). Hebrew-specialised training is one possible explanation, but base-model and chat-template differences prevent attributing the gap to specialisation. To see how much the generation rule matters, B.C. judged all 381 DictaLM generated answers by hand (Table~\ref{tab:dictalm-supplement}). The automatic rule accepts 125 answers and B.C. 193, with 121 accepted by both, 72 only by hand and four only automatically.
 
 \begin{table}[H]
 \centering\small
