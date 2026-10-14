@@ -1,7 +1,7 @@
 \section{Evaluation}
 \label{sec:eval}
 \subsection{Scoring}
-All scores use the same 381 test items, and failures count as wrong. In selection, the chosen candidate must equal the reference expansion. We read the leading label of an LLM's answer (A--Z, then AA, AB, and so on; two items have 30 candidates), so ``A.'' or ``A.'' followed by the candidate counts as A, and an answer that does not begin with an in-range label is invalid. This reading changes only DictaLM's score: it always writes the candidate after the label, and would score 0\% if a bare label were required.
+All scores use the same 381 test items, and failures count as wrong. In selection, the chosen candidate must equal the reference expansion. Labels run A--Z, then AA, AB, and so on; two items have 30 candidates. We read the leading label of an LLM's answer, so ``A.'' or ``A.'' followed by the candidate counts as A. An answer that does not begin with a valid label is invalid. This reading changes only DictaLM's score: it always writes the candidate after the label, and would score 0\% if a bare label were required.
 
 In generation, an answer is correct when the reference expansion appears in it as a substring after normalizing quotation marks. This rule can accept a longer answer that contains the reference and reject a valid variant, such as \heb{שקלים חדשים} for \heb{שקל חדש}. Generation thus measures string agreement with the reference, and selection measures exact choice of the reference; the two rules differ. For either rule we report
 \begin{equation}
