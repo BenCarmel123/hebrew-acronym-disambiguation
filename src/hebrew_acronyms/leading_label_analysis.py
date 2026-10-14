@@ -76,7 +76,8 @@ def derive_saved_comparison(root, saved=None):
                         "n_correct": n_correct, "run_id": strict["run_id"],
                         "strict_n_correct": strict["n_correct"], "strict_n_valid": strict["n_valid"],
                         "n_changed_correct": sum(r["correct"] != r["leading_label_correct"] for r in derived)})
-        metrics.append(dict(next(m for m in historical if m["system"] == system and m["task"] == "generate")))
+        generation = next(m for m in historical if m["system"] == system and m["task"] == "generate")
+        metrics.append({k: v for k, v in generation.items() if k != "comparison_status"})
     metrics.append(dict(saved["encoder"]["metric"]))
     return {"metrics": metrics, "selection_records": selection, "dictalm_audit": audit,
             "run_ids": saved["run_ids"] | {"dictalm": audit["run_id"]},
