@@ -24,23 +24,23 @@ Claude Haiku 5.5 & 43.3 & 89.0 \\
 Grok 4.7 & 48.3 & 92.1 \\
 \bottomrule
 \end{tabular}
-\caption{Test scores (\%) on 381 items, failures counted as wrong. Generation: reference substring; selection: exact candidate, using the same post-hoc leading-label rule for all seven LLMs. Similarity uses pretrained DictaBERT; the ranker is task-trained. Most mined is optimistic (Section~\ref{sec:eval}).}
+\caption{Test scores (\%) on 381 items, failures counted as wrong. Generation: reference substring. Selection: exact candidate, using the same post-hoc leading-label rule for all seven LLMs. Similarity uses pretrained DictaBERT. The ranker is task-trained. Most mined is optimistic (Section~\ref{sec:eval}).}
 \label{tab:test-results}
 \end{table}
 
 \subsection{The task-trained encoder}
 \label{sec:res-encoder}
-The trained encoder selects the reference in 273 of 381 items (71.7\%). It beats Qwen 7B by 13.1 points and the Hebrew-specialised DictaLM 2.0 by a small margin of 7.9 points (273 versus 243 items), and trails the weakest API model, GPT-4.1 mini, by 11.5 points. Against Qwen 14B the encoder leads by seven items (1.8 points) with only about 1.2\% of its parameters (184M versus 14.8B, roughly 80 times fewer), although the margin is small, and correcting three known reference errors (Section~\ref{sec:limitations}) gives 274 versus 269. The pretrained similarity baseline scores 245 (64.3\%); the trained ranker adds 28 correct items (7.3 points), although the two also differ in architecture. Like AcroBERT \citep{chen2023gladis}, the ranker scores context--candidate pairs, so it can rank candidates for acronyms it never saw in training.
+The trained encoder selects the reference in 273 of 381 items (71.7\%). It beats Qwen 7B by 13.1 points and the Hebrew-specialised DictaLM 2.0 by a small margin of 7.9 points (273 versus 243 items), and trails the weakest API model, GPT-4.1 mini, by 11.5 points. Against Qwen 14B the encoder leads by seven items (1.8 points) with only about 1.2\% of its parameters (184M versus 14.8B, roughly 80 times fewer), although the margin is small, and correcting three known reference errors (Section~\ref{sec:limitations}) gives 274 versus 269. The pretrained similarity baseline scores 245 (64.3\%). The trained ranker adds 28 correct items (7.3 points), although the two also differ in architecture. Like AcroBERT \citep{chen2023gladis}, the ranker scores context--candidate pairs, so it can rank candidates for acronyms it never saw in training.
 
 \subsection{Generation versus selection}
 \label{sec:res-formats}
 Selection scores exceed generation scores for each of the seven LLMs (Figure~\ref{fig:generate-vs-select}b), by 31.0 points for DictaLM to 58.3 points for Qwen 14B. The two formats differ in more than candidate access: generation is checked by string inclusion, while selection must return a valid label, and the inventory contains every test reference (100\% oracle coverage), partly through review-time additions. The gap therefore does not isolate the effect of seeing candidates.
 
-Reference wording explains part of the gap. In 67 of the 381 items the reference contains parentheses, such as \heb{שמונה עשרה (גימטריה)} (eighteen, gematria) for \heb{י״ח} in \texttt{kn4-0499}. Across the seven LLMs, these items yield 1 of 469 automatic generation matches against 366 of 469 selection matches; Grok's \heb{שמונה עשר (18)} is rejected by the string rule but judged to fit by the reviewer. On the remaining 314 items selection still leads for all seven systems (Gemini: 207 versus 294 matches). The selective review also marks 338 automatically rejected generated answers as agreeing in meaning with the displayed reference, so the generation scores are likely underestimates; a common semantic assessment of both formats is needed to compare answer correctness.
+Reference wording explains part of the gap. In 67 of the 381 items the reference contains parentheses, such as \heb{שמונה עשרה (גימטריה)} (eighteen, gematria) for \heb{י״ח} in \texttt{kn4-0499}. Across the seven LLMs, these items yield 1 of 469 automatic generation matches against 366 of 469 selection matches. Grok's \heb{שמונה עשר (18)} is rejected by the string rule but judged to fit by the reviewer. On the remaining 314 items selection still leads for all seven systems (Gemini: 207 versus 294 matches). The selective review also marks 338 automatically rejected generated answers as agreeing in meaning with the displayed reference, so the generation scores are likely underestimates. A common semantic assessment of both formats is needed to compare answer correctness.
 
 \subsection{Results by kind of sentence}
 \label{sec:res-source}
-The trained encoder's gain over the similarity baseline comes from Knesset items (146 to 177 of 253); on Wikipedia (31 to 30 of 41) and authored items (68 to 66 of 87) the two are close (Table~\ref{tab:res-source}). Against Qwen 14B, the encoder leads on Knesset items (177 versus 166) and trails slightly on Wikipedia (30 versus 32) and authored items (66 versus 68). The sources also differ in acronym mix, so these differences are not effects of source alone.
+The trained encoder's gain over the similarity baseline comes from Knesset items (146 to 177 of 253). On Wikipedia (31 to 30 of 41) and authored items (68 to 66 of 87) the two are close (Table~\ref{tab:res-source}). Against Qwen 14B, the encoder leads on Knesset items (177 versus 166) and trails slightly on Wikipedia (30 versus 32) and authored items (66 versus 68). The sources also differ in acronym mix, so these differences are not effects of source alone.
 
 \begin{table}[t]
 \centering\small
@@ -74,7 +74,7 @@ Grok, sel. & 94.1 & 95.1 & 85.1 \\
 
 \subsection{Hebrew specialisation and hand judgment}
 \label{sec:res-measurement}
-DictaLM 2.0 and Qwen 7B have similar sizes (7.25B and 7.6B) and run with the same local inference settings. DictaLM generates the reference four times as often (32.8\% versus 8.1\%) but gains only 5.3 points in selection (63.8\% versus 58.5\%). Hebrew-specialised training is one possible explanation, but base-model and chat-template differences prevent attributing the gap to specialisation. To see how much the generation rule matters, B.C. judged all 381 DictaLM generated answers by hand (Table~\ref{tab:dictalm-supplement}). The automatic rule accepts 125 answers and B.C. 193; they agree on 121, while 72 are accepted only by hand and four only automatically.
+DictaLM 2.0 and Qwen 7B have similar sizes (7.25B and 7.6B) and run with the same local inference settings. DictaLM generates the reference four times as often (32.8\% versus 8.1\%) but gains only 5.3 points in selection (63.8\% versus 58.5\%). Hebrew-specialised training is one possible explanation, but base-model and chat-template differences prevent attributing the gap to specialisation. To see how much the generation rule matters, B.C. judged all 381 DictaLM generated answers by hand (Table~\ref{tab:dictalm-supplement}). The automatic rule accepts 125 answers and B.C. 193. They agree on 121, while 72 are accepted only by hand and four only automatically.
 
 \begin{table}[H]
 \centering\small
@@ -94,7 +94,7 @@ Selection: leading label & 243/381 & 63.8 \\
 
 \subsection{Examples and errors}
 \label{sec:res-errors}
-Table~\ref{app:res-examples} in Appendix~\ref{app:tables} shows a correct generated answer that the string rule rejects, a selection answer with extra text after the label, and an encoder error; Appendix~\ref{app:examples} gives more examples, and Appendix~\ref{app:prompts} gives both prompts.
+Table~\ref{app:res-examples} in Appendix~\ref{app:tables} shows a correct generated answer that the string rule rejects, a selection answer with extra text after the label, and an encoder error. Appendix~\ref{app:examples} gives more examples, and Appendix~\ref{app:prompts} gives both prompts.
 
 \subsection{Conclusions}
 \label{sec:conclusions}
@@ -106,7 +106,7 @@ We draw two conclusions.
 
 \subsection{Future work}
 \label{sec:future}
-\paragraph{More and cleaner training data.} The documented training file has 2,829 items, most of them weakly labeled substituted sentences; its identity as the historical run input remains unverified. Mining more natural sentences and cleaning their labels would show how far task training can take a small encoder, and whether its gap to the API models narrows. Our sentences come from only two sources, Wikipedia and parliamentary transcripts. Other kinds of Hebrew text could add senses that our sources rarely use: news, legal rulings, medical and military writing, informal social-media posts, and Rabbinic literature, the domain of HAADS \citep{hacohenkerner2010haads}. Mining them would test whether the encoder generalizes beyond our two sources.
+\paragraph{More and cleaner training data.} The documented training file has 2,829 items, most of them weakly labeled substituted sentences. Its identity as the historical run input remains unverified. Mining more natural sentences and cleaning their labels would show how far task training can take a small encoder, and whether its gap to the API models narrows. Our sentences come from only two sources, Wikipedia and parliamentary transcripts. Other kinds of Hebrew text could add senses that our sources rarely use: news, legal rulings, medical and military writing, informal social-media posts, and Rabbinic literature, the domain of HAADS \citep{hacohenkerner2010haads}. Mining them would test whether the encoder generalizes beyond our two sources.
 
 \paragraph{Training the LLMs too.} We compare a fine-tuned encoder with LLMs used without task training, so training and model type change together. Fine-tuning an open LLM such as DictaLM 2.0 on the same training data, for example with a parameter-efficient method, would separate the effect of task training from that of architecture and size.
 
@@ -114,4 +114,4 @@ We draw two conclusions.
 
 \paragraph{Variability and robustness.} Each system ran once. Training the encoder with several seeds set before initialization, and running the LLMs with several candidate orders and prompt wordings, would show how stable the differences are.
 
-\paragraph{Harder and cleaner tests.} Newly coined acronym--meaning pairs in informative contexts would separate contextual interpretation from familiar associations. Varying candidate-set size, hard distractors and option order would test how selection depends on the list; since chance is $1/k$ for $k$ candidates, such a test must control for chance. Finally, independently validating the test references would remove known errors, such as the three wrong labels in Section~\ref{sec:limitations}.
+\paragraph{Harder and cleaner tests.} Newly coined acronym--meaning pairs in informative contexts would separate contextual interpretation from familiar associations. Varying candidate-set size, hard distractors and option order would test how selection depends on the list. Since chance is $1/k$ for $k$ candidates, such a test must control for chance. Finally, independently validating the test references would remove known errors, such as the three wrong labels in Section~\ref{sec:limitations}.
