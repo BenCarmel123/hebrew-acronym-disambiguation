@@ -10,7 +10,8 @@ Start with the [paper source and PDF build guide](paper/README.md) and the
 [main experimental notebook](notebooks/experimental_study.ipynb). **The notebook's
 saved tables, figures and explanations can be read without installing or running
 anything.** It presents the retained 381-item test cohort and links to the underlying
-evidence. See the [submission PDF](https://github.com/BenCarmel123/hebrew-acronym-disambiguation/releases/download/submission-2026-10-12/hebrew-acronym-expansion.pdf).
+evidence. The final paper (14 October 2026) is [paper/main.tex](paper/main.tex) with its
+[sections](paper/sections/); the [build guide](paper/README.md) produces the PDF.
 
 For a fresh execution, follow the single
 [saved-analysis installation and reproduction procedure](docs/reproducible_evaluation.md#reproduce-the-saved-test-analysis).

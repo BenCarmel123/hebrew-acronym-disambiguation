@@ -15,4 +15,4 @@ This creates `paper/build/main.pdf` and checks template hashes, references, glyp
 layout warnings and the eight-page body limit. Inspect all PDF pages visually
 after building. Build products are ignored by Git.
 
-[English PDF](https://github.com/BenCarmel123/hebrew-acronym-disambiguation/releases/download/submission-2026-10-12/hebrew-acronym-expansion.pdf).
+The final version (14 October 2026) is built from this source with the command above.
